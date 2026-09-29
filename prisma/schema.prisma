@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------- Enums ----------
+
 enum Role {
   CANDIDATE
   RECRUITER
@@ -14,12 +16,744 @@ enum Role {
   PLATFORM_ADMIN
 }
 
+enum TestType {
+  PERSONALITY
+  EQ
+  IQ
+  LANGUAGE
+  SKILL
+}
+
+enum QuestionType {
+  LIKERT
+  MCQ
+  SITUATIONAL_JUDGEMENT
+  WRITING
+}
+
+enum QuestionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  RETIRED
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  EXPIRED
+}
+
+enum PlanName {
+  BASIC
+  ADVANCED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  COURSE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum JobOpeningStatus {
+  OPEN
+  PAUSED
+  FILLED
+  CLOSED
+}
+
+enum ShortlistStatus {
+  SHORTLISTED
+  CONTACTED
+  INTERVIEWING
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+enum ContactRequestStatus {
+  SENT
+  ACCEPTED
+  DECLINED
+}
+
+enum AtsExportStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+enum NotificationType {
+  TOP_PERFORMER
+  TEST_REMINDER
+  SUBSCRIPTION_EXPIRING
+  TRAINING_RECOMMENDATION
+  GENERAL
+}
+
+enum BadgeType {
+  TOP_PERFORMER_ALL_TESTS
+}
+
+enum CefrLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+// ---------- Auth & users ----------
+
 model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  role          Role      @default(CANDIDATE)
+  name          String?
+  emailVerified DateTime?
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  candidateProfile CandidateProfile?
+
+  shortlistsCreated   Shortlist[]      @relation("ShortlistRecruiter")
+  contactRequestsSent ContactRequest[] @relation("ContactRequestRecruiter")
+  jobOpeningsCreated  JobOpening[]     @relation("JobOpeningCreatedBy")
+  apiKeysCreated      ApiKey[]         @relation("ApiKeyCreatedBy")
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+
+  @@index([companyId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model CandidateProfile {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city                 String?
+  regionId             String?
+  region               Region?   @relation(fields: [regionId], references: [id])
+  experienceYears      Int?
+  jobRoleId            String?
+  jobRole              JobRole?  @relation(fields: [jobRoleId], references: [id])
+  minimumSalary        Int?
+  consentGiven         Boolean   @default(false)
+  consentAt            DateTime?
+  privacyPolicyVersion String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  testSessions    TestSession[]
+  scores          Score[]
+  aiFeedback      AIFeedback[]
+  badges          Badge[]
+  enrollments     Enrollment[]
+  shortlistedIn   Shortlist[]
+  contactRequests ContactRequest[]
+  atsExports      AtsExport[]
+
+  @@index([regionId])
+  @@index([jobRoleId])
+}
+
+// ---------- Companies, plans, subscriptions ----------
+
+model Company {
   id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(CANDIDATE)
-  name      String?
+  name      String
+  industry  String?
+  city      String?
+  pilotMode Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  users            User[]
+  subscriptions    Subscription[]
+  jobOpenings      JobOpening[]
+  apiKeys          ApiKey[]
+  webhookEndpoints WebhookEndpoint[]
+  pilotConfig      PilotConfig?
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  name         PlanName @unique
+  features     Json
+  priceMonthly Int
+  createdAt    DateTime @default(now())
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  companyId String
+  company   Company            @relation(fields: [companyId], references: [id])
+  planId    String
+  plan      Plan               @relation(fields: [planId], references: [id])
+  status    SubscriptionStatus @default(TRIALING)
+  startDate DateTime           @default(now())
+  endDate   DateTime?
+  autoRenew Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  payments Payment[]
+
+  @@index([companyId])
+}
+
+model Payment {
+  id                String         @id @default(cuid())
+  purpose           PaymentPurpose
+  subscriptionId    String?
+  subscription      Subscription?  @relation(fields: [subscriptionId], references: [id])
+  enrollmentId      String?
+  enrollment        Enrollment?    @relation(fields: [enrollmentId], references: [id])
+  amount            Int
+  currency          String         @default("PKR")
+  status            PaymentStatus  @default(PENDING)
+  provider          String
+  providerReference String?
+  createdAt         DateTime       @default(now())
+
+  @@index([subscriptionId])
+  @@index([enrollmentId])
+}
+
+// ---------- Reference data ----------
+
+model JobRole {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  candidateProfiles CandidateProfile[]
+  questions         Question[]
+  courses           Course[]
+  jobOpenings       JobOpening[]
+  salaryBenchmarks  SalaryBenchmark[]
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  candidateProfiles CandidateProfile[]
+  questions         Question[]
+  regionLanguages   RegionLanguage[]
+}
+
+model Language {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  questions       Question[]
+  regionLanguages RegionLanguage[]
+}
+
+model RegionLanguage {
+  id         String   @id @default(cuid())
+  regionId   String
+  region     Region   @relation(fields: [regionId], references: [id])
+  languageId String
+  language   Language @relation(fields: [languageId], references: [id])
+  isPrimary  Boolean  @default(true)
+
+  @@unique([regionId, languageId])
+}
+
+// ---------- Question bank & self-learning ----------
+
+model Question {
+  id            String         @id @default(cuid())
+  testType      TestType
+  type          QuestionType
+  content       String
+  options       Json?
+  correctAnswer String?
+  reverseKeyed  Boolean        @default(false)
+  topic         String?
+  jobRoleId     String?
+  jobRole       JobRole?       @relation(fields: [jobRoleId], references: [id])
+  regionId      String?
+  region        Region?        @relation(fields: [regionId], references: [id])
+  languageId    String?
+  language      Language?      @relation(fields: [languageId], references: [id])
+  aParam        Float          @default(1)
+  bParam        Float          @default(0)
+  status        QuestionStatus @default(DRAFT)
+  isPretest     Boolean        @default(false)
+  createdById   String?
+  approvedById  String?
+  approvedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  itemStatistic ItemStatistic?
+  responses     Response[]
+
+  @@index([testType, status])
+  @@index([jobRoleId])
+}
+
+model ItemStatistic {
+  id               String    @id @default(cuid())
+  questionId       String    @unique
+  question         Question  @relation(fields: [questionId], references: [id])
+  responseCount    Int       @default(0)
+  correctCount     Int       @default(0)
+  discrimination   Float?
+  difficulty       Float?
+  difByGender      Float?
+  difByRegion      Float?
+  difByLanguage    Float?
+  flagged          Boolean   @default(false)
+  flagReason       String?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  lastCalibratedAt DateTime?
+  updatedAt        DateTime  @updatedAt
+}
+
+model RecalibrationRun {
+  id           String    @id @default(cuid())
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  itemsUpdated Int       @default(0)
+  triggeredBy  String
+  status       String    @default("RUNNING")
+}
+
+model TestConfig {
+  id                String   @id @default(cuid())
+  testType          TestType @unique
+  minItems          Int      @default(10)
+  maxItems          Int      @default(20)
+  seThreshold       Float    @default(0.35)
+  timeLimitMinutes  Int      @default(15)
+  retakeWaitingDays Int      @default(30)
+  pretestItemCount  Int      @default(2)
+  updatedAt         DateTime @updatedAt
+}
+
+// ---------- Test engine ----------
+
+model TestSession {
+  id                 String            @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile  @relation(fields: [candidateProfileId], references: [id])
+  testType           TestType
+  status             SessionStatus     @default(IN_PROGRESS)
+  theta              Float             @default(0)
+  standardError      Float?
+  itemsAdministered  Int               @default(0)
+  resumeState        Json?
+  startedAt          DateTime          @default(now())
+  completedAt        DateTime?
+  expiresAt          DateTime?
+
+  responses         Response[]
+  score             Score?
+  writingAssessment WritingAssessment?
+
+  @@index([candidateProfileId, testType])
+}
+
+model Response {
+  id             String      @id @default(cuid())
+  sessionId      String
+  session        TestSession @relation(fields: [sessionId], references: [id])
+  questionId     String
+  question       Question    @relation(fields: [questionId], references: [id])
+  answerGiven    Json
+  isCorrect      Boolean?
+  responseTimeMs Int?
+  thetaBefore    Float?
+  thetaAfter     Float?
+  answeredAt     DateTime    @default(now())
+
+  @@index([sessionId])
+  @@index([questionId])
+}
+
+model WritingAssessment {
+  id          String      @id @default(cuid())
+  sessionId   String      @unique
+  session     TestSession @relation(fields: [sessionId], references: [id])
+  essayText   String
+  cefrLevel   CefrLevel?
+  rubricScore Json?
+  feedback    String?
+  gradedAt    DateTime?
+}
+
+// ---------- Scoring & candidate results ----------
+
+model Score {
+  id                 String           @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  sessionId          String           @unique
+  session            TestSession      @relation(fields: [sessionId], references: [id])
+  testType           TestType
+  rawScore           Float
+  percentile         Float?
+  quartile           Int?
+  cefrLevel          CefrLevel?
+  computedAt         DateTime         @default(now())
+
+  @@index([candidateProfileId, testType])
+}
+
+model AIFeedback {
+  id                 String           @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  testType           TestType
+  feedbackText       String
+  improvementTips    Json?
+  generatedAt        DateTime         @default(now())
+
+  @@index([candidateProfileId, testType])
+}
+
+model Badge {
+  id                 String           @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  type               BadgeType
+  awardedAt          DateTime         @default(now())
+  notifiedAt         DateTime?
+
+  @@index([candidateProfileId])
+}
+
+// ---------- Salary guide ----------
+
+model SalaryBenchmark {
+  id             String   @id @default(cuid())
+  jobRoleId      String
+  jobRole        JobRole  @relation(fields: [jobRoleId], references: [id])
+  city           String
+  experienceBand String
+  minSalary      Int
+  avgSalary      Int
+  maxSalary      Int
+  updatedAt      DateTime @updatedAt
+
+  @@unique([jobRoleId, city, experienceBand])
+}
+
+// ---------- Training ----------
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  isFree      Boolean  @default(true)
+  price       Int      @default(0)
+  jobRoleId   String?
+  jobRole     JobRole? @relation(fields: [jobRoleId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons     CourseLesson[]
+  enrollments Enrollment[]
+}
+
+model CourseLesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  title     String
+  content   String?
+  order     Int
+  createdAt DateTime @default(now())
+
+  lessonProgress LessonProgress[]
+
+  @@index([courseId])
+}
+
+model Enrollment {
+  id                 String           @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  courseId           String
+  course             Course           @relation(fields: [courseId], references: [id])
+  status             EnrollmentStatus @default(NOT_STARTED)
+  progressPercent    Int              @default(0)
+  enrolledAt         DateTime         @default(now())
+  completedAt        DateTime?
+
+  lessonProgress LessonProgress[]
+  payments       Payment[]
+
+  @@unique([candidateProfileId, courseId])
+}
+
+model LessonProgress {
+  id           String       @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id])
+  lessonId     String
+  lesson       CourseLesson @relation(fields: [lessonId], references: [id])
+  completedAt  DateTime?
+
+  @@unique([enrollmentId, lessonId])
+}
+
+// ---------- Recruiter tools & job openings ----------
+
+model JobOpening {
+  id             String           @id @default(cuid())
+  companyId      String
+  company        Company          @relation(fields: [companyId], references: [id])
+  jobRoleId      String
+  jobRole        JobRole          @relation(fields: [jobRoleId], references: [id])
+  city           String?
+  salaryRangeMin Int
+  salaryRangeMax Int
+  status         JobOpeningStatus @default(OPEN)
+  createdById    String
+  createdBy      User             @relation("JobOpeningCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  shortlists      Shortlist[]
+  contactRequests ContactRequest[]
+
+  @@index([companyId])
+  @@index([jobRoleId])
+}
+
+model Shortlist {
+  id                 String           @id @default(cuid())
+  recruiterId        String
+  recruiter          User             @relation("ShortlistRecruiter", fields: [recruiterId], references: [id])
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  jobOpeningId       String
+  jobOpening         JobOpening       @relation(fields: [jobOpeningId], references: [id])
+  status             ShortlistStatus  @default(SHORTLISTED)
+  note               String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  statusHistory ShortlistStatusHistory[]
+
+  @@unique([recruiterId, candidateProfileId, jobOpeningId])
+  @@index([candidateProfileId])
+  @@index([jobOpeningId])
+}
+
+model ShortlistStatusHistory {
+  id          String          @id @default(cuid())
+  shortlistId String
+  shortlist   Shortlist       @relation(fields: [shortlistId], references: [id])
+  status      ShortlistStatus
+  changedAt   DateTime        @default(now())
+  changedById String?
+
+  @@index([shortlistId])
+}
+
+model ContactRequest {
+  id                 String                @id @default(cuid())
+  recruiterId        String
+  recruiter          User                  @relation("ContactRequestRecruiter", fields: [recruiterId], references: [id])
+  candidateProfileId String
+  candidateProfile   CandidateProfile      @relation(fields: [candidateProfileId], references: [id])
+  jobOpeningId       String
+  jobOpening         JobOpening            @relation(fields: [jobOpeningId], references: [id])
+  status             ContactRequestStatus  @default(SENT)
+  message            String?
+  sentAt             DateTime              @default(now())
+  respondedAt        DateTime?
+
+  @@index([candidateProfileId])
+  @@index([jobOpeningId])
+}
+
+// ---------- ATS integration ----------
+
+model AtsExport {
+  id                 String           @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  companyId          String
+  status             AtsExportStatus  @default(PENDING)
+  payload            Json
+  externalId         String?
+  exportedAt         DateTime         @default(now())
+
+  @@index([candidateProfileId])
+  @@index([companyId])
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  url       String
+  secret    String
+  events    String[]
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([companyId])
+}
+
+model WebhookDelivery {
+  id          String                 @id @default(cuid())
+  endpointId  String
+  endpoint    WebhookEndpoint        @relation(fields: [endpointId], references: [id])
+  event       String
+  payload     Json
+  status      WebhookDeliveryStatus  @default(PENDING)
+  attempt     Int                    @default(1)
+  respondedAt DateTime?
+  createdAt   DateTime               @default(now())
+
+  @@index([endpointId])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  label       String?
+  hashedKey   String    @unique
+  createdById String
+  createdBy   User      @relation("ApiKeyCreatedBy", fields: [createdById], references: [id])
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([companyId])
+}
+
+// ---------- Platform configuration ----------
+
+model PilotConfig {
+  id        String   @id @default(cuid())
+  enabled   Boolean  @default(false)
+  companyId String?  @unique
+  company   Company? @relation(fields: [companyId], references: [id])
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Notifications & audit ----------
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id])
+  type      NotificationType
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  message   String
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
 }
