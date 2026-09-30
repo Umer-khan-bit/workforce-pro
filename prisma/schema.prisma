@@ -39,6 +39,12 @@ enum QuestionStatus {
   RETIRED
 }
 
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 enum SessionStatus {
   IN_PROGRESS
   COMPLETED
@@ -357,6 +363,7 @@ model Question {
   options       Json?
   correctAnswer String?
   reverseKeyed  Boolean        @default(false)
+  difficulty    Difficulty     @default(MEDIUM)
   topic         String?
   jobRoleId     String?
   jobRole       JobRole?       @relation(fields: [jobRoleId], references: [id])

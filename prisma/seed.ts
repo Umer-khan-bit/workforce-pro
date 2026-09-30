@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { seedDemoData } from "./seedDemo";
+import { importIpipItems } from "../src/lib/questionBank/ipipImport";
 
 const prisma = new PrismaClient();
 
@@ -98,6 +99,10 @@ async function main() {
     });
     console.log(`Platform admin ready: ${adminEmail}`);
   }
+
+  const seedAdmin = adminEmail ? await prisma.user.findUnique({ where: { email: adminEmail } }) : null;
+  const ipip = await importIpipItems(prisma, seedAdmin?.id ?? null);
+  console.log(`IPIP Big Five items: ${ipip.created} added, ${ipip.skipped} already present`);
 
   if (process.env.DEMO_MODE !== "true") {
     console.log("DEMO_MODE is not 'true' - skipping demo data (plans, companies, candidates).");

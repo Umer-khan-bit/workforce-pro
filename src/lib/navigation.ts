@@ -263,12 +263,13 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "question-bank",
             label: "Question bank",
-            description: "Author and generate test questions.",
+            description: "Add, edit, retire and import test questions.",
             planned: [
               "AI-generated questions",
               "Likert, MCQ, situational-judgement and writing items, with reverse-keyed items",
               "Tag by test, job role, region and language",
             ],
+            live: true,
           },
           {
             slug: "approvals",
