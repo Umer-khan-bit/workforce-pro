@@ -79,6 +79,9 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 
 ## Test engine rules
 - Personality: Big Five, IPIP-style Likert items (1–5), includes reverse-keyed items, not adaptive
+  - Decided: the fifth trait is scored and reported as Emotional Stability (high = calm), not Neuroticism.
+    Its 8 worry/mood items are reverse-keyed (24 of the 50 items are reverse-keyed in total). The scoring
+    module flips reverse-keyed answers (1–5 becomes 5–1) before averaging each trait.
 - EQ: Likert + situational-judgement items, not adaptive
 - IQ, Language (MCQ part), Skill: adaptive (CAT) with IRT 2PL
   - Start ability theta = 0. After each answer, update theta (EAP).
