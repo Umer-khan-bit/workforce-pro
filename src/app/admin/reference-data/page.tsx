@@ -82,14 +82,15 @@ export default async function ReferenceDataPage() {
         <CrudTable
           entity="languages"
           addLabel="Add language"
-          blank={{ name: "", code: "", isActive: true, isDefault: false }}
+          blank={{ name: "", code: "", isActive: true, isDefault: false, isRtl: false }}
           columns={[
             { key: "name", label: "Name", type: "text", width: "10rem" },
             { key: "code", label: "Code", type: "text", width: "6rem" },
             { key: "isActive", label: "Active", type: "checkbox" },
             { key: "isDefault", label: "Default", type: "checkbox" },
+            { key: "isRtl", label: "Right-to-left", type: "checkbox" },
           ]}
-          rows={languages.map((l) => ({ id: l.id, name: l.name, code: l.code, isActive: l.isActive, isDefault: l.isDefault }))}
+          rows={languages.map((l) => ({ id: l.id, name: l.name, code: l.code, isActive: l.isActive, isDefault: l.isDefault, isRtl: l.isRtl }))}
         />
       </Section>
 

@@ -25,7 +25,7 @@ const REGIONS = [
 
 const LANGUAGES = [
   { name: "English", code: "en" },
-  { name: "Urdu", code: "ur" },
+  { name: "Urdu", code: "ur", isRtl: true },
 ];
 
 async function main() {

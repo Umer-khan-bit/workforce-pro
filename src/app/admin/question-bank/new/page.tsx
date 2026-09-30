@@ -16,7 +16,7 @@ export default async function NewQuestionPage() {
       <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Add question</h1>
       <QuestionForm
         jobRoles={jobRoles.map((r) => ({ id: r.id, name: r.name }))}
-        languages={languages.map((l) => ({ id: l.id, name: l.name }))}
+        languages={languages.map((l) => ({ id: l.id, name: l.name, rtl: l.isRtl }))}
       />
     </div>
   );

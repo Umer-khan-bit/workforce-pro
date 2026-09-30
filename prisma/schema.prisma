@@ -45,6 +45,29 @@ enum Difficulty {
   HARD
 }
 
+enum QuestionSource {
+  MANUAL
+  IMPORTED
+  AI_GENERATED
+  AI_TRANSLATED
+}
+
+enum ReviewVerdict {
+  OK
+  NEEDS_FIX
+  REJECT
+}
+
+enum AiRunKind {
+  GENERATE
+  TRANSLATE
+}
+
+enum AiRunStatus {
+  COMPLETED
+  FAILED
+}
+
 enum SessionStatus {
   IN_PROGRESS
   COMPLETED
@@ -355,6 +378,7 @@ model Language {
   code      String   @unique
   isActive  Boolean  @default(true)
   isDefault Boolean  @default(false)
+  isRtl     Boolean  @default(false)
   createdAt DateTime @default(now())
 
   questions       Question[]
@@ -396,36 +420,72 @@ model RegionLanguage {
 // ---------- Question bank & self-learning ----------
 
 model Question {
-  id            String         @id @default(cuid())
-  testType      TestType
-  type          QuestionType
-  content       String
-  options       Json?
-  correctAnswer String?
-  reverseKeyed  Boolean        @default(false)
-  difficulty    Difficulty     @default(MEDIUM)
-  topic         String?
-  jobRoleId     String?
-  jobRole       JobRole?       @relation(fields: [jobRoleId], references: [id])
-  regionId      String?
-  region        Region?        @relation(fields: [regionId], references: [id])
-  languageId    String?
-  language      Language?      @relation(fields: [languageId], references: [id])
-  aParam        Float
-  bParam        Float
-  status        QuestionStatus @default(DRAFT)
-  isPretest     Boolean        @default(false)
-  createdById   String?
-  approvedById  String?
-  approvedAt    DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  testType        TestType
+  type            QuestionType
+  content         String
+  options         Json?
+  correctAnswer   String?
+  reverseKeyed    Boolean        @default(false)
+  difficulty      Difficulty     @default(MEDIUM)
+  explanation     String?        @db.Text
+  reviewNotes     String?        @db.Text
+  reviewVerdict   ReviewVerdict?
+  rejectionReason String?
+  source          QuestionSource @default(MANUAL)
+  aiRunId         String?
+  aiRun           AiRun?         @relation(fields: [aiRunId], references: [id])
+  translationOfId String?
+  translationOf   Question?      @relation("QuestionTranslation", fields: [translationOfId], references: [id])
+  translations    Question[]     @relation("QuestionTranslation")
+  topic           String?
+  jobRoleId       String?
+  jobRole         JobRole?       @relation(fields: [jobRoleId], references: [id])
+  regionId        String?
+  region          Region?        @relation(fields: [regionId], references: [id])
+  languageId      String?
+  language        Language?      @relation(fields: [languageId], references: [id])
+  aParam          Float
+  bParam          Float
+  status          QuestionStatus @default(DRAFT)
+  isPretest       Boolean        @default(false)
+  createdById     String?
+  approvedById    String?
+  approvedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   itemStatistic ItemStatistic?
   responses     Response[]
 
   @@index([testType, status])
   @@index([jobRoleId])
+}
+
+/// One AI batch (generate + review, or translate + review). Audit-logged as well.
+model AiRun {
+  id           String      @id @default(cuid())
+  kind         AiRunKind
+  actorId      String?
+  model        String
+  reviewModel  String
+  testType     TestType?
+  languageId   String?
+  jobRoleId    String?
+  difficulty   Difficulty?
+  requested    Int
+  created      Int         @default(0)
+  dropped      Int         @default(0)
+  inputTokens  Int         @default(0)
+  outputTokens Int         @default(0)
+  costEstimate Float       @default(0)
+  status       AiRunStatus @default(COMPLETED)
+  error        String?
+  createdAt    DateTime    @default(now())
+
+  questions Question[]
+
+  @@index([createdAt])
 }
 
 model ItemStatistic {

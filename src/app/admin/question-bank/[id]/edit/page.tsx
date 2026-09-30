@@ -4,8 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { OPTION_KEYS } from "@/lib/questionBank/schema";
 import QuestionForm, { EMPTY_FORM, type QuestionFormValues } from "../../QuestionForm";
 
-export default async function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditQuestionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const fromApprovals = (await searchParams).from === "approvals";
   const [question, jobRoles, languages] = await Promise.all([
     prisma.question.findUnique({ where: { id } }),
     prisma.jobRole.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -27,6 +34,7 @@ export default async function EditQuestionPage({ params }: { params: Promise<{ i
     correctAnswer: question.correctAnswer ?? "",
     reverseKeyed: question.reverseKeyed,
     topic: question.topic ?? "",
+    explanation: question.explanation ?? "",
     difficulty: question.difficulty,
     jobRoleId: question.jobRoleId ?? "",
     languageId: question.languageId ?? "",
@@ -34,15 +42,17 @@ export default async function EditQuestionPage({ params }: { params: Promise<{ i
 
   return (
     <div>
-      <Link href="/admin/question-bank" className="text-sm text-brand-700 underline">
-        &larr; Question bank
+      <Link href={fromApprovals ? "/admin/approvals" : "/admin/question-bank"} className="text-sm text-brand-700 underline">
+        &larr; {fromApprovals ? "Approvals" : "Question bank"}
       </Link>
       <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Edit question</h1>
       <QuestionForm
         questionId={question.id}
         initial={initial}
         jobRoles={jobRoles.map((r) => ({ id: r.id, name: r.name }))}
-        languages={languages.map((l) => ({ id: l.id, name: l.name }))}
+        languages={languages.map((l) => ({ id: l.id, name: l.name, rtl: l.isRtl }))}
+        returnTo={fromApprovals ? "/admin/approvals" : "/admin/question-bank"}
+        reviewNotes={question.reviewNotes}
       />
     </div>
   );

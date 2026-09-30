@@ -127,6 +127,9 @@ email/notification templates, courses and lessons, homepage and privacy policy t
   `src/lib/settings/definitions.ts`); read them with `getSetting()`. The numbers quoted elsewhere in
   this file (stop rules, quartiles, limits) are the starting values, not constants to copy into code.
 - Adding a new admin-editable value means adding its edit screen in the same change.
+- AI question generation: the models, thinking effort, batch size, prices (for the cost estimate) and every
+  prompt live in Settings (`aiGeneration`, `aiPrompts`). The API key stays in `.env`. Everything AI writes
+  is saved PENDING_APPROVAL; only an admin approves. Every AI run is logged (AiRun + audit log).
 
 ## Security and privacy (bank-grade, non-negotiable)
 - Never log passwords, tokens, CNIC, salaries or test answers.

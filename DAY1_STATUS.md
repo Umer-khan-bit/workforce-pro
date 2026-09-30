@@ -1,6 +1,37 @@
 # Workforce Pro - status (Day 1, plus Day 2 part 1 and the no-hardcoding fix)
 
-> Newest first: the two sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+> Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 2, part 2: AI question generation and approval (done)
+
+**Generate** (Platform admin > Question bank > Generate with AI): pick test (IQ, EQ, Language, Job skill), job role (Skill), language, difficulty, how many and an optional focus note. Claude writes the questions in batches (size set in Settings; the page sends one batch at a time with a progress bar, and batches already saved are kept if a later one fails). A second, separate Claude call reviews each batch for errors, ambiguity and bias and writes a verdict (OK / Needs fixing / Reject) and notes. Everything is saved **Pending** with the explanation and review notes; repeats of existing questions and anything failing the normal question rules are dropped. IQ and Skill get multiple choice; EQ gets situational-judgement and Likert items (split set in Settings); Language gets multiple choice and writing prompts, with the CEFR level taken from the difficulty (mapping in Settings).
+
+**Approvals** (Platform admin > Approvals): the queue of pending questions with options, correct answer, explanation and the AI review. Approve, Edit (stays pending until approved), Reject (kept, marked Rejected, with an optional reason), and bulk approve. Bulk approve skips questions the AI review flagged (Needs fixing / Reject) unless "include flagged" is ticked. Approving records who and when.
+
+**Urdu translation of the 50 IPIP items**: a panel on the Approvals page translates them in batches into any second language, saved as Pending and linked to the English original, keeping trait and reverse-keying, with a back-translation and an AI check of meaning and negation in the notes. Urdu shows right-to-left (a "Right-to-left" flag on each language, editable under Roles, regions & languages). **Not run yet**: it is one click on the Approvals page and costs roughly 10 cents.
+
+**Settings** (Settings > AI generation, AI prompts): models (both `claude-sonnet-5-5`), thinking effort, reply length, batch size, maximum per run, EQ and Language mix, the four prices used for the cost estimate, all prompts (with their allowed placeholders checked on save), difficulty wording and the CEFR mapping. The key stays in `.env`.
+
+**Logging**: every batch is an `AiRun` row and an audit-log entry (who, when, model, counts, tokens, estimated cost), failures included. AI endpoints are rate-limited per admin (30 calls per 15 minutes, in code).
+
+**No key / no credit**: clear messages on the page and from the API (missing key, rejected key, no credit, rate limit, busy, unreachable, refusal, cut-off reply), never a crash. Checked for real with the key blanked.
+
+### Live check (one small batch, as agreed)
+5 IQ questions, medium, English: all 5 saved as Pending, 0 dropped, reviewed (4 OK, 1 Needs fixing), 3,233 input + 1,670 output tokens, estimated cost **$0.023**. I checked the answers of three by hand and they were right; the reviewer correctly flagged the one weak logic question. **These 5 are in your Approvals queue** so you can see what it produces; approve or reject them as you like.
+
+### Notes and decisions
+- `.env` has `ANTHROPIC_MODEL="claude-sonnet-5"` (older); the app uses the Settings value `claude-sonnet-5-5` and does not read that variable.
+- Claude's own difficulty rating is stored as a note when it differs from the level you asked for; the level you asked for is what is saved.
+- The language of a question is not machine-checked; the reviewer judges wording quality in the target language, and you do the final read for Urdu.
+- Maximum questions per run is enforced by the page, not the server; the server limits each call to one batch and each admin to 30 calls per 15 minutes, which also bounds spend.
+- New dependency: `@anthropic-ai/sdk`. Schema change: explanation, review notes and verdict, rejection reason, source, link to the AI run, link from a translation to its original, right-to-left flag, and the `AiRun` table (migration `20260930150000_ai_questions`).
+
+### Tests
+- **Vitest: 159 passing** (was 117). Claude is faked in every automated test, so they cost nothing: prompts filled from Settings, parsing and validation, cost maths, every error message, repeats dropped, review failure still saves, everything AI-made is Pending, failed runs logged, translation keeps trait and reverse-keying, bulk approve skips flagged, and the admin-only guard on every new route.
+- **Playwright: 28 passing** (25 + 3 new: bulk approve and the flagged skip, reject with reason, single approve, edit returns to the queue, the generate page).
+- `tsc` clean; `eslint` 0 errors (3 old warnings).
+
+---
 
 ## Day 2, part 1: question bank (done)
 

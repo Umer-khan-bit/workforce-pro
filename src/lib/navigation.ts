@@ -263,22 +263,16 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "question-bank",
             label: "Question bank",
-            description: "Add, edit, retire and import test questions.",
-            planned: [
-              "AI-generated questions",
-              "Likert, MCQ, situational-judgement and writing items, with reverse-keyed items",
-              "Tag by test, job role, region and language",
-            ],
+            description: "Add, edit, retire, import and AI-generate test questions.",
+            planned: [],
             live: true,
           },
           {
             slug: "approvals",
             label: "Approvals",
-            description: "Approve questions before they go live.",
-            planned: [
-              "Queue of questions pending approval",
-              "Approve or reject before a question can be served",
-            ],
+            description: "Review, approve, edit or reject pending questions.",
+            planned: [],
+            live: true,
           },
           {
             slug: "item-analysis",

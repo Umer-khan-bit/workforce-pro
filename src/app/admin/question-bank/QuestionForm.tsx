@@ -15,7 +15,7 @@ import {
   type TestTypeValue,
 } from "@/lib/questionBank/schema";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name: string; rtl?: boolean };
 
 export type QuestionFormValues = {
   testType: TestTypeValue;
@@ -25,6 +25,7 @@ export type QuestionFormValues = {
   correctAnswer: string;
   reverseKeyed: boolean;
   topic: string;
+  explanation: string;
   difficulty: DifficultyValue;
   jobRoleId: string;
   languageId: string;
@@ -38,6 +39,7 @@ export const EMPTY_FORM: QuestionFormValues = {
   correctAnswer: "",
   reverseKeyed: false,
   topic: "",
+  explanation: "",
   difficulty: "MEDIUM",
   jobRoleId: "",
   languageId: "",
@@ -48,11 +50,15 @@ export default function QuestionForm({
   initial = EMPTY_FORM,
   jobRoles,
   languages,
+  returnTo = "/admin/question-bank",
+  reviewNotes,
 }: {
   questionId?: string;
   initial?: QuestionFormValues;
   jobRoles: Option[];
   languages: Option[];
+  returnTo?: string;
+  reviewNotes?: string | null;
 }) {
   const router = useRouter();
   const [v, setV] = useState(initial);
@@ -61,6 +67,7 @@ export default function QuestionForm({
   const [submitting, setSubmitting] = useState(false);
 
   const hasOptions = v.type === "MCQ" || v.type === "SITUATIONAL_JUDGEMENT";
+  const rtl = languages.find((l) => l.id === v.languageId)?.rtl ?? false;
 
   function set<K extends keyof QuestionFormValues>(key: K, value: QuestionFormValues[K]) {
     setV((prev) => ({ ...prev, [key]: value }));
@@ -89,6 +96,7 @@ export default function QuestionForm({
       correctAnswer: hasOptions ? v.correctAnswer : undefined,
       reverseKeyed: v.type === "LIKERT" ? v.reverseKeyed : false,
       topic: v.topic,
+      explanation: v.explanation,
       difficulty: v.difficulty,
       jobRoleId: v.testType === "SKILL" ? v.jobRoleId : undefined,
       languageId: v.languageId,
@@ -107,7 +115,7 @@ export default function QuestionForm({
       setError(data?.error ?? "Something went wrong. Please try again.");
       return;
     }
-    router.push("/admin/question-bank");
+    router.push(returnTo);
     router.refresh();
   }
 
@@ -152,6 +160,7 @@ export default function QuestionForm({
         </label>
         <textarea
           id="content"
+          dir={rtl ? "rtl" : "ltr"}
           className="input min-h-24"
           value={v.content}
           onChange={(e) => set("content", e.target.value)}
@@ -176,6 +185,7 @@ export default function QuestionForm({
                 />
                 <span className="w-5 text-sm font-medium text-zinc-600">{key}</span>
                 <input
+                  dir={rtl ? "rtl" : "ltr"}
                   className="input mt-0"
                   aria-label={`Option ${key} text`}
                   value={v.options[key] ?? ""}
@@ -252,6 +262,24 @@ export default function QuestionForm({
         </div>
       </div>
 
+      <div>
+        <label htmlFor="explanation" className="label">Explanation (optional)</label>
+        <textarea
+          id="explanation"
+          dir={rtl ? "rtl" : "ltr"}
+          className="input min-h-20"
+          value={v.explanation}
+          onChange={(e) => set("explanation", e.target.value)}
+        />
+        {fieldError("explanation")}
+      </div>
+
+      {reviewNotes && (
+        <p className="whitespace-pre-line rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+          <span className="font-medium">AI review notes:</span> {reviewNotes}
+        </p>
+      )}
+
       {v.type === "LIKERT" && (
         <label className="flex min-h-11 items-center gap-3 text-sm text-zinc-700">
           <input
@@ -270,7 +298,7 @@ export default function QuestionForm({
         <button type="submit" disabled={submitting} className="btn-primary">
           {submitting ? "Saving..." : questionId ? "Save changes" : "Add question"}
         </button>
-        <button type="button" className="btn-secondary" onClick={() => router.push("/admin/question-bank")}>
+        <button type="button" className="btn-secondary" onClick={() => router.push(returnTo)}>
           Cancel
         </button>
         {!questionId && (

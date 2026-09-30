@@ -5,6 +5,8 @@ import {
   SETTING_GROUPS,
   SETTING_KEYS,
   SETTING_SCHEMAS,
+  aiGenerationSchema,
+  aiPromptsSchema,
   brandingSchema,
   itemDefaultsSchema,
   quartilesSchema,
@@ -59,6 +61,24 @@ describe("settings definitions", () => {
     expect(brandingSchema.safeParse({ ...b, logoDataUrl: "data:text/html;base64,PHNjcmlwdD4=" }).success).toBe(false);
     expect(brandingSchema.safeParse({ ...b, logoDataUrl: "javascript:alert(1)" }).success).toBe(false);
     expect(brandingSchema.safeParse({ ...b, logoDataUrl: `data:image/png;base64,${"A".repeat(200_001)}` }).success).toBe(false);
+  });
+});
+
+describe("AI settings", () => {
+  it("rejects a batch larger than the per-run maximum, and an unknown effort", () => {
+    const a = DEFAULT_SETTINGS.aiGeneration;
+    expect(aiGenerationSchema.safeParse({ ...a, batchSize: 60, maxQuestionsPerRun: 50 }).success).toBe(false);
+    expect(aiGenerationSchema.safeParse({ ...a, effort: "extreme" }).success).toBe(false);
+    expect(aiGenerationSchema.safeParse({ ...a, model: " " }).success).toBe(false);
+    expect(aiGenerationSchema.safeParse({ ...a, inputPricePerMTok: -1 }).success).toBe(false);
+  });
+
+  it("rejects placeholders a prompt is not allowed to use", () => {
+    const p = DEFAULT_SETTINGS.aiPrompts;
+    const bad = aiPromptsSchema.safeParse({ ...p, instructionIq: "Write {{count}} questions about {{nonsense}}" });
+    expect(bad.success).toBe(false);
+    expect(aiPromptsSchema.safeParse({ ...p, systemPrompt: "Be nice {{count}}" }).success).toBe(false);
+    expect(aiPromptsSchema.safeParse({ ...p, reviewPrompt: "Review {{testName}} in {{language}} for {{jobRole}}" }).success).toBe(true);
   });
 });
 

@@ -22,8 +22,8 @@ describe("reference data validation", () => {
   });
 
   it("languages need a sensible code; cities need a region; names cannot be blank", () => {
-    expect(REFERENCE_SCHEMAS.languages.safeParse({ name: "Sindhi", code: "SD", isActive: true, isDefault: false }).success).toBe(true);
-    expect(REFERENCE_SCHEMAS.languages.safeParse({ name: "X", code: "not a code!", isActive: true, isDefault: false }).success).toBe(false);
+    expect(REFERENCE_SCHEMAS.languages.safeParse({ name: "Sindhi", code: "SD", isActive: true, isDefault: false, isRtl: true }).success).toBe(true);
+    expect(REFERENCE_SCHEMAS.languages.safeParse({ name: "X", code: "not a code!", isActive: true, isDefault: false, isRtl: false }).success).toBe(false);
     expect(REFERENCE_SCHEMAS.cities.safeParse({ name: "Kasur", regionId: "", isActive: true }).success).toBe(false);
     expect(REFERENCE_SCHEMAS.regions.safeParse({ name: "  ", isActive: true }).success).toBe(false);
   });
@@ -35,13 +35,13 @@ describe("language rules", () => {
 
   it("cannot un-default the default language without choosing another", async () => {
     await expect(
-      updateReference(prisma({ isDefault: true }), "languages", "l1", { name: "English", code: "en", isActive: true, isDefault: false })
+      updateReference(prisma({ isDefault: true }), "languages", "l1", { name: "English", code: "en", isActive: true, isDefault: false, isRtl: false })
     ).rejects.toBeInstanceOf(RuleError);
   });
 
   it("the default language must stay active", async () => {
     await expect(
-      updateReference(prisma(null), "languages", "l1", { name: "English", code: "en", isActive: false, isDefault: true })
+      updateReference(prisma(null), "languages", "l1", { name: "English", code: "en", isActive: false, isDefault: true, isRtl: false })
     ).rejects.toBeInstanceOf(RuleError);
   });
 

@@ -44,12 +44,13 @@ export default async function QuestionBankPage({
 }) {
   const filters = parseListFilters(await searchParams);
 
-  const [{ total, rows }, coverage, jobRoles, languages, targets] = await Promise.all([
+  const [{ total, rows }, coverage, jobRoles, languages, targets, pending] = await Promise.all([
     listQuestions(prisma, filters),
     getCoverage(prisma),
     prisma.jobRole.findMany({ orderBy: { name: "asc" } }),
     prisma.language.findMany({ orderBy: { name: "asc" } }),
     getSetting("poolTargets"),
+    prisma.question.count({ where: { status: "PENDING_APPROVAL" } }),
   ]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -68,6 +69,8 @@ export default async function QuestionBankPage({
         </div>
         <div className="flex flex-wrap items-start gap-3">
           <ImportIpipButton />
+          <Link href="/admin/question-bank/generate" className="btn-secondary">Generate with AI</Link>
+          <Link href="/admin/approvals" className="btn-secondary">Approvals{pending > 0 ? ` (${pending})` : ""}</Link>
           <Link href="/admin/question-bank/new" className="btn-primary">Add question</Link>
         </div>
       </div>
@@ -147,7 +150,7 @@ export default async function QuestionBankPage({
               {rows.map((q) => (
                 <tr key={q.id} className="border-b border-zinc-100 align-top">
                   <td className="max-w-md px-4 py-3">
-                    <p className="text-zinc-900">{q.content}</p>
+                    <p dir={q.language?.isRtl ? "rtl" : "ltr"} className="text-zinc-900">{q.content}</p>
                     <p className="mt-0.5 text-xs text-zinc-500">
                       {QUESTION_TYPE_LABELS[q.type]}
                       {q.topic ? ` · ${q.topic}` : ""}

@@ -11,7 +11,7 @@ export const QUESTION_STATUSES = [
   "RETIRED",
 ] as const;
 /** Status filter values. FLAGGED is not a stored status; it comes from the item statistics. */
-export const STATUS_FILTERS = ["PENDING_APPROVAL", "APPROVED", "RETIRED", "FLAGGED"] as const;
+export const STATUS_FILTERS = ["PENDING_APPROVAL", "APPROVED", "REJECTED", "RETIRED", "FLAGGED"] as const;
 
 export type TestTypeValue = (typeof TEST_TYPES)[number];
 export type QuestionTypeValue = (typeof QUESTION_TYPES)[number];
@@ -86,6 +86,7 @@ export const questionInputSchema = z
     correctAnswer: z.preprocess(emptyToUndefined, z.enum(OPTION_KEYS).optional()),
     reverseKeyed: z.boolean().default(false),
     topic: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
+    explanation: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
     difficulty: z.enum(DIFFICULTIES).default("MEDIUM"),
     jobRoleId: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     languageId: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
@@ -137,6 +138,7 @@ export function toQuestionData(q: QuestionInput, defaults: ItemDefaults) {
     correctAnswer: hasOptions ? (q.correctAnswer ?? null) : null,
     reverseKeyed: q.type === "LIKERT" ? q.reverseKeyed : false,
     topic: q.topic ?? null,
+    explanation: q.explanation ?? null,
     difficulty,
     aParam: defaults.discrimination,
     bParam: difficultyToB(difficulty, defaults),

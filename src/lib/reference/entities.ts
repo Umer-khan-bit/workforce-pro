@@ -27,6 +27,7 @@ export const REFERENCE_SCHEMAS = {
       .regex(/^[a-z]{2,8}(-[a-z0-9]{2,8})?$/, "Use a language code such as en or ur"),
     isActive: z.boolean(),
     isDefault: z.boolean(),
+    isRtl: z.boolean(),
   }),
   cities: z.object({ name, regionId: z.string().min(1, "Region is required"), isActive: z.boolean() }),
   "region-languages": z.object({

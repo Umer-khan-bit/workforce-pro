@@ -58,7 +58,7 @@ export default function SettingsForm({ group, initial }: { group: SettingGroup; 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card mt-4 flex max-w-2xl flex-col gap-5">
+    <form onSubmit={handleSubmit} className="card mt-4 flex max-w-3xl flex-col gap-5">
       <p className="text-sm text-zinc-600">{group.description}</p>
 
       {group.fields.map((f) => {
@@ -74,7 +74,20 @@ export default function SettingsForm({ group, initial }: { group: SettingGroup; 
               <input id={id} className="input" value={String(value ?? "")} onChange={(e) => set(f.name, e.target.value)} />
             )}
             {f.type === "textarea" && (
-              <textarea id={id} className="input min-h-20" value={String(value ?? "")} onChange={(e) => set(f.name, e.target.value)} />
+              <textarea
+                id={id}
+                rows={f.rows ?? 3}
+                className="input min-h-20 font-mono text-sm"
+                value={String(value ?? "")}
+                onChange={(e) => set(f.name, e.target.value)}
+              />
+            )}
+            {f.type === "select" && (
+              <select id={id} className="input max-w-48" value={String(value ?? "")} onChange={(e) => set(f.name, e.target.value)}>
+                {f.options?.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             )}
             {f.type === "number" && (
               <input
