@@ -14,32 +14,9 @@ const CANDIDATE_COUNT = 64;
 
 // Prices are placeholders until real pricing is agreed.
 const PLANS: Array<{ name: PlanName; priceMonthly: number; features: Record<string, unknown> }> = [
-  {
-    name: "BASIC",
-    priceMonthly: 15000,
-    features: {
-      recruiterSeats: 3,
-      candidateSearch: true,
-      shortlistsPerOpening: 25,
-      contactRequestsPerMonth: 20,
-      atsExport: false,
-      webhooks: false,
-      apiAccess: false,
-    },
-  },
-  {
-    name: "ADVANCED",
-    priceMonthly: 40000,
-    features: {
-      recruiterSeats: 15,
-      candidateSearch: true,
-      shortlistsPerOpening: null,
-      contactRequestsPerMonth: null,
-      atsExport: true,
-      webhooks: true,
-      apiAccess: true,
-    },
-  },
+  // Basic = all candidates. Advanced adds exclusive access to Q1 scorers (CLAUDE.md, module 11).
+  { name: "BASIC", priceMonthly: 15000, features: { allCandidates: true, q1Exclusive: false } },
+  { name: "ADVANCED", priceMonthly: 40000, features: { allCandidates: true, q1Exclusive: true } },
 ];
 
 type DemoUser = { name: string; email: string };
@@ -215,6 +192,11 @@ function buildCandidates(jobRoleNames: string[]): SeedCandidate[] {
   return candidates;
 }
 
+/** True only when DEMO_MODE is exactly "true". Every demo account depends on this. */
+export function isDemoMode(env: Record<string, string | undefined> = process.env): boolean {
+  return env.DEMO_MODE === "true";
+}
+
 export type DemoSeedSummary = {
   password: string;
   logins: Array<{ role: Role; email: string }>;
@@ -228,6 +210,12 @@ export async function seedDemoData(
   prisma: PrismaClient,
   lookups: { jobRoles: Lookup[]; regions: Lookup[] }
 ): Promise<DemoSeedSummary> {
+  // Demo accounts (including demo.admin, a platform admin with a publicly known
+  // password) must never be created outside demo mode, whoever calls this.
+  if (!isDemoMode()) {
+    throw new Error("Refusing to create demo accounts: DEMO_MODE is not 'true'.");
+  }
+
   const password = process.env.SEED_DEMO_PASSWORD || DEFAULT_DEMO_PASSWORD;
   // Hash once: bcrypt is deliberately slow and every demo account shares the password.
   const hashedPassword = await bcrypt.hash(password, 10);

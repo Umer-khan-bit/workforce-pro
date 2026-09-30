@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
-import { prisma, randomIp, uniqueEmail } from "./helpers";
+import { deleteTestData, randomIp, uniqueEmail } from "./helpers";
 
 test.use({ extraHTTPHeaders: { "x-forwarded-for": randomIp() } });
+
+// Cleanup runs after every test, pass or fail, so nothing leaks into the dev database.
+let created: { emails: string[]; companyName: string } | null = null;
+test.afterEach(async () => {
+  if (created) await deleteTestData(created.emails, created.companyName);
+  created = null;
+});
 
 test("company signup, recruiter creation, and forced password change on first login", async ({
   page,
@@ -9,6 +16,7 @@ test("company signup, recruiter creation, and forced password change on first lo
   const adminEmail = uniqueEmail("admin");
   const recruiterEmail = uniqueEmail("recruiter");
   const companyName = `Test Co ${Date.now()}`;
+  created = { emails: [adminEmail, recruiterEmail], companyName };
 
   await page.goto("/signup/company");
   await page.getByLabel("Company name").fill(companyName);
@@ -54,15 +62,13 @@ test("company signup, recruiter creation, and forced password change on first lo
 
   await page.goto("/company-admin");
   await expect(page).toHaveURL(/\/unauthorized/);
-
-  await prisma.user.deleteMany({ where: { email: { in: [adminEmail, recruiterEmail] } } });
-  await prisma.company.deleteMany({ where: { name: companyName } });
 });
 
 test("deactivated recruiter can no longer log in", async ({ page, request }) => {
   const adminEmail = uniqueEmail("admin2");
   const recruiterEmail = uniqueEmail("recruiter2");
   const companyName = `Test Co 2 ${Date.now()}`;
+  created = { emails: [adminEmail, recruiterEmail], companyName };
 
   await page.goto("/signup/company");
   await page.getByLabel("Company name").fill(companyName);
@@ -89,7 +95,4 @@ test("deactivated recruiter can no longer log in", async ({ page, request }) => 
 
   await expect(page.getByText(/Incorrect email or password/i)).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
-
-  await prisma.user.deleteMany({ where: { email: { in: [adminEmail, recruiterEmail] } } });
-  await prisma.company.deleteMany({ where: { name: companyName } });
 });

@@ -24,3 +24,21 @@ export async function logInAs(page: Page, email: string, password: string) {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 }
+
+/**
+ * Removes accounts (and optionally a company) created by a spec. Audit-log rows
+ * reference their actor, so they have to go first or the user delete fails and the
+ * test data leaks into the dev database.
+ */
+export async function deleteTestData(emails: string[], companyName?: string) {
+  const users = await prisma.user.findMany({
+    where: { email: { in: emails } },
+    select: { id: true },
+  });
+  const ids = users.map((u) => u.id);
+  await prisma.auditLog.deleteMany({
+    where: { OR: [{ actorId: { in: ids } }, { targetType: "User", targetId: { in: ids } }] },
+  });
+  await prisma.user.deleteMany({ where: { id: { in: ids } } });
+  if (companyName) await prisma.company.deleteMany({ where: { name: companyName } });
+}

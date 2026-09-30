@@ -1,1 +1,121 @@
 @AGENTS.md
+
+# Workforce Pro — Project Guide for Claude Code
+
+## What we are building
+Workforce Pro (a.k.a. Smart Workforce) is a cloud-based, multi-company SaaS recruitment platform.
+Candidates take four assessments (Personality, IQ & EQ, Language, Job Skill). The system scores and
+ranks them into quartiles. Companies subscribe (Basic / Advanced) to search, filter and shortlist
+candidates instead of screening CVs.
+
+Goal this week: a FULLY WORKING system with every BRD feature. Payments, ATS and salary data run in
+demo/test mode (see "Demo mode"). Everything else is real, working code.
+
+## Tech stack (do not change without asking)
+- Next.js (App Router) + TypeScript, full-stack in one app
+- PostgreSQL (local via Docker) + Prisma ORM
+- Tailwind CSS, mobile-first, responsive on phone/tablet/desktop
+- Auth.js (credentials login), role-based access
+- Claude API for AI features (key in `ANTHROPIC_API_KEY`, model in `ANTHROPIC_MODEL`)
+- Emails via SMTP (Brevo); log to console if SMTP env vars are missing
+- Vitest for unit tests, Playwright for end-to-end tests
+
+## Ports and my laptop (STRICT — never break these rules)
+- NEVER use ports 3000, 3400, 4600, 5173, 5183, 8800, or anything near them
+  (e.g. 3001–3010, 5174–5190, 8801–8810). Other projects run there.
+- Use ONLY these ports:
+  - App (Next.js dev and start): 7310  → http://localhost:7310
+  - PostgreSQL (Docker, host side): 55432
+  - Prisma Studio: 7320
+  - Playwright test server: 7330
+- Set these ports explicitly in package.json scripts, docker-compose.yml, playwright.config and
+  .env.example. Never rely on default ports.
+- Before starting anything, check the port is free. If it is busy, STOP and ask me. Do not pick
+  another port on your own.
+- NEVER kill, stop, restart or modify any process, container, service or port you did not create
+  for this project.
+- NEVER touch files, folders, Docker containers/volumes or databases outside this project folder.
+- NEVER change global settings (global npm packages, system PATH, Docker settings, hosts file)
+  without asking me first.
+
+## User roles
+- CANDIDATE: profile, tests, results, salary guide, training
+- RECRUITER: belongs to a Company; search, filter, shortlist, reports, ATS export
+- COMPANY_ADMIN: manages company recruiters and subscription
+- PLATFORM_ADMIN: question bank, approvals, job roles, regions/languages, plans, reports
+
+## Modules
+1. Auth and profiles (candidate: city, region, experience, job role, minimum salary)
+2. Question bank: AI generates questions, PLATFORM_ADMIN approves before they go live
+3. Test engine: adaptive testing (see rules below)
+4. Scoring: score, percentile, quartile per test (Q1 = top 25%)
+5. Candidate results: scores, quartiles, AI feedback and improvement tips, downloadable report
+6. Salary guide: range from scores, experience, role and city
+7. Minimum salary threshold: recruiters only see/contact candidates whose minimum fits their offer
+8. Top-performer triggers: Q1 in all four tests sends recognition email and a badge
+9. Training: courses (free and paid), progress tracking, AI recommendations, retake after training
+10. Recruiter tools: search, sort, filters (role, city, experience, salary, quartile per test,
+    "Q1 in all tests"), AI plain-language search, shortlist, candidate detail report
+11. Subscriptions: Basic = all candidates; Advanced = adds exclusive access to Q1 scorers
+12. Dashboards and reports: recruiter metrics, platform metrics, monthly fairness report
+13. ATS integration: REST API + webhooks, CSV/Excel export, built-in mock ATS
+14. Pilot mode: platform can be restricted to one company/team
+15. Self-learning: pretest items, automatic recalibration, auto-retire bad or biased items
+
+## Test engine rules
+- Personality: Big Five, IPIP-style Likert items (1–5), includes reverse-keyed items, not adaptive
+- EQ: Likert + situational-judgement items, not adaptive
+- IQ, Language (MCQ part), Skill: adaptive (CAT) with IRT 2PL
+  - Start ability theta = 0. After each answer, update theta (EAP).
+  - Next item = approved item with maximum information at current theta, not yet seen,
+    respecting topic balance and exposure limits.
+  - Stop when SE < 0.35 or 20 items (minimum 10). Time limit per test, configurable.
+  - Uncalibrated items get default parameters: a = 1; b = -1 / 0 / +1 for easy / medium / hard.
+  - Each session includes up to 2 unscored pretest items for calibration.
+- Language: questions chosen by candidate region (admin-configurable region to language map);
+  one short writing task scored by Claude API against a CEFR rubric (A1–C2).
+- Skill: questions from the candidate's selected job role only.
+- Quartiles: percentile vs. candidates of the same job role; fall back to all candidates if fewer than 30.
+- Keep every test short (target 10–15 minutes). Save progress so a candidate can resume.
+
+## Self-learning rules
+- Recalibration job (scheduled + manual button) re-estimates item parameters from responses
+  once an item has at least 200 responses.
+- Auto-flag items that are too easy/hard, have low discrimination, or show bias (DIF by gender,
+  region, language). Flagged items go to admin review; they are never deleted automatically.
+- AI never makes hiring decisions. It only scores, ranks and recommends.
+
+## Demo mode (DEMO_MODE=true)
+- Payments: full checkout flow with a simulated gateway (success/failure), no real money.
+  Keep a `PaymentProvider` interface so PayFast/JazzCash can be plugged in later.
+- ATS: mock ATS inside the app that receives pushed candidates. Keep an `AtsConnector` interface.
+- Salary data: seeded sample benchmarks by role, city and experience. Keep it replaceable.
+- Seed data: 4 job roles (Accountant, Sales, Customer Service, IT Support), English + Urdu,
+  60+ sample candidates with completed tests, 3 companies, recruiters on both plans.
+
+## Security and privacy (bank-grade, non-negotiable)
+- Never log passwords, tokens, CNIC, salaries or test answers.
+- Hash passwords (bcrypt). Validate all input (zod). Role checks on every API route.
+- Candidate consent checkbox at signup, with link to privacy policy page.
+- Audit log for admin actions and for every recruiter view of a candidate profile.
+- Secrets only in `.env` (never commit it); keep `.env.example` updated.
+- Rate-limit login and AI endpoints.
+
+## How to work
+- One module at a time. Do not start the next module until the current one works.
+- Before coding a module, show a short plan and wait for my OK.
+- Write tests for scoring, adaptive logic, quartiles, salary guide and access rules.
+- After each module: run tests, run the app, tell me exactly what to click to check it.
+- Explain errors and fixes in simple language. I am a product manager, not a developer.
+- Commit to Git after each working module with a clear message.
+- If a requirement is unclear, ask me. Do not invent new features.
+- Keep the UI clean and professional: consistent colours, fonts and spacing across all screens.
+
+## Build plan
+- Day 1: setup, database schema, auth, roles, layouts, seed data
+- Day 2: question bank, AI question generation, admin approval
+- Day 3: test engine (all four tests), scoring, quartiles, language by region
+- Day 4: results, AI feedback, salary guide, minimum salary, training, top-performer emails
+- Day 5: recruiter dashboard, filters, AI search, subscriptions, reports
+- Day 6: ATS API/webhooks/mock/export, pilot mode, self-learning jobs, security pass, mobile polish
+- Day 7: end-to-end testing, bug fixes, demo rehearsal

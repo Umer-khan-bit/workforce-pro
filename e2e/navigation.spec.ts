@@ -63,7 +63,7 @@ test("unknown module paths 404 and other roles' modules stay protected", async (
   const missing = await page.goto("/candidate/not-a-module");
   expect(missing?.status()).toBe(404);
 
-  await page.goto("/admin/users");
+  await page.goto("/admin/question-bank");
   await expect(page).toHaveURL(/\/unauthorized/);
   await page.goto("/recruiter/shortlists");
   await expect(page).toHaveURL(/\/unauthorized/);
@@ -90,7 +90,7 @@ test.describe("mobile", () => {
     await expect(link).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Subscription & billing" })).toBeVisible();
 
-    for (const path of ["/company-admin", "/company-admin/recruiters", "/company-admin/api-keys"]) {
+    for (const path of ["/company-admin", "/company-admin/recruiters", "/company-admin/subscription"]) {
       await page.goto(path);
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth

@@ -109,7 +109,8 @@ async function main() {
     `Demo data ready: ${demo.plans} plans, ${demo.companies} companies, ` +
       `${demo.recruiters} recruiters, ${demo.candidates} candidates`
   );
-  console.log(`Demo logins (password for all: ${demo.password}):`);
+  // Never print the password. Demo accounts share SEED_DEMO_PASSWORD (default in DAY1_STATUS.md).
+  console.log("Demo logins (shared demo password, see SEED_DEMO_PASSWORD):");
   for (const login of demo.logins) {
     console.log(`  ${login.role.padEnd(15)} ${login.email}`);
   }
