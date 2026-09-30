@@ -39,10 +39,14 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
   without asking me first.
 
 ## User roles
-- CANDIDATE: profile, tests, results, salary guide, training
-- RECRUITER: belongs to a Company; search, filter, shortlist, reports, ATS export
-- COMPANY_ADMIN: manages company recruiters and subscription
-- PLATFORM_ADMIN: question bank, approvals, job roles, regions/languages, plans, reports
+- CANDIDATE: profile, tests, results (incl. AI feedback), salary guide, training, recruiter
+  requests (accept/decline), notifications
+- RECRUITER: belongs to a Company; search, filter, shortlist, job openings, contact requests,
+  reports, ATS export (push candidates to the ATS), notifications
+- COMPANY_ADMIN: manages company recruiters and subscription, job openings, reports,
+  ATS & webhooks and API keys (company settings), notifications
+- PLATFORM_ADMIN: question bank, approvals, job roles, regions/languages, companies, users,
+  plans, payments (separate from plans), reports
 
 ## Modules
 1. Auth and profiles (candidate: city, region, experience, job role, minimum salary)
@@ -61,6 +65,15 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 13. ATS integration: REST API + webhooks, CSV/Excel export, built-in mock ATS
 14. Pilot mode: platform can be restricted to one company/team
 15. Self-learning: pretest items, automatic recalibration, auto-retire bad or biased items
+16. Job openings: recruiters and company admins create and manage openings; company admins see
+    all openings in their company
+17. Contact requests: a recruiter contacts a candidate (optionally for a job opening); only
+    allowed if the offer meets the candidate's minimum salary. The candidate accepts or declines
+    (candidate page: "Recruiter requests")
+18. Notifications: in-app and email alerts for candidates, recruiters and company admins
+19. Company settings (company admin): ATS & webhooks, API keys, company reports. Recruiters push
+    candidates to the ATS
+20. Platform admin business tools: companies, users, payments (ledger, separate from plans)
 
 ## Test engine rules
 - Personality: Big Five, IPIP-style Likert items (1–5), includes reverse-keyed items, not adaptive

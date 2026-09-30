@@ -96,3 +96,57 @@ test("deactivated recruiter can no longer log in", async ({ page, request }) => 
   await expect(page.getByText(/Incorrect email or password/i)).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });
+
+test("deactivating a recruiter ends their session that is already open", async ({
+  page,
+  browser,
+}) => {
+  const adminEmail = uniqueEmail("admin3");
+  const recruiterEmail = uniqueEmail("recruiter3");
+  const companyName = `Test Co 3 ${Date.now()}`;
+  created = { emails: [adminEmail, recruiterEmail], companyName };
+
+  await page.goto("/signup/company");
+  await page.getByLabel("Company name").fill(companyName);
+  await page.getByLabel("Your name").fill("Admin Person");
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Password").fill("supersecret1");
+  await page.getByRole("button", { name: "Create company account" }).click();
+  await expect(page).toHaveURL(/\/company-admin$/);
+
+  await page.goto("/company-admin/recruiters");
+  await page.getByLabel("Name").fill("Already Logged In");
+  await page.getByLabel("Email").fill(recruiterEmail);
+  await page.getByRole("button", { name: "Add recruiter" }).click();
+  const tempPassword = (await page.getByTestId("temp-password").textContent())!.trim();
+
+  // The recruiter logs in on a separate browser and finishes the forced password change.
+  const recruiterContext = await browser.newContext({
+    extraHTTPHeaders: { "x-forwarded-for": randomIp() },
+  });
+  const recruiterPage = await recruiterContext.newPage();
+  try {
+    await recruiterPage.goto("/login");
+    await recruiterPage.getByLabel("Email").fill(recruiterEmail);
+    await recruiterPage.getByLabel("Password").fill(tempPassword);
+    await recruiterPage.getByRole("button", { name: "Log in" }).click();
+    await expect(recruiterPage).toHaveURL(/\/change-password/);
+    await recruiterPage.getByLabel("Current (temporary) password").fill(tempPassword);
+    await recruiterPage.getByLabel("New password", { exact: true }).fill("brandnewpassword1");
+    await recruiterPage.getByLabel("Confirm new password").fill("brandnewpassword1");
+    await recruiterPage.getByRole("button", { name: "Save new password" }).click();
+    await expect(recruiterPage).toHaveURL(/\/recruiter$/);
+
+    // The admin deactivates them while that session is still open.
+    await page.getByRole("button", { name: "Deactivate" }).click();
+    await expect(page.getByText("Deactivated")).toBeVisible();
+
+    // No new login: the recruiter's very next request must be refused.
+    await recruiterPage.goto("/recruiter/shortlists");
+    await expect(recruiterPage).toHaveURL(/\/login/);
+    await recruiterPage.goto("/recruiter");
+    await expect(recruiterPage).toHaveURL(/\/login/);
+  } finally {
+    await recruiterContext.close();
+  }
+});

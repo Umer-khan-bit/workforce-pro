@@ -34,6 +34,16 @@ const salaryGuide: NavItem = {
   ],
 };
 
+const notifications: NavItem = {
+  slug: "notifications",
+  label: "Notifications",
+  description: "In-app and email alerts.",
+  planned: [
+    "In-app notification centre with read/unread state",
+    "Email delivery for the same alerts",
+  ],
+};
+
 // Every module below must appear in CLAUDE.md ("Modules" and "User roles").
 // Add or rename modules only after checking that file.
 export const ROLE_NAV: Record<Role, RoleNav> = {
@@ -87,6 +97,17 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             ],
           },
           {
+            slug: "contact-requests",
+            label: "Recruiter requests",
+            description: "Accept or decline contact from recruiters.",
+            planned: [
+              "See which recruiters want to contact you",
+              "Accept or decline each request",
+              "Only offers that meet your minimum salary can reach you",
+            ],
+          },
+          notifications,
+          {
             slug: "profile",
             label: "Profile & privacy",
             description: "Your details and consent.",
@@ -120,12 +141,31 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             ],
           },
           {
+            slug: "job-openings",
+            label: "Job openings",
+            description: "Roles you are hiring for.",
+            planned: [
+              "Create and manage job openings",
+              "Open, pause, fill or close an opening",
+            ],
+          },
+          {
             slug: "shortlists",
             label: "Shortlists",
             description: "Candidates you have shortlisted.",
             planned: [
               "Add and remove candidates from your shortlist",
               "Open a shortlisted candidate's detail report",
+            ],
+          },
+          {
+            slug: "contact-requests",
+            label: "Contact requests",
+            description: "Reach out to candidates and track replies.",
+            planned: [
+              "Send a contact request with your offer, optionally for a job opening",
+              "Blocked unless the offer meets the candidate's minimum salary",
+              "Track sent, accepted and declined",
             ],
           },
           {
@@ -141,9 +181,10 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             planned: [
               "Push shortlisted candidates to the built-in mock ATS (demo mode)",
               "CSV / Excel export",
-              "REST API and webhooks",
+              "Uses the company's ATS, webhook and API-key settings",
             ],
           },
+          notifications,
         ],
       },
     ],
@@ -164,6 +205,15 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             live: true,
           },
           {
+            slug: "job-openings",
+            label: "Job openings",
+            description: "All openings across your company.",
+            planned: [
+              "Company-wide view of openings and their status",
+              "Manage openings created by any recruiter",
+            ],
+          },
+          {
             slug: "subscription",
             label: "Subscription & billing",
             description: "Your plan and payments.",
@@ -172,6 +222,31 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
               "Subscribe or upgrade through the demo checkout (simulated payment)",
             ],
           },
+          {
+            slug: "reports",
+            label: "Reports",
+            description: "Company hiring reports.",
+            planned: ["Recruiter activity and shortlist metrics for your company", "Export reports"],
+          },
+          {
+            slug: "integrations",
+            label: "ATS & webhooks",
+            description: "Company ATS connection and event webhooks.",
+            planned: [
+              "ATS connection settings (mock ATS in demo mode)",
+              "Webhook endpoints, signing secrets and delivery log",
+            ],
+          },
+          {
+            slug: "api-keys",
+            label: "API keys",
+            description: "Programmatic access for your systems.",
+            planned: [
+              "Create labelled API keys (shown once, stored hashed)",
+              "See last-used time and revoke a key",
+            ],
+          },
+          notifications,
         ],
       },
     ],
@@ -238,12 +313,30 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
         label: "Business",
         items: [
           {
+            slug: "companies",
+            label: "Companies",
+            description: "Every company on the platform.",
+            planned: [
+              "Company list with plan, recruiters and status",
+              "Drill into a company's users and activity",
+            ],
+          },
+          {
             slug: "plans",
             label: "Plans & subscriptions",
             description: "Basic and Advanced plans and who is on them.",
             planned: [
               "Edit plan features and price",
               "All company subscriptions and their status",
+            ],
+          },
+          {
+            slug: "payments",
+            label: "Payments",
+            description: "Subscription and course payments.",
+            planned: [
+              "Payment ledger with status and provider reference",
+              "Demo-mode payments only until a real gateway is connected",
             ],
           },
           {
@@ -278,6 +371,15 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             planned: [
               "Add or edit job roles",
               "Regions and which language each region's language test uses",
+            ],
+          },
+          {
+            slug: "users",
+            label: "Users",
+            description: "All accounts across the four roles.",
+            planned: [
+              "Search users by role, company or email",
+              "Deactivate or reactivate accounts",
             ],
           },
           {

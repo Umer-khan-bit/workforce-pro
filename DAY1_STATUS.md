@@ -39,19 +39,15 @@ To see the **Basic** plan, log in as `admin.lahore@demo.test` or `recruiter.usma
 - Dashboards show a few real numbers from the DB (candidate profile, company + plan, recruiter count, platform totals) above a grid of links to every module.
 - Logged-out pages (home, login, both signups, privacy, change-password, access denied) share a `PublicPage` frame so they match.
 
-Modules per role, checked against `CLAUDE.md` (placeholders except where noted):
+Modules per role, matching `CLAUDE.md` (placeholders except where noted):
 
-- **Candidate (7):** Dashboard, Assessments, My results (scores, quartiles, AI feedback, report), Badges, Salary guide, Training, Profile & privacy
-- **Recruiter (5):** Dashboard, Candidate search, Shortlists, Reports, ATS export
-- **Company admin (3):** Dashboard, Recruiters (**real, from Day 0**), Subscription & billing
-- **Platform admin (13):** Dashboard; Assessment content: Question bank, Approvals, Item analysis, Recalibration, Test settings; Business: Plans & subscriptions, Pilot mode; Platform: Courses, Salary benchmarks, Roles regions & languages, Reports, Audit log
+- **Candidate (9):** Dashboard, Assessments, My results (scores, quartiles, AI feedback, report), Badges, Salary guide, Training, Recruiter requests, Notifications, Profile & privacy
+- **Recruiter (8):** Dashboard, Candidate search, Job openings, Shortlists, Contact requests, Reports, ATS export, Notifications
+- **Company admin (8):** Dashboard, Recruiters (**real, from Day 0**), Job openings, Subscription & billing, Reports, ATS & webhooks, API keys, Notifications
+- **Platform admin (16):** Dashboard; Assessment content: Question bank, Approvals, Item analysis, Recalibration, Test settings; Business: Companies, Plans & subscriptions, Payments, Pilot mode; Platform: Courses, Salary benchmarks, Roles regions & languages, Users, Reports, Audit log
 
-#### Navigation review against CLAUDE.md (done)
-- **Removed (not in CLAUDE.md):** candidate AI feedback (folded into My results), Recruiter requests, Notifications; recruiter Job openings, Contact requests, Salary guide, Notifications; company-admin Job openings, Reports, ATS & webhooks, API keys, Notifications; platform-admin Companies, Payments, Users.
-- **Added:** recruiter **Reports** (module 12, recruiter metrics).
-- **Renamed / corrected:** "Reference data" is now "Roles, regions & languages". Planned text now follows the test rules (personality and EQ are *not* adaptive, retake is after training, Advanced = exclusive Q1 access, ATS export covers CSV/Excel, REST API and webhooks).
-- **Judgement call, please confirm:** CLAUDE.md gives company admins only "recruiters and subscription", so the REST API, webhooks and mock ATS now live under the **recruiter's ATS export** module. Company-level webhook or API-key settings can be added back if you want them.
-- **Judgement call, please confirm:** company lists and payment ledgers are meant to appear inside "Plans & subscriptions" rather than as their own pages.
+#### CLAUDE.md is the source of truth for modules
+CLAUDE.md "User roles" was updated and modules 16-20 were added (job openings, contact requests, notifications, company settings, platform business tools). The navigation was then restored to match. Rules captured there: a contact request is only allowed if the offer meets the candidate's minimum salary; API keys and webhooks are company settings (company admin) while recruiters push candidates to the ATS; Payments is separate from Plans & subscriptions; AI feedback stays inside My results. Recruiters and candidates have no separate "AI feedback" or recruiter "Salary guide" page.
 
 ### Demo seed (`prisma/seedDemo.ts`, called from `prisma/seed.ts`)
 - Runs only when `DEMO_MODE=true`; otherwise the seed behaves exactly as before.
@@ -62,9 +58,9 @@ Modules per role, checked against `CLAUDE.md` (placeholders except where noted):
 
 ## Tests
 
-- **Vitest: 37 passing** (35 + 2 new proving demo accounts, including `demo.admin`, cannot be created unless `DEMO_MODE` is exactly `true`).
+- **Vitest: 39 passing** (37 + 2 new proving change-password returns 429 after 5 attempts, per user).
 - Test cleanup fixed: the company/recruiter specs used to leave "Test Co" rows behind because deleting the admin failed on the audit-log foreign key. Cleanup now removes audit rows first and runs after every test, pass or fail. Verified: company count stays at 3 after a full run.
-- **Playwright: 21 passing:** signup 429 on both endpoints; a click-through of **every nav item for all four roles** (asserts the URL, the active-link state and the page heading); dashboard cards; demo company admin sees plan and recruiters; unknown module 404s and cross-role access stays blocked; mobile drawer open/close and no horizontal overflow.
+- **Playwright: 22 passing** (the new one opens a recruiter session, has the admin deactivate them, and checks their next request goes to login; it fails without the fix): signup 429 on both endpoints; a click-through of **every nav item for all four roles** (asserts the URL, the active-link state and the page heading); dashboard cards; demo company admin sees plan and recruiters; unknown module 404s and cross-role access stays blocked; mobile drawer open/close and no horizontal overflow.
 - `tsc --noEmit` clean; `eslint` has 0 errors (3 pre-existing unused-variable warnings in older tests). `next build` succeeds.
 
 ## Rules audit (ports, security, privacy): done
@@ -80,13 +76,17 @@ Checked everything built so far against "Ports and my laptop" and "Security and 
 2. `.env.example` had the wrong model name (`claude-sonnet-5`); now `claude-sonnet-5-5`.
 3. Plan `features` no longer contain made-up limits (see above). Dev DB updated to match.
 
+## Session and rate-limit fixes: done
+- **Deactivation ends sessions immediately.** Sessions are JWTs, which used to stay valid until they expired. Now every session read checks the user's `isActive` flag in the database and drops the session if it is off, and the route protection (`src/proxy.ts`, which runs on Node) uses that same check. A deactivated recruiter's next click goes to the login page. Cost: one small database lookup per request.
+- **Change-password is rate-limited like login:** 5 attempts per 15 minutes, per user, every attempt counts, `429` with `Retry-After: 900`.
+
 ## Demo admin guard: done
 
 `demo.admin@demo.test` is created only inside `seedDemoData`, which now throws before touching the database unless `DEMO_MODE` is exactly `"true"`, on top of `seed.ts` already skipping it. Covered by a unit test. The seed does not *remove* the account from a database that already has it; if a database ever leaves demo mode, delete that user by hand.
 
 ## Decisions for you
 
-1. CLAUDE.md is restored and the navigation now matches it. Two judgement calls are flagged under "Navigation review" for your confirmation.
+1. CLAUDE.md is the source of truth and the navigation matches it (see above). Nothing is pending on this.
 2. **`demo.admin@demo.test` is a second platform admin with a publicly known password.** It only exists when `DEMO_MODE=true` (now enforced in code and tested); don't seed with that flag against any shared or production database.
 3. Plan prices are placeholders.
 
@@ -96,13 +96,10 @@ Checked everything built so far against "Ports and my laptop" and "Security and 
 - Because it is in-memory, the e2e suite gives each spec file its own fake IP, and each demo account logs in only a couple of times per run. Re-running Playwright against an **already-running** test server more than a few times in 15 minutes can trip the login limit (5 per email per 15 min); a fresh server or a 15-minute wait clears it.
 - The Playwright navigation tests need the demo seed to have been run first, like the existing tests need the reference data.
 - Placeholder pages are placeholders: nothing behind them is wired to data yet except the four dashboards' summary numbers and the Recruiters page.
-- The 6 leftover "Test Co" companies (and their 10 test users) were deleted from the dev DB, so the platform admin's Companies count is back to 3. 4 other `@example.com` test users from older candidate-signup runs are still there; they are harmless and I left them.
-- Deactivating a recruiter blocks new logins but does not end a session they already have (sessions are JWTs and `isActive` is only checked at login). Worth fixing when the recruiter tools go in.
-- `/api/account/change-password` is not rate-limited (CLAUDE.md only requires login and AI endpoints); consider adding it.
+- The leftover "Test Co" companies and every old `@example.com` test user are deleted from the dev DB (3 companies, 0 test users). The e2e specs now clean up after themselves.
 - A dev server was already running on port 7310 (not started by me) and was left untouched.
 
 ## Suggested next steps
 
-1. Confirm the two navigation judgement calls above.
-2. Pick the first real module to build. Recommended order: assessment engine (question bank -> test session -> scoring), since recruiter search, shortlists and candidate results all depend on scores.
-3. Move the rate limiter to a shared store before any multi-instance deployment.
+1. Pick the first real module to build. Recommended order: assessment engine (question bank -> test session -> scoring), since recruiter search, shortlists and candidate results all depend on scores.
+2. Move the rate limiter to a shared store before any multi-instance deployment.

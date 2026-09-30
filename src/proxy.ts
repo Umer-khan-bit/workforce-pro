@@ -1,7 +1,8 @@
-import NextAuth from "next-auth";
-import { authConfig } from "@/auth.config";
+import { auth } from "@/auth";
 
-export default NextAuth(authConfig).auth;
+// Proxy runs on the Node.js runtime, so it can use the full auth setup, which checks
+// the database on every request so a deactivated user's session ends immediately.
+export default auth;
 
 export const config = {
   matcher: [

@@ -8,6 +8,21 @@ import { authConfig } from "@/auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...authConfig.callbacks,
+    // Runs whenever a session is read. Returning null ends the session, so a
+    // deactivated (or deleted) user is signed out on their very next request
+    // instead of keeping the JWT they already hold until it expires.
+    async jwt(params) {
+      const token = await authConfig.callbacks.jwt(params);
+      if (!token?.sub) return token;
+      const user = await prisma.user.findUnique({
+        where: { id: token.sub },
+        select: { isActive: true },
+      });
+      return user?.isActive ? token : null;
+    },
+  },
   adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
