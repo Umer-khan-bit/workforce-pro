@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   // Same limit as login: this endpoint also checks a password, so it must not be guessable.
   // Every attempt counts, per user.
-  if (isRateLimited(`change-password:${session.user.id}`, AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS)) {
+  if (await isRateLimited(`change-password:${session.user.id}`, AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS)) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again in a few minutes." },
       { status: 429, headers: { "Retry-After": String(Math.ceil(AUTH_WINDOW_MS / 1000)) } }

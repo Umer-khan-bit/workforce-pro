@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { candidateSignupSchema } from "@/lib/validation";
 import { signupRateLimitResponse } from "@/lib/signupRateLimit";
+import { inBackground, sendVerificationEmail } from "@/lib/accountEmails";
 
 export async function POST(request: Request) {
-  const limited = signupRateLimitResponse(request, "candidate");
+  const limited = await signupRateLimitResponse(request, "candidate");
   if (limited) return limited;
 
   const body = await request.json().catch(() => null);
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
 
   const hashedPassword = await hashPassword(password);
 
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: {
       email,
       password: hashedPassword,
@@ -67,5 +68,6 @@ export async function POST(request: Request) {
     },
   });
 
+  inBackground(sendVerificationEmail(prisma, created));
   return NextResponse.json({ ok: true }, { status: 201 });
 }

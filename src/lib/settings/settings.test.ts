@@ -6,6 +6,7 @@ import {
   SETTING_KEYS,
   SETTING_SCHEMAS,
   aiGenerationSchema,
+  accountsSchema,
   aiPromptsSchema,
   brandingSchema,
   itemDefaultsSchema,
@@ -79,6 +80,50 @@ describe("AI settings", () => {
     expect(bad.success).toBe(false);
     expect(aiPromptsSchema.safeParse({ ...p, systemPrompt: "Be nice {{count}}" }).success).toBe(false);
     expect(aiPromptsSchema.safeParse({ ...p, reviewPrompt: "Review {{testName}} in {{language}} for {{jobRole}}" }).success).toBe(true);
+  });
+});
+
+describe("settings screen", () => {
+  const fields = SETTING_GROUPS.flatMap((g) => g.fields.map((f) => ({ group: g.key, ...f })));
+
+  it("has a one-line plain-English help text under every setting", () => {
+    for (const f of fields) {
+      expect(f.help, `${f.group}.${f.name}`).toBeTruthy();
+      expect(f.help.length, `${f.group}.${f.name}`).toBeLessThanOrEqual(200);
+      expect(f.help, `${f.group}.${f.name}`).not.toMatch(/\n/);
+      expect(f.help.trim().endsWith("."), `${f.group}.${f.name} should be a sentence`).toBe(true);
+    }
+  });
+
+  it("puts the technical settings under Advanced and everything else on the main tabs", () => {
+    const advanced = SETTING_GROUPS.filter((g) => g.advanced).map((g) => g.key).sort();
+    expect(advanced).toEqual(["aiGeneration", "aiPrompts", "itemDefaults", "selfLearning"]);
+    const general = SETTING_GROUPS.filter((g) => !g.advanced).map((g) => g.key);
+    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "currency", "quartiles", "topPerformer", "poolTargets"]));
+  });
+
+  it("shows the allowed placeholders under each prompt", () => {
+    const prompt = fields.find((f) => f.name === "instructionIq")!;
+    expect(prompt.placeholders).toContain("count");
+    expect(fields.find((f) => f.name === "systemPrompt")!.placeholders).toBeUndefined();
+  });
+});
+
+describe("accounts & trials", () => {
+  const ok = DEFAULT_SETTINGS.accounts;
+
+  it("starts with a 14-day trial of the default plan", () => {
+    expect(ok).toMatchObject({ defaultPlanCode: "basic", trialDays: 14 });
+    expect(accountsSchema.safeParse(ok).success).toBe(true);
+  });
+
+  it("accepts no plan and no trial, and rejects nonsense", () => {
+    expect(accountsSchema.safeParse({ ...ok, defaultPlanCode: "", trialDays: 0 }).success).toBe(true);
+    expect(accountsSchema.safeParse({ ...ok, trialDays: -1 }).success).toBe(false);
+    expect(accountsSchema.safeParse({ ...ok, trialDays: 1000 }).success).toBe(false);
+    expect(accountsSchema.safeParse({ ...ok, passwordResetMinutes: 1 }).success).toBe(false);
+    expect(accountsSchema.safeParse({ ...ok, emailVerificationHours: 0 }).success).toBe(false);
+    expect(accountsSchema.safeParse({ ...ok, defaultPlanCode: "Has Spaces!" }).success).toBe(false);
   });
 });
 

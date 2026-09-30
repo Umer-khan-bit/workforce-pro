@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, generateTempPassword } from "@/lib/password";
 import { recruiterCreateSchema } from "@/lib/validation";
+import { inBackground, sendVerificationEmail } from "@/lib/accountEmails";
 
 export async function GET() {
   const session = await auth();
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
       metadata: { email: recruiter.email },
     },
   });
+
+  // The new recruiter confirms their email address from the banner or the emailed link.
+  inBackground(sendVerificationEmail(prisma, recruiter));
 
   return NextResponse.json(
     { recruiter: { id: recruiter.id, name: recruiter.name, email: recruiter.email }, tempPassword },

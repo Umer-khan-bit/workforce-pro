@@ -8,7 +8,15 @@ import { generateBrandShades, BRAND_SHADES } from "@/lib/settings/brandColor";
 
 type Values = Record<string, unknown>;
 
-export default function SettingsForm({ group, initial }: { group: SettingGroup; initial: Values }) {
+export default function SettingsForm({
+  group,
+  initial,
+  planOptions = [],
+}: {
+  group: SettingGroup;
+  initial: Values;
+  planOptions?: { value: string; label: string }[];
+}) {
   const router = useRouter();
   const [values, setValues] = useState<Values>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -83,8 +91,8 @@ export default function SettingsForm({ group, initial }: { group: SettingGroup; 
               />
             )}
             {f.type === "select" && (
-              <select id={id} className="input max-w-48" value={String(value ?? "")} onChange={(e) => set(f.name, e.target.value)}>
-                {f.options?.map((o) => (
+              <select id={id} className="input max-w-64" value={String(value ?? "")} onChange={(e) => set(f.name, e.target.value)}>
+                {(f.optionsFrom === "plans" ? [{ value: "", label: "No plan" }, ...planOptions] : (f.options ?? [])).map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
@@ -177,7 +185,15 @@ export default function SettingsForm({ group, initial }: { group: SettingGroup; 
               </fieldset>
             )}
 
-            {f.help && <p className="mt-1 text-xs text-zinc-500">{f.help}</p>}
+            <p className="mt-1 text-xs text-zinc-500">{f.help}</p>
+            {f.placeholders && (
+              <p className="mt-1 text-xs text-zinc-500">
+                Placeholders:{" "}
+                {f.placeholders.map((v) => (
+                  <code key={v} className="mr-1.5 rounded bg-zinc-100 px-1">{`{{${v}}}`}</code>
+                ))}
+              </p>
+            )}
           </div>
         );
       })}

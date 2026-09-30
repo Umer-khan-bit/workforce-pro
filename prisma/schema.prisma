@@ -68,6 +68,11 @@ enum AiRunStatus {
   FAILED
 }
 
+enum AuthTokenKind {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
 enum SessionStatus {
   IN_PROGRESS
   COMPLETED
@@ -179,11 +184,13 @@ model User {
   company            Company?  @relation(fields: [companyId], references: [id])
   isActive           Boolean   @default(true)
   mustChangePassword Boolean   @default(false)
+  passwordChangedAt  DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts   Account[]
+  sessions   Session[]
+  authTokens AuthToken[]
 
   candidateProfile CandidateProfile?
 
@@ -195,6 +202,29 @@ model User {
   auditLogs           AuditLog[]
 
   @@index([companyId])
+}
+
+/// Single-use, time-limited links sent by email. Only the SHA-256 hash of the token is stored.
+model AuthToken {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      AuthTokenKind
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, kind])
+}
+
+/// One row per attempt, so rate limits survive restarts and work across several servers.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime
+
+  @@index([key, createdAt])
 }
 
 model Account {
@@ -248,6 +278,8 @@ model CandidateProfile {
   consentGiven         Boolean   @default(false)
   consentAt            DateTime?
   privacyPolicyVersion String?
+  /// Set when the candidate deletes their account: personal data is erased, test statistics stay.
+  anonymisedAt         DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

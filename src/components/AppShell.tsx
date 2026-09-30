@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import BrandMark from "@/components/BrandMark";
+import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 
 export type ShellNavGroup = {
   label?: string;
@@ -19,6 +20,7 @@ export default function AppShell({
   groups,
   userName,
   userEmail,
+  unverifiedEmail,
   children,
 }: {
   brandName: string;
@@ -28,6 +30,8 @@ export default function AppShell({
   groups: ShellNavGroup[];
   userName: string;
   userEmail: string;
+  /** The user's email when it has not been confirmed yet; null once it is. */
+  unverifiedEmail: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -143,7 +147,10 @@ export default function AppShell({
       </aside>
 
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
-        <div className="mx-auto max-w-5xl">{children}</div>
+        <div className="mx-auto max-w-5xl">
+          {unverifiedEmail && <VerifyEmailBanner email={unverifiedEmail} />}
+          {children}
+        </div>
       </main>
     </div>
   );

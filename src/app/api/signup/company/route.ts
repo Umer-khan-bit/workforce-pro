@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { companySignupSchema } from "@/lib/validation";
 import { signupRateLimitResponse } from "@/lib/signupRateLimit";
+import { newCompanySubscription } from "@/lib/trial";
+import { inBackground, sendVerificationEmail } from "@/lib/accountEmails";
 
 export async function POST(request: Request) {
-  const limited = signupRateLimitResponse(request, "company");
+  const limited = await signupRateLimitResponse(request, "company");
   if (limited) return limited;
 
   const body = await request.json().catch(() => null);
@@ -32,11 +34,15 @@ export async function POST(request: Request) {
 
   const hashedPassword = await hashPassword(adminPassword);
 
-  await prisma.company.create({
+  // Plan and trial length come from Settings > Accounts & trials.
+  const subscription = await newCompanySubscription(prisma);
+
+  const company = await prisma.company.create({
     data: {
       name: companyName,
       industry: industry || null,
       city: city?.name ?? null,
+      ...(subscription ? { subscriptions: { create: subscription } } : {}),
       users: {
         create: {
           email: adminEmail,
@@ -46,7 +52,9 @@ export async function POST(request: Request) {
         },
       },
     },
+    include: { users: true },
   });
 
+  inBackground(sendVerificationEmail(prisma, company.users[0]));
   return NextResponse.json({ ok: true }, { status: 201 });
 }

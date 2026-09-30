@@ -40,5 +40,9 @@ export async function deleteTestData(emails: string[], companyName?: string) {
     where: { OR: [{ actorId: { in: ids } }, { targetType: "User", targetId: { in: ids } }] },
   });
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
-  if (companyName) await prisma.company.deleteMany({ where: { name: companyName } });
+  if (companyName) {
+    // New companies start a free trial, so their subscription has to go before the company.
+    await prisma.subscription.deleteMany({ where: { company: { name: companyName } } });
+    await prisma.company.deleteMany({ where: { name: companyName } });
+  }
 }

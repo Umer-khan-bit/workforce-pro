@@ -110,11 +110,9 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "profile",
             label: "Profile & privacy",
-            description: "Your details and consent.",
-            planned: [
-              "Edit city, region, experience, job role and minimum salary",
-              "View the privacy policy you accepted",
-            ],
+            description: "Your details, your email and consent, and deleting your account.",
+            planned: [],
+            live: true,
           },
         ],
       },
@@ -216,11 +214,9 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "subscription",
             label: "Subscription & billing",
-            description: "Your plan and payments.",
-            planned: [
-              "Current plan and what it includes (the features set by the platform admin)",
-              "Subscribe or upgrade through the demo checkout (simulated payment)",
-            ],
+            description: "Your plan, your free trial, and the plans you can upgrade to.",
+            planned: [],
+            live: true,
           },
           {
             slug: "reports",

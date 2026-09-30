@@ -108,7 +108,7 @@ export default async function ApprovalsPage({
 
       <p className="mt-4 text-sm text-zinc-600" aria-live="polite">{total} pending</p>
 
-      <ApprovalsTable key={`${testType}-${source}-${page}-${rows.map((r) => r.id).join(",")}`} rows={rows} />
+      <ApprovalsTable key={`${testType}-${source}-${page}`} rows={rows} />
 
       {pages > 1 && (
         <nav aria-label="Pagination" className="mt-4 flex items-center justify-between text-sm">

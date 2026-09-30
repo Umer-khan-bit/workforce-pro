@@ -225,6 +225,7 @@ export async function seedDemoData(
           password: hashedPassword,
           role,
           companyId: company.id,
+          emailVerified: new Date(),
         },
       });
     }
@@ -260,6 +261,7 @@ export async function seedDemoData(
         name: c.name,
         password: hashedPassword,
         role: "CANDIDATE",
+        emailVerified: new Date(),
         candidateProfile: {
           create: {
             phone: c.phone,
@@ -319,6 +321,7 @@ export async function seedDemoData(
       name: "Demo Platform Admin",
       password: hashedPassword,
       role: "PLATFORM_ADMIN",
+      emailVerified: new Date(),
     },
   });
 

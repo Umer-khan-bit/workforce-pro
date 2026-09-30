@@ -14,6 +14,16 @@ describe("message templates", () => {
     expect(keys).toEqual(expect.arrayContaining(["TOP_PERFORMER_EMAIL", "CONTACT_REQUEST_RECEIVED_EMAIL", "CONTACT_REQUEST_ACCEPTED_IN_APP"]));
   });
 
+  it("the reset and confirmation emails carry the link and say how long it lasts", () => {
+    for (const [key, lifetime] of [["PASSWORD_RESET_EMAIL", "minutes"], ["EMAIL_VERIFICATION_EMAIL", "hours"]]) {
+      const t = TEMPLATE_SEEDS.find((x) => x.key === key)!;
+      expect(t.channel).toBe("EMAIL");
+      expect(t.body).toContain("{{link}}");
+      expect(t.body).toContain(`{{${lifetime}}}`);
+      expect(t.variables).toEqual(expect.arrayContaining(["name", "link", lifetime, "brandName"]));
+    }
+  });
+
   it("finds placeholders that are not allowed", () => {
     expect(unknownPlaceholders("Hi {{name}} {{ oops }}", ["name"])).toEqual(["oops"]);
   });

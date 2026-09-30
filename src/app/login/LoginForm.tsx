@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 
 export default function LoginForm() {
@@ -57,6 +58,12 @@ export default function LoginForm() {
           className="input"
         />
       </div>
+
+      <p className="-mt-2 text-sm">
+        <Link href="/forgot-password" className="text-brand-700 underline">
+          Forgot your password?
+        </Link>
+      </p>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

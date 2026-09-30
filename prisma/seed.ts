@@ -103,6 +103,7 @@ async function main() {
         password: hashedPassword,
         role: "PLATFORM_ADMIN",
         name: "Platform Admin",
+        emailVerified: new Date(),
       },
     });
     console.log(`Platform admin ready: ${adminEmail}`);

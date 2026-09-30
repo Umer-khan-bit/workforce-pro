@@ -16,6 +16,28 @@ export type TemplateSeed = {
 
 export const TEMPLATE_SEEDS: TemplateSeed[] = [
   {
+    key: "PASSWORD_RESET_EMAIL",
+    name: "Password reset - email",
+    description: "Sent when someone asks to reset their password. Always sent, even if switched off, because people would otherwise be locked out.",
+    channel: "EMAIL",
+    variables: ["name", "link", "minutes", "brandName"],
+    subject: "Reset your {{brandName}} password",
+    body:
+      "Hello {{name}},\n\nWe received a request to reset your {{brandName}} password. Open this link to choose a new one:\n\n{{link}}\n\n" +
+      "The link works once and expires in {{minutes}} minutes. If you did not ask for this, ignore this email; your password stays the same.\n\nThe {{brandName}} team",
+  },
+  {
+    key: "EMAIL_VERIFICATION_EMAIL",
+    name: "Email confirmation - email",
+    description: "Sent after signup, and when someone asks for a new link, to confirm their email address. Always sent, even if switched off.",
+    channel: "EMAIL",
+    variables: ["name", "link", "hours", "brandName"],
+    subject: "Confirm your email address for {{brandName}}",
+    body:
+      "Hello {{name}},\n\nPlease confirm your email address so you can use everything on {{brandName}}:\n\n{{link}}\n\n" +
+      "The link works once and expires in {{hours}} hours. If you did not create an account, ignore this email.\n\nThe {{brandName}} team",
+  },
+  {
     key: "TOP_PERFORMER_EMAIL",
     name: "Top performer - email",
     description: "Sent to a candidate who reaches the top-performer rule.",

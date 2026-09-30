@@ -178,6 +178,18 @@ export const aiPromptsSchema = z
     }
   });
 
+export const accountsSchema = z.object({
+  defaultPlanCode: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(30)
+    .regex(/^[a-z0-9-]*$/, "Use the plan's code, for example basic"),
+  trialDays: z.coerce.number().int().min(0).max(365),
+  passwordResetMinutes: z.coerce.number().int().min(5).max(1440),
+  emailVerificationHours: z.coerce.number().int().min(1).max(720),
+});
+
 export const SETTING_SCHEMAS = {
   branding: brandingSchema,
   homepage: homepageSchema,
@@ -189,6 +201,7 @@ export const SETTING_SCHEMAS = {
   poolTargets: poolTargetsSchema,
   aiGeneration: aiGenerationSchema,
   aiPrompts: aiPromptsSchema,
+  accounts: accountsSchema,
 } as const;
 
 export type SettingKey = keyof typeof SETTING_SCHEMAS;
@@ -240,6 +253,7 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
     reviewInputPricePerMTok: 2,
     reviewOutputPricePerMTok: 10,
   },
+  accounts: { defaultPlanCode: "basic", trialDays: 14, passwordResetMinutes: 60, emailVerificationHours: 48 },
   aiPrompts: {
     systemPrompt:
       "You are an expert psychometrician and assessment item writer for a recruitment platform. You write clear, fair, culturally neutral test questions, each with exactly one defensible answer. Questions must be self-contained and must never contain personal data about real people. Return only the requested JSON.",
@@ -272,24 +286,27 @@ export type FieldSpec = {
   name: string;
   label: string;
   type: "text" | "textarea" | "number" | "color" | "image" | "tests" | "select";
-  help?: string;
+  /** One plain-English line shown under the field. Required for every setting. */
+  help: string;
   step?: number;
   rows?: number;
   options?: { value: string; label: string }[];
+  /** The page fills the options from the database (for example the list of plans). */
+  optionsFrom?: "plans";
+  /** Placeholders the system fills in; shown on a separate small line. */
+  placeholders?: string[];
 };
 
 export type SettingGroup = {
   key: SettingKey;
   title: string;
   description: string;
+  /** Technical settings live under the Advanced tab. */
+  advanced?: boolean;
   fields: FieldSpec[];
 };
 
-function placeholderHelp(allowed: string[]): string {
-  return allowed.length
-    ? `Placeholders: ${allowed.map((a) => `{{${a}}}`).join(" ")}`
-    : "No placeholders.";
-}
+const ph = (allowed: string[]) => (allowed.length ? allowed : undefined);
 
 export const SETTING_GROUPS: SettingGroup[] = [
   {
@@ -297,15 +314,10 @@ export const SETTING_GROUPS: SettingGroup[] = [
     title: "Branding",
     description: "Name, logo and colour shown across the whole platform.",
     fields: [
-      { name: "name", label: "Platform name", type: "text" },
-      { name: "tagline", label: "Tagline (browser tab description)", type: "text" },
-      {
-        name: "primaryColor",
-        label: "Brand colour",
-        type: "color",
-        help: "All shades of the brand colour are generated from this one.",
-      },
-      { name: "logoDataUrl", label: "Logo", type: "image", help: "PNG, JPEG, WebP or SVG, up to about 150 KB." },
+      { name: "name", label: "Platform name", type: "text", help: "Shown in the header, the browser tab and emails." },
+      { name: "tagline", label: "Tagline", type: "text", help: "A short description that search engines and browser tabs can show." },
+      { name: "primaryColor", label: "Brand colour", type: "color", help: "Pick one colour; all the lighter and darker shades are worked out from it." },
+      { name: "logoDataUrl", label: "Logo", type: "image", help: "PNG, JPEG, WebP or SVG, up to about 150 KB; shown next to the name." },
     ],
   },
   {
@@ -313,11 +325,28 @@ export const SETTING_GROUPS: SettingGroup[] = [
     title: "Homepage",
     description: "Text on the public landing page.",
     fields: [
-      { name: "headline", label: "Headline", type: "text" },
-      { name: "subheadline", label: "Sub-heading", type: "textarea" },
-      { name: "loginLabel", label: "Log in button", type: "text" },
-      { name: "candidateSignupLabel", label: "Candidate sign-up button", type: "text" },
-      { name: "companySignupLabel", label: "Company sign-up button", type: "text" },
+      { name: "headline", label: "Headline", type: "text", help: "The big line at the top of the home page." },
+      { name: "subheadline", label: "Sub-heading", type: "textarea", help: "One or two sentences under the headline that explain what the platform does." },
+      { name: "loginLabel", label: "Log in button", type: "text", help: "Wording on the button that takes existing users to the login page." },
+      { name: "candidateSignupLabel", label: "Candidate sign-up button", type: "text", help: "Wording on the button for people who want to take the assessments." },
+      { name: "companySignupLabel", label: "Company sign-up button", type: "text", help: "Wording on the button for companies that want to find candidates." },
+    ],
+  },
+  {
+    key: "accounts",
+    title: "Accounts & trials",
+    description: "What a new company gets when it signs up, and how long email links stay valid.",
+    fields: [
+      {
+        name: "defaultPlanCode",
+        label: "Plan new companies start on",
+        type: "select",
+        optionsFrom: "plans",
+        help: "Every new company is put on this plan for its free trial. Choose 'No plan' to start companies with none.",
+      },
+      { name: "trialDays", label: "Free trial length (days)", type: "number", help: "How long the starting plan is free. Set 0 for no trial: the company then starts with no plan until it upgrades." },
+      { name: "passwordResetMinutes", label: "Password reset link lasts (minutes)", type: "number", help: "After this long the emailed reset link stops working and the user must ask for a new one." },
+      { name: "emailVerificationHours", label: "Email confirmation link lasts (hours)", type: "number", help: "After this long the emailed confirmation link stops working; users can ask for a new one." },
     ],
   },
   {
@@ -325,8 +354,8 @@ export const SETTING_GROUPS: SettingGroup[] = [
     title: "Currency",
     description: "How prices and salaries are shown.",
     fields: [
-      { name: "code", label: "Currency code", type: "text", help: "For example PKR or USD." },
-      { name: "locale", label: "Number format locale", type: "text", help: "For example en-PK or en-US." },
+      { name: "code", label: "Currency code", type: "text", help: "The three-letter code shown before amounts, for example PKR or USD." },
+      { name: "locale", label: "Number format", type: "text", help: "Controls thousands separators, for example en-PK or en-US." },
     ],
   },
   {
@@ -334,15 +363,10 @@ export const SETTING_GROUPS: SettingGroup[] = [
     title: "Quartiles",
     description: "How percentile ranks become Q1-Q4, and when the fallback cohort is used.",
     fields: [
-      { name: "q1TopPercent", label: "Q1 = top ... %", type: "number" },
-      { name: "q2TopPercent", label: "Q2 = top ... %", type: "number" },
-      { name: "q3TopPercent", label: "Q3 = top ... %", type: "number" },
-      {
-        name: "minCohortSize",
-        label: "Minimum candidates in a job role",
-        type: "number",
-        help: "Below this, quartiles are calculated against all candidates instead.",
-      },
+      { name: "q1TopPercent", label: "Q1 = top ... %", type: "number", help: "Candidates in this top share of their group are placed in Q1 (25 means the best quarter)." },
+      { name: "q2TopPercent", label: "Q2 = top ... %", type: "number", help: "Candidates up to this share, but not in Q1, are placed in Q2." },
+      { name: "q3TopPercent", label: "Q3 = top ... %", type: "number", help: "Candidates up to this share, but not in Q1 or Q2, are placed in Q3; everyone else is Q4." },
+      { name: "minCohortSize", label: "Minimum candidates in a job role", type: "number", help: "Below this many candidates in a role, ranks are worked out against all candidates instead." },
     ],
   },
   {
@@ -350,86 +374,87 @@ export const SETTING_GROUPS: SettingGroup[] = [
     title: "Top performer",
     description: "Who earns the Top Performer badge and recognition email.",
     fields: [
-      { name: "requiredQuartile", label: "Quartile needed in each test (1 = top)", type: "number" },
-      { name: "countedTests", label: "Tests that must all reach it", type: "tests" },
-    ],
-  },
-  {
-    key: "itemDefaults",
-    title: "Question defaults",
-    description: "Starting difficulty values for questions that have not been calibrated yet.",
-    fields: [
-      { name: "discrimination", label: "Discrimination (a)", type: "number", step: 0.1 },
-      { name: "difficultyEasy", label: "Easy difficulty (b)", type: "number", step: 0.1 },
-      { name: "difficultyMedium", label: "Medium difficulty (b)", type: "number", step: 0.1 },
-      { name: "difficultyHard", label: "Hard difficulty (b)", type: "number", step: 0.1 },
-    ],
-  },
-  {
-    key: "selfLearning",
-    title: "Self-learning",
-    description: "When the system recalibrates questions and flags them for your review.",
-    fields: [
-      { name: "minResponsesForRecalibration", label: "Responses needed before recalibrating", type: "number" },
-      { name: "tooEasyCorrectRate", label: "Flag as too easy above this correct rate", type: "number", step: 0.01 },
-      { name: "tooHardCorrectRate", label: "Flag as too hard below this correct rate", type: "number", step: 0.01 },
-      { name: "minDiscrimination", label: "Flag low discrimination below", type: "number", step: 0.05 },
-      { name: "maxDifGap", label: "Flag possible bias when groups differ by more than", type: "number", step: 0.01 },
+      { name: "requiredQuartile", label: "Quartile needed in each test", type: "number", help: "1 means the top quartile; a candidate must reach it in every test ticked below." },
+      { name: "countedTests", label: "Tests that must all reach it", type: "tests", help: "A candidate earns the badge only if they reach the quartile in all of these tests." },
     ],
   },
   {
     key: "poolTargets",
     title: "Question pool targets",
     description: "Approved questions wanted per test. Drives the red and amber gaps in the question bank.",
-    fields: TEST_TYPES.map((t) => ({ name: t, label: TEST_TYPE_LABELS[t], type: "number" as const })),
+    fields: TEST_TYPES.map((t) => ({
+      name: t,
+      label: TEST_TYPE_LABELS[t],
+      type: "number" as const,
+      help: `How many approved ${TEST_TYPE_LABELS[t]} questions you want available; the question bank shows a gap below this.`,
+    })),
+  },
+  {
+    key: "itemDefaults",
+    title: "Question defaults",
+    advanced: true,
+    description: "Starting difficulty values for questions that have not been calibrated yet.",
+    fields: [
+      { name: "discrimination", label: "Discrimination (a)", type: "number", step: 0.1, help: "How sharply a new question separates strong from weak candidates; 1 is a normal starting value." },
+      { name: "difficultyEasy", label: "Easy difficulty (b)", type: "number", step: 0.1, help: "Starting difficulty score for questions marked Easy (negative means easier than average)." },
+      { name: "difficultyMedium", label: "Medium difficulty (b)", type: "number", step: 0.1, help: "Starting difficulty score for questions marked Medium (0 is average)." },
+      { name: "difficultyHard", label: "Hard difficulty (b)", type: "number", step: 0.1, help: "Starting difficulty score for questions marked Hard (positive means harder than average)." },
+    ],
+  },
+  {
+    key: "selfLearning",
+    title: "Self-learning",
+    advanced: true,
+    description: "When the system recalibrates questions and flags them for your review.",
+    fields: [
+      { name: "minResponsesForRecalibration", label: "Answers needed before recalibrating", type: "number", help: "A question's difficulty is only re-estimated once this many candidates have answered it." },
+      { name: "tooEasyCorrectRate", label: "Too easy above this correct rate", type: "number", step: 0.01, help: "A question answered correctly by more than this share (0.9 = 90%) is flagged as too easy." },
+      { name: "tooHardCorrectRate", label: "Too hard below this correct rate", type: "number", step: 0.01, help: "A question answered correctly by fewer than this share (0.1 = 10%) is flagged as too hard." },
+      { name: "minDiscrimination", label: "Low discrimination below", type: "number", step: 0.05, help: "Questions that do not separate strong from weak candidates at least this well are flagged." },
+      { name: "maxDifGap", label: "Possible bias above this gap", type: "number", step: 0.01, help: "If two groups of candidates do differently on a question by more than this, it is flagged for bias." },
+    ],
   },
   {
     key: "aiGeneration",
     title: "AI generation",
+    advanced: true,
     description:
-      "Which Claude models write and review questions, how many per batch, and the prices used for the cost estimate (update the prices when you change the model). The API key itself is kept in the .env file, never here.",
+      "Which Claude models write and review questions, how many per batch, and the prices used for the cost estimate. The API key itself is kept in the .env file, never here.",
     fields: [
-      { name: "model", label: "Model that writes questions", type: "text" },
-      { name: "reviewModel", label: "Model that reviews them", type: "text" },
-      {
-        name: "effort",
-        label: "Thinking effort",
-        type: "select",
-        options: AI_EFFORTS.map((e) => ({ value: e, label: e })),
-        help: "Higher is more careful but slower and dearer.",
-      },
-      { name: "maxOutputTokens", label: "Maximum reply length (tokens)", type: "number" },
-      { name: "batchSize", label: "Questions per batch", type: "number" },
-      { name: "maxQuestionsPerRun", label: "Most questions in one run", type: "number" },
-      { name: "eqSituationalPercent", label: "EQ: % situational-judgement items (the rest are Likert)", type: "number" },
-      { name: "languageWritingPercent", label: "Language: % writing prompts (the rest are multiple choice)", type: "number" },
-      { name: "inputPricePerMTok", label: "Writer price: input, per million tokens (USD)", type: "number", step: 0.01 },
-      { name: "outputPricePerMTok", label: "Writer price: output, per million tokens (USD)", type: "number", step: 0.01 },
-      { name: "reviewInputPricePerMTok", label: "Reviewer price: input, per million tokens (USD)", type: "number", step: 0.01 },
-      { name: "reviewOutputPricePerMTok", label: "Reviewer price: output, per million tokens (USD)", type: "number", step: 0.01 },
+      { name: "model", label: "Model that writes questions", type: "text", help: "The Claude model that drafts new questions and translations." },
+      { name: "reviewModel", label: "Model that reviews them", type: "text", help: "The Claude model that checks each draft for errors, ambiguity and bias." },
+      { name: "effort", label: "Thinking effort", type: "select", options: AI_EFFORTS.map((e) => ({ value: e, label: e })), help: "Higher is more careful but slower and more expensive." },
+      { name: "maxOutputTokens", label: "Maximum reply length (tokens)", type: "number", help: "The longest answer Claude may give in one go; raise it if replies get cut off." },
+      { name: "batchSize", label: "Questions per batch", type: "number", help: "How many questions are written in one request; smaller batches are slower but safer." },
+      { name: "maxQuestionsPerRun", label: "Most questions in one run", type: "number", help: "The largest number you can ask for on the Generate page at once." },
+      { name: "eqSituationalPercent", label: "EQ: % situational items", type: "number", help: "Share of EQ questions that are workplace scenarios; the rest are rating statements." },
+      { name: "languageWritingPercent", label: "Language: % writing prompts", type: "number", help: "Share of Language items that are writing tasks; the rest are multiple choice." },
+      { name: "inputPricePerMTok", label: "Writer price: input per million tokens (USD)", type: "number", step: 0.01, help: "Used only for the cost estimate; copy it from Anthropic's price list." },
+      { name: "outputPricePerMTok", label: "Writer price: output per million tokens (USD)", type: "number", step: 0.01, help: "Used only for the cost estimate; copy it from Anthropic's price list." },
+      { name: "reviewInputPricePerMTok", label: "Reviewer price: input per million tokens (USD)", type: "number", step: 0.01, help: "Used only for the cost estimate of the review step." },
+      { name: "reviewOutputPricePerMTok", label: "Reviewer price: output per million tokens (USD)", type: "number", step: 0.01, help: "Used only for the cost estimate of the review step." },
     ],
   },
   {
     key: "aiPrompts",
     title: "AI prompts",
-    description:
-      "The instructions sent to Claude. Placeholders in double curly braces are filled in by the system; only the ones listed under each box are allowed.",
+    advanced: true,
+    description: "The instructions sent to Claude. Only the placeholders listed under each box are allowed.",
     fields: [
-      { name: "systemPrompt", label: "Shared system prompt", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.systemPrompt) },
-      { name: "instructionIq", label: "Generate IQ questions", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.instructionIq) },
-      { name: "instructionEq", label: "Generate EQ items", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.instructionEq) },
-      { name: "instructionLanguage", label: "Generate Language items", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.instructionLanguage) },
-      { name: "instructionSkill", label: "Generate Job-skill questions", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.instructionSkill) },
-      { name: "reviewPrompt", label: "Review generated questions", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.reviewPrompt) },
-      { name: "translationPrompt", label: "Translate personality items", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.translationPrompt) },
-      { name: "translationReviewPrompt", label: "Review translations", type: "textarea", rows: 7, help: placeholderHelp(AI_PROMPT_VARIABLES.translationReviewPrompt) },
-      { name: "difficultyGuideEasy", label: "What \"easy\" means", type: "text" },
-      { name: "difficultyGuideMedium", label: "What \"medium\" means", type: "text" },
-      { name: "difficultyGuideHard", label: "What \"hard\" means", type: "text" },
-      { name: "cefrEasy", label: "Language test: CEFR level for easy", type: "text" },
-      { name: "cefrMedium", label: "Language test: CEFR level for medium", type: "text" },
-      { name: "cefrHard", label: "Language test: CEFR level for hard", type: "text" },
+      { name: "systemPrompt", label: "Shared system prompt", type: "textarea", rows: 7, help: "The standing rules Claude follows for every request, such as tone and fairness.", placeholders: ph(AI_PROMPT_VARIABLES.systemPrompt) },
+      { name: "instructionIq", label: "Generate IQ questions", type: "textarea", rows: 7, help: "What Claude is asked to do when writing IQ questions.", placeholders: ph(AI_PROMPT_VARIABLES.instructionIq) },
+      { name: "instructionEq", label: "Generate EQ items", type: "textarea", rows: 7, help: "What Claude is asked to do when writing emotional-intelligence items.", placeholders: ph(AI_PROMPT_VARIABLES.instructionEq) },
+      { name: "instructionLanguage", label: "Generate Language items", type: "textarea", rows: 7, help: "What Claude is asked to do when writing language questions and writing prompts.", placeholders: ph(AI_PROMPT_VARIABLES.instructionLanguage) },
+      { name: "instructionSkill", label: "Generate Job-skill questions", type: "textarea", rows: 7, help: "What Claude is asked to do when writing questions for a job role.", placeholders: ph(AI_PROMPT_VARIABLES.instructionSkill) },
+      { name: "reviewPrompt", label: "Review generated questions", type: "textarea", rows: 7, help: "What the second Claude pass checks for on each new question.", placeholders: ph(AI_PROMPT_VARIABLES.reviewPrompt) },
+      { name: "translationPrompt", label: "Translate personality items", type: "textarea", rows: 7, help: "How Claude should translate the personality statements into another language.", placeholders: ph(AI_PROMPT_VARIABLES.translationPrompt) },
+      { name: "translationReviewPrompt", label: "Review translations", type: "textarea", rows: 7, help: "What the second pass checks when comparing a translation with its English original.", placeholders: ph(AI_PROMPT_VARIABLES.translationReviewPrompt) },
+      { name: "difficultyGuideEasy", label: "What \"easy\" means", type: "text", help: "A short description of an easy question that is given to Claude." },
+      { name: "difficultyGuideMedium", label: "What \"medium\" means", type: "text", help: "A short description of a medium question that is given to Claude." },
+      { name: "difficultyGuideHard", label: "What \"hard\" means", type: "text", help: "A short description of a hard question that is given to Claude." },
+      { name: "cefrEasy", label: "Language level for easy", type: "text", help: "The CEFR level (A1 to C2) used for Easy language questions, for example A2-B1." },
+      { name: "cefrMedium", label: "Language level for medium", type: "text", help: "The CEFR level used for Medium language questions, for example B1-B2." },
+      { name: "cefrHard", label: "Language level for hard", type: "text", help: "The CEFR level used for Hard language questions, for example C1." },
     ],
   },
 ];
-

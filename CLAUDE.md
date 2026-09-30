@@ -137,7 +137,15 @@ email/notification templates, courses and lessons, homepage and privacy policy t
 - Candidate consent checkbox at signup, with link to privacy policy page.
 - Audit log for admin actions and for every recruiter view of a candidate profile.
 - Secrets only in `.env` (never commit it); keep `.env.example` updated.
-- Rate-limit login and AI endpoints.
+- Rate-limit login, signup, password-reset, email-verification and AI endpoints. The limiter is stored in
+  the database (`isRateLimited` in `src/lib/rateLimit.ts`, async), so it survives restarts and works on
+  several servers. Always `await` it.
+- Email links (password reset, email confirmation) hold single-use, time-limited tokens; only a hash is
+  stored. Links use `APP_BASE_URL` from the environment, never the request's Host header.
+- Email verification: unverified users can log in and see a banner, but must not take tests or contact
+  candidates. Every such route must call `requireVerifiedEmail()` (`src/lib/emailVerification.ts`).
+- Account deletion anonymises a candidate (personal data erased, test statistics kept, audit event kept).
+  Candidate search, shortlists, cohorts and exports must skip profiles where `anonymisedAt` is set.
 
 ## How to work
 - One module at a time. Do not start the next module until the current one works.
@@ -153,7 +161,14 @@ email/notification templates, courses and lessons, homepage and privacy policy t
 - Day 1: setup, database schema, auth, roles, layouts, seed data
 - Day 2: question bank, AI question generation, admin approval
 - Day 3: test engine (all four tests), scoring, quartiles, language by region
+  - After the test engine, seed realistic test sessions and scores for all demo candidates, spread across
+    quartiles (Q1-Q4), so recruiter filters and dashboards have data.
 - Day 4: results, AI feedback, salary guide, minimum salary, training, top-performer emails
 - Day 5: recruiter dashboard, filters, AI search, subscriptions, reports
+  - Dashboards and reports use charts, not only numbers: candidates by city, by role, quartile
+    distribution, and the hiring funnel.
 - Day 6: ATS API/webhooks/mock/export, pilot mode, self-learning jobs, security pass, mobile polish
 - Day 7: end-to-end testing, bug fixes, demo rehearsal
+  - Design polish of every screen.
+  - One consistent vocabulary across the whole app (for example always "Candidate", never "Job seeker"
+    or "Applicant"; the same word for the same thing on every screen, email and template).

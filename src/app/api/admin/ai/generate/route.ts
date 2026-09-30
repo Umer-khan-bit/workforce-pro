@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const guard = await requirePlatformAdmin();
   if (guard instanceof NextResponse) return guard;
 
-  const limited = aiRateLimitResponse(guard.userId);
+  const limited = await aiRateLimitResponse(guard.userId);
   if (limited) return limited;
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));

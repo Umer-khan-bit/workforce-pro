@@ -1,6 +1,35 @@
-# Workforce Pro - status (Day 1, plus Day 2 part 1 and the no-hardcoding fix)
+# Workforce Pro - status (Day 1, Day 2, the no-hardcoding fix and the account fixes)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Account gaps and fixes (done)
+
+Eight items, all built, tested and committed.
+
+1. **Forgot password.** Login page > "Forgot your password?" > enter email > emailed link > choose a new password. The link is single-use and expires (60 minutes, in Settings). The answer is the same whether or not the address has an account, and the email is sent in the background so timing does not give it away. A reset also ends every session that was open before it. Limits: 5 requests per IP and 3 per address per 15 minutes; 10 link attempts per IP. The email is the `PASSWORD_RESET_EMAIL` message template (editable under Message templates). With no SMTP set, the whole email, link included, is written to the server console.
+2. **Email confirmation.** Candidate and company signup (and recruiters created by a company admin) get a confirmation email (`EMAIL_VERIFICATION_EMAIL` template, link lasts 48 hours by default). Unverified users can log in and see a banner with "Send the link again" (limited to 3 per 15 minutes). They must not take tests or contact candidates: `requireVerifiedEmail()` (`src/lib/emailVerification.ts`) is the guard every such route has to call; those routes are built on Day 3 and Day 5 and CLAUDE.md now says so. Accounts that existed before this change, and all seeded accounts, count as verified.
+3. **New companies.** The plan and free-trial days come from Settings > Accounts & trials (starting values: Basic plan, 14 days; 0 days or "No plan" means no subscription). A new company admin sees their plan, the days left and an **Upgrade plan** button on the dashboard, and the new **Subscription & billing** page compares the plans (prices and features from the database). Plans are now also checked against their end date, so an ended trial gives no access. The "Choose" buttons are switched off for now: checkout is part of the Day 5 subscriptions module, and the page says so.
+4. **Candidate profile page** (Profile & privacy): edit name, phone, region, city (filtered by region), experience, job role and minimum salary, with the same rules as signup. Each save is audit-logged with the **names** of the fields that changed, never the values.
+5. **Account deletion.** Candidates only. The page asks for confirmation (warning, then type DELETE and enter the password). Personal data is erased: name, email (replaced by an unusable address, so the original can sign up again), password, phone, city, salary expectation, notifications, AI feedback, badges, written essay text, shortlist entries, contact requests and ATS exports. Kept for calibration: test sessions, answers and scores, plus region, job role and years of experience (needed to check questions for bias). The audit log keeps the event. The profile is marked `anonymisedAt`; candidate search, shortlists and cohorts must skip those (CLAUDE.md now says so).
+6. **Settings.** Question defaults, Self-learning, AI generation (models and prices) and AI prompts now sit under an **Advanced** tab with a warning. I included AI generation as well as the three you listed, because it is equally technical. Every setting has a one-line plain-English help text (a test fails if one is missing), and prompt boxes list their allowed placeholders on a separate line.
+7. **Rate limiter in the database.** Attempts are stored in a table, so limits survive restarts and are shared by every server on the same database. Counting is atomic (a per-key lock), so simultaneous requests cannot slip past; a test fires 12 at once and exactly 4 get through. If the database is unreachable the limiter throws, so callers fail closed. Servers should keep their clocks in sync (normal time sync is plenty). `isRateLimited` is now async.
+8. **Build plan** (CLAUDE.md): Day 3 seeds realistic test sessions and scores across Q1-Q4 for all demo candidates; Day 5 dashboards and reports use charts (by city, role, quartile distribution, hiring funnel); Day 7 covers design polish of every screen and one consistent vocabulary.
+
+### Decisions and things to know
+- **Set `APP_BASE_URL`** in `.env` for any real deployment (added to `.env.example`). Emailed links are built from it, never from the request, so a forged Host header cannot point a reset email somewhere else. It falls back to http://localhost:7310 in development.
+- **Real email not tried.** Sending goes through `nodemailer` using the existing `SMTP_*` variables (Brevo). I tested the SMTP path with a fake transport (from-address, failure handling, no secrets or links in error logs) but not against a real Brevo account. Until SMTP is set, links appear in the server console.
+- **Reset and confirmation emails always send**, even if their template is switched off, so nobody is locked out; the template descriptions say so.
+- **Starting trial** is Basic for 14 days: my choice, change it in Settings > Accounts & trials.
+- **Tests now clear the rate-limit table before each Playwright run** (`e2e/global-setup.ts`). Because limits now survive restarts, running the suite twice within 15 minutes would otherwise lock the demo accounts out (5 logins per address per 15 minutes).
+- Fixed a real bug found on the way: after a bulk approve, the approvals page could wipe its own "flagged questions were skipped" message when it refreshed.
+- Migration `20260930180000_auth_tokens_rate_limit` adds the auth-token and rate-limit tables, `passwordChangedAt` and `anonymisedAt`, and marks existing accounts verified. New dependency: `nodemailer`.
+
+### Tests
+- **Vitest: 202 passing** (was 159). Many run against the real database with throw-away accounts that are removed afterwards: token single-use and concurrent use, forgot/reset/verify endpoints end to end (link read from the console), rate limits per IP and per address, the database limiter across two connections and after a "restart", profile updates and audit content, full anonymisation, delete-route checks, trial and expiry logic, SMTP path, settings help text and Advanced grouping.
+- **Playwright: 33 passing, three runs in a row** (28 + 5 new): forgot and reset with old-session and old-password checks, email confirmation with banner and resend, company trial and upgrade page, profile editing with audit check, account deletion with confirmation.
+- `tsc` clean; `eslint` 0 errors (3 old warnings).
+
+---
 
 ## Day 2, part 2: AI question generation and approval (done)
 
@@ -188,8 +217,8 @@ Checked everything built so far against "Ports and my laptop" and "Security and 
 
 ## Known limitations
 
-- **Rate limiting is in-memory**, so it resets on restart and isn't shared between server instances. It also trusts the first `x-forwarded-for` hop, so it needs a proxy that overwrites that header; behind one that appends, a caller could spoof IPs. A shared store (e.g. Redis) fixes both and is a small change in `rateLimit.ts`.
-- Because it is in-memory, the e2e suite gives each spec file its own fake IP, and each demo account logs in only a couple of times per run. Re-running Playwright against an **already-running** test server more than a few times in 15 minutes can trip the login limit (5 per email per 15 min); a fresh server or a 15-minute wait clears it.
+- **Rate limiting** is now stored in the database (see "Account gaps and fixes"), so it survives restarts and is shared between servers. It still trusts the first `x-forwarded-for` hop, so it needs a proxy that overwrites that header; behind one that appends, a caller could spoof IPs.
+- The e2e suite gives each spec file its own fake IP for signups, and clears the stored rate limits before every run (`e2e/global-setup.ts`).
 - The Playwright navigation tests need the demo seed to have been run first, like the existing tests need the reference data.
 - Placeholder pages are placeholders: nothing behind them is wired to data yet except the four dashboards' summary numbers and the Recruiters page.
 - The leftover "Test Co" companies and every old `@example.com` test user are deleted from the dev DB (3 companies, 0 test users). The e2e specs now clean up after themselves.
@@ -198,4 +227,4 @@ Checked everything built so far against "Ports and my laptop" and "Security and 
 ## Suggested next steps
 
 1. Pick the first real module to build. Recommended order: assessment engine (question bank -> test session -> scoring), since recruiter search, shortlists and candidate results all depend on scores.
-2. Move the rate limiter to a shared store before any multi-instance deployment.
+2. (Done) The rate limiter now uses the database.

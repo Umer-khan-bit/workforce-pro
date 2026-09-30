@@ -18,9 +18,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!token?.sub) return token;
       const user = await prisma.user.findUnique({
         where: { id: token.sub },
-        select: { isActive: true },
+        select: { isActive: true, passwordChangedAt: true },
       });
-      return user?.isActive ? token : null;
+      if (!user?.isActive) return null;
+      // A password reset ends every session that was opened before it. Compared in whole seconds
+      // (the token's issue time has no milliseconds), so signing in right after a reset still works.
+      if (
+        user.passwordChangedAt &&
+        typeof token.iat === "number" &&
+        token.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)
+      ) {
+        return null;
+      }
+      return token;
     },
   },
   adapter: PrismaAdapter(prisma),
@@ -35,7 +45,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        if (isRateLimited(`login:${email.toLowerCase()}`, AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS)) {
+        if (await isRateLimited(`login:${email.toLowerCase()}`, AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS)) {
           return null;
         }
 

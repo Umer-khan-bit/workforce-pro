@@ -1,12 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-// Invalid bodies are rejected before any DB access, so a stub client is enough
-// to prove the limiter sits in front of each endpoint.
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
+// Invalid bodies are rejected before any other database access, so this proves the (database-backed)
+// limiter sits in front of each endpoint. Attempts are stored, so every test uses fresh random IPs.
 
 import { POST as candidateSignup } from "./candidate/route";
 import { POST as companySignup } from "./company/route";
 import { AUTH_ATTEMPT_LIMIT } from "@/lib/rateLimit";
+import { prisma } from "@/lib/prisma";
+
+const ipsUsed = new Set<string>();
+afterAll(async () => {
+  await prisma.rateLimitHit.deleteMany({
+    where: { OR: [...ipsUsed].map((ip) => ({ key: { contains: ip } })) },
+  });
+});
 
 function signupRequest(url: string, ip: string) {
   return new Request(`http://localhost${url}`, {
@@ -19,6 +26,8 @@ function signupRequest(url: string, ip: string) {
 let ip: string;
 beforeEach(() => {
   ip = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+  ipsUsed.add(ip);
+  ipsUsed.add(`${ip}9`);
 });
 
 describe.each([

@@ -41,7 +41,9 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  // Rows disappear after approve/reject, so only count what is still on the page.
+  const selectedIds = rows.filter((r) => selected.has(r.id)).map((r) => r.id);
+  const allSelected = rows.length > 0 && selectedIds.length === rows.length;
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -85,7 +87,7 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
   async function approveSelected() {
     setBusy(true);
     setMessage(null);
-    const r = await post("/api/admin/questions/bulk-approve", { ids: [...selected], includeFlagged });
+    const r = await post("/api/admin/questions/bulk-approve", { ids: selectedIds, includeFlagged });
     setBusy(false);
     if (!r.ok) return setMessage({ text: r.data?.error ?? "Something went wrong", ok: false });
     const d = r.data as { approved: number; skippedFlagged: number; skippedNotPending: number };
@@ -113,8 +115,8 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
           <input type="checkbox" className="size-5 accent-brand-700" checked={includeFlagged} onChange={(e) => setIncludeFlagged(e.target.checked)} />
           Include questions flagged by the AI review
         </label>
-        <button onClick={approveSelected} disabled={busy || selected.size === 0} className="btn-primary">
-          Approve selected ({selected.size})
+        <button onClick={approveSelected} disabled={busy || selectedIds.length === 0} className="btn-primary">
+          Approve selected ({selectedIds.length})
         </button>
       </div>
 
