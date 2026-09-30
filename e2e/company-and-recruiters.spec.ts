@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { prisma, uniqueEmail } from "./helpers";
+import { prisma, randomIp, uniqueEmail } from "./helpers";
+
+test.use({ extraHTTPHeaders: { "x-forwarded-for": randomIp() } });
 
 test("company signup, recruiter creation, and forced password change on first login", async ({
   page,

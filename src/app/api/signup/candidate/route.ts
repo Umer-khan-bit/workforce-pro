@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { candidateSignupSchema } from "@/lib/validation";
+import { signupRateLimitResponse } from "@/lib/signupRateLimit";
 
 const PRIVACY_POLICY_VERSION = "1.0";
 
 export async function POST(request: Request) {
+  const limited = signupRateLimitResponse(request, "candidate");
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
   const parsed = candidateSignupSchema.safeParse(body);
 

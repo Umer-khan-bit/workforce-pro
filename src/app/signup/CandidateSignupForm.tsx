@@ -83,7 +83,7 @@ export default function CandidateSignupForm({
       <SelectField label="Job role" name="jobRoleId" required options={jobRoles} />
       <Field label="Minimum expected salary" name="minimumSalary" type="number" min={0} required />
 
-      <label className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+      <label className="flex items-start gap-2 text-sm text-zinc-700">
         <input
           type="checkbox"
           checked={consentGiven}
@@ -99,12 +99,12 @@ export default function CandidateSignupForm({
         </span>
       </label>
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting || !consentGiven}
-        className="mt-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="btn-primary mt-2"
       >
         {submitting ? "Creating account..." : "Create account"}
       </button>
@@ -131,7 +131,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <label htmlFor={name} className="label">
         {label}
       </label>
       <input
@@ -142,7 +142,7 @@ function Field({
         minLength={minLength}
         min={min}
         max={max}
-        className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="input"
       />
     </div>
   );
@@ -161,7 +161,7 @@ function SelectField({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <label htmlFor={name} className="label">
         {label}
       </label>
       <select
@@ -169,7 +169,7 @@ function SelectField({
         name={name}
         required={required}
         defaultValue=""
-        className="mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="input"
       >
         <option value="" disabled>
           Select {label.toLowerCase()}

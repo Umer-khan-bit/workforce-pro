@@ -32,7 +32,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label htmlFor="email" className="label">
           Email
         </label>
         <input
@@ -41,11 +41,11 @@ export default function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="input"
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label htmlFor="password" className="label">
           Password
         </label>
         <input
@@ -54,16 +54,16 @@ export default function LoginForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="input"
         />
       </div>
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="mt-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="btn-primary mt-2"
       >
         {submitting ? "Logging in..." : "Log in"}
       </button>

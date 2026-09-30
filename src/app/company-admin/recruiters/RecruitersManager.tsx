@@ -70,9 +70,9 @@ export default function RecruitersManager({
 
   return (
     <div className="mt-6 flex flex-col gap-8">
-      <form onSubmit={handleAdd} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form onSubmit={handleAdd} className="card flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label htmlFor="recruiter-name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="recruiter-name" className="label">
             Name
           </label>
           <input
@@ -80,11 +80,11 @@ export default function RecruitersManager({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="input"
           />
         </div>
         <div className="flex-1">
-          <label htmlFor="recruiter-email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="recruiter-email" className="label">
             Email
           </label>
           <input
@@ -93,22 +93,22 @@ export default function RecruitersManager({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="input"
           />
         </div>
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="btn-primary"
         >
           {submitting ? "Adding..." : "Add recruiter"}
         </button>
       </form>
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       {lastCreated && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-medium">Share this temporary password with {lastCreated.email}:</p>
           <p data-testid="temp-password" className="mt-1 font-mono text-base">
             {lastCreated.tempPassword}
@@ -120,38 +120,39 @@ export default function RecruitersManager({
         </div>
       )}
 
-      <table className="w-full text-left text-sm">
+      <div className="card overflow-x-auto p-0">
+      <table className="w-full min-w-[32rem] text-left text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-            <th className="py-2 font-medium">Name</th>
-            <th className="py-2 font-medium">Email</th>
-            <th className="py-2 font-medium">Status</th>
-            <th className="py-2 font-medium"></th>
+          <tr className="border-b border-zinc-200 text-zinc-500">
+            <th className="px-4 py-3 font-medium">Name</th>
+            <th className="px-4 py-3 font-medium">Email</th>
+            <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium"></th>
           </tr>
         </thead>
         <tbody>
           {recruiters.map((r) => (
-            <tr key={r.id} className="border-b border-zinc-100 dark:border-zinc-900">
-              <td className="py-2">{r.name}</td>
-              <td className="py-2">{r.email}</td>
-              <td className="py-2">
+            <tr key={r.id} className="border-b border-zinc-100">
+              <td className="px-4 py-3">{r.name}</td>
+              <td className="px-4 py-3">{r.email}</td>
+              <td className="px-4 py-3">
                 {r.isActive ? (
                   r.mustChangePassword ? (
-                    <span className="text-amber-600 dark:text-amber-400">
+                    <span className="text-amber-600">
                       Active - password not set yet
                     </span>
                   ) : (
-                    <span className="text-green-600 dark:text-green-400">Active</span>
+                    <span className="text-green-600">Active</span>
                   )
                 ) : (
                   <span className="text-zinc-400">Deactivated</span>
                 )}
               </td>
-              <td className="py-2 text-right">
+              <td className="px-4 py-3 text-right">
                 {r.isActive && (
                   <button
                     onClick={() => handleDeactivate(r.id)}
-                    className="text-sm text-red-600 underline hover:text-red-800 dark:text-red-400"
+                    className="min-h-11 text-sm text-red-600 underline hover:text-red-800"
                   >
                     Deactivate
                   </button>
@@ -161,13 +162,14 @@ export default function RecruitersManager({
           ))}
           {recruiters.length === 0 && (
             <tr>
-              <td colSpan={4} className="py-4 text-center text-zinc-500 dark:text-zinc-400">
+              <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
                 No recruiters yet.
               </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

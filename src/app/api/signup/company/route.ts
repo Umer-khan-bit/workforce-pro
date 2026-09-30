@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { companySignupSchema } from "@/lib/validation";
+import { signupRateLimitResponse } from "@/lib/signupRateLimit";
 
 export async function POST(request: Request) {
+  const limited = signupRateLimitResponse(request, "company");
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
   const parsed = companySignupSchema.safeParse(body);
 

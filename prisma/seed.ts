@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { seedDemoData } from "./seedDemo";
 
 const prisma = new PrismaClient();
 
@@ -96,6 +97,21 @@ async function main() {
       },
     });
     console.log(`Platform admin ready: ${adminEmail}`);
+  }
+
+  if (process.env.DEMO_MODE !== "true") {
+    console.log("DEMO_MODE is not 'true' - skipping demo data (plans, companies, candidates).");
+    return;
+  }
+
+  const demo = await seedDemoData(prisma, { jobRoles, regions });
+  console.log(
+    `Demo data ready: ${demo.plans} plans, ${demo.companies} companies, ` +
+      `${demo.recruiters} recruiters, ${demo.candidates} candidates`
+  );
+  console.log(`Demo logins (password for all: ${demo.password}):`);
+  for (const login of demo.logins) {
+    console.log(`  ${login.role.padEnd(15)} ${login.email}`);
   }
 }
 

@@ -17,3 +17,16 @@ export function isRateLimited(key: string, limit: number, windowMs: number): boo
   attempts.set(key, timestamps);
   return false;
 }
+
+/** Shared by login and both signup endpoints so they stay in step. */
+export const AUTH_ATTEMPT_LIMIT = 5;
+export const AUTH_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * Best-effort client IP. Behind a proxy this trusts the first x-forwarded-for
+ * hop, so the proxy must overwrite that header rather than append to it.
+ */
+export function getClientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || request.headers.get("x-real-ip") || "unknown";
+}

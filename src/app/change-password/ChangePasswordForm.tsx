@@ -50,12 +50,12 @@ export default function ChangePasswordForm() {
       <Field label="New password" name="newPassword" minLength={8} />
       <Field label="Confirm new password" name="confirmPassword" minLength={8} />
 
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="mt-2 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="btn-primary mt-2"
       >
         {submitting ? "Saving..." : "Save new password"}
       </button>
@@ -66,7 +66,7 @@ export default function ChangePasswordForm() {
 function Field({ label, name, minLength }: { label: string; name: string; minLength?: number }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <label htmlFor={name} className="label">
         {label}
       </label>
       <input
@@ -75,7 +75,7 @@ function Field({ label, name, minLength }: { label: string; name: string; minLen
         type="password"
         required
         minLength={minLength}
-        className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="input"
       />
     </div>
   );

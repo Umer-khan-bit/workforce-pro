@@ -1,20 +1,31 @@
 import { auth } from "@/auth";
-import LogoutButton from "@/components/LogoutButton";
+import { prisma } from "@/lib/prisma";
+import ModuleGrid from "@/components/ModuleGrid";
+import Stat from "@/components/Stat";
 
 export default async function PlatformAdminDashboard() {
   const session = await auth();
 
+  const [candidates, companies, recruiters, activeSubscriptions] = await Promise.all([
+    prisma.candidateProfile.count(),
+    prisma.company.count(),
+    prisma.user.count({ where: { role: "RECRUITER" } }),
+    prisma.subscription.count({ where: { status: { in: ["ACTIVE", "TRIALING"] } } }),
+  ]);
+
   return (
-    <div className="mx-auto flex max-w-3xl flex-1 flex-col px-6 py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Welcome, {session?.user.name}
-        </h1>
-        <LogoutButton />
+    <div>
+      <h1 className="text-2xl font-semibold text-zinc-900">Welcome, {session?.user.name}</h1>
+      <p className="mt-1 text-zinc-600">Platform health and activity.</p>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Candidates" value={candidates} />
+        <Stat label="Companies" value={companies} />
+        <Stat label="Recruiters" value={recruiters} />
+        <Stat label="Active subscriptions" value={activeSubscriptions} />
       </div>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Platform admin dashboard - question bank, approvals and platform reports will live here.
-      </p>
+
+      <ModuleGrid role="PLATFORM_ADMIN" />
     </div>
   );
 }

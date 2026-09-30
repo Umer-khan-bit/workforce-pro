@@ -3,11 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
-import { isRateLimited } from "@/lib/rateLimit";
+import { AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS, isRateLimited } from "@/lib/rateLimit";
 import { authConfig } from "@/auth.config";
-
-const LOGIN_ATTEMPT_LIMIT = 5;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -23,7 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        if (isRateLimited(`login:${email.toLowerCase()}`, LOGIN_ATTEMPT_LIMIT, LOGIN_WINDOW_MS)) {
+        if (isRateLimited(`login:${email.toLowerCase()}`, AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS)) {
           return null;
         }
 
