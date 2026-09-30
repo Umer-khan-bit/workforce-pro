@@ -1,0 +1,93 @@
+import { test, expect } from "@playwright/test";
+import { prisma, uniqueEmail } from "./helpers";
+
+test("company signup, recruiter creation, and forced password change on first login", async ({
+  page,
+}) => {
+  const adminEmail = uniqueEmail("admin");
+  const recruiterEmail = uniqueEmail("recruiter");
+  const companyName = `Test Co ${Date.now()}`;
+
+  await page.goto("/signup/company");
+  await page.getByLabel("Company name").fill(companyName);
+  await page.getByLabel("Your name").fill("Admin Person");
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Password").fill("supersecret1");
+  await page.getByRole("button", { name: "Create company account" }).click();
+
+  await expect(page).toHaveURL(/\/company-admin$/);
+
+  await page.goto("/candidate");
+  await expect(page).toHaveURL(/\/unauthorized/);
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/unauthorized/);
+
+  await page.goto("/company-admin/recruiters");
+  await page.getByLabel("Name").fill("Test Recruiter");
+  await page.getByLabel("Email").fill(recruiterEmail);
+  await page.getByRole("button", { name: "Add recruiter" }).click();
+
+  const tempPasswordLocator = page.getByTestId("temp-password");
+  await expect(tempPasswordLocator).toBeVisible();
+  const tempPassword = (await tempPasswordLocator.textContent())!.trim();
+  expect(tempPassword.length).toBeGreaterThan(5);
+  await expect(page.getByRole("cell", { name: recruiterEmail })).toBeVisible();
+
+  await page.getByRole("button", { name: "Log out" }).click();
+  await expect(page).toHaveURL("/");
+
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(recruiterEmail);
+  await page.getByLabel("Password").fill(tempPassword);
+  await page.getByRole("button", { name: "Log in" }).click();
+
+  await expect(page).toHaveURL(/\/change-password/);
+
+  await page.getByLabel("Current (temporary) password").fill(tempPassword);
+  await page.getByLabel("New password", { exact: true }).fill("brandnewpassword1");
+  await page.getByLabel("Confirm new password").fill("brandnewpassword1");
+  await page.getByRole("button", { name: "Save new password" }).click();
+
+  await expect(page).toHaveURL(/\/recruiter$/);
+
+  await page.goto("/company-admin");
+  await expect(page).toHaveURL(/\/unauthorized/);
+
+  await prisma.user.deleteMany({ where: { email: { in: [adminEmail, recruiterEmail] } } });
+  await prisma.company.deleteMany({ where: { name: companyName } });
+});
+
+test("deactivated recruiter can no longer log in", async ({ page, request }) => {
+  const adminEmail = uniqueEmail("admin2");
+  const recruiterEmail = uniqueEmail("recruiter2");
+  const companyName = `Test Co 2 ${Date.now()}`;
+
+  await page.goto("/signup/company");
+  await page.getByLabel("Company name").fill(companyName);
+  await page.getByLabel("Your name").fill("Admin Person");
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Password").fill("supersecret1");
+  await page.getByRole("button", { name: "Create company account" }).click();
+  await expect(page).toHaveURL(/\/company-admin$/);
+
+  await page.goto("/company-admin/recruiters");
+  await page.getByLabel("Name").fill("Soon Deactivated");
+  await page.getByLabel("Email").fill(recruiterEmail);
+  await page.getByRole("button", { name: "Add recruiter" }).click();
+  const tempPassword = (await page.getByTestId("temp-password").textContent())!.trim();
+
+  await page.getByRole("button", { name: "Deactivate" }).click();
+  await expect(page.getByText("Deactivated")).toBeVisible();
+
+  await page.getByRole("button", { name: "Log out" }).click();
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(recruiterEmail);
+  await page.getByLabel("Password").fill(tempPassword);
+  await page.getByRole("button", { name: "Log in" }).click();
+
+  await expect(page.getByText(/Incorrect email or password/i)).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+
+  await prisma.user.deleteMany({ where: { email: { in: [adminEmail, recruiterEmail] } } });
+  await prisma.company.deleteMany({ where: { name: companyName } });
+});

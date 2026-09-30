@@ -140,16 +140,18 @@ enum CefrLevel {
 // ---------- Auth & users ----------
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  role          Role      @default(CANDIDATE)
-  name          String?
-  emailVerified DateTime?
-  companyId     String?
-  company       Company?  @relation(fields: [companyId], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  password           String
+  role               Role      @default(CANDIDATE)
+  name               String?
+  emailVerified      DateTime?
+  companyId          String?
+  company            Company?  @relation(fields: [companyId], references: [id])
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   accounts Account[]
   sessions Session[]
@@ -206,6 +208,7 @@ model CandidateProfile {
   id                   String    @id @default(cuid())
   userId               String    @unique
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone                String?
   city                 String?
   regionId             String?
   region               Region?   @relation(fields: [regionId], references: [id])
