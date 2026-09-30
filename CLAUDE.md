@@ -58,7 +58,9 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 5. Candidate results: scores, quartiles, AI feedback and improvement tips, downloadable report
 6. Salary guide: range from scores, experience, role and city
 7. Minimum salary threshold: recruiters only see/contact candidates whose minimum fits their offer
-8. Top-performer triggers: Q1 in all four tests sends recognition email and a badge
+8. Top-performer triggers: Q1 in IQ, EQ, Language and Skill sends recognition email and a badge.
+   Decided: Personality is excluded because it has no better or worse direction. The counted tests
+   are a setting (Settings > Top performer); this is its starting value.
 9. Training: courses (free and paid), progress tracking, AI recommendations, retake after training
 10. Recruiter tools: search, sort, filters (role, city, experience, salary, quartile per test,
     "Q1 in all tests"), AI plain-language search, shortlist, candidate detail report

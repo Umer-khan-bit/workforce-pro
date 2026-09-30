@@ -46,7 +46,7 @@ Access checks must call `hasFeature`, `featureLimit` or `canAddMore` (`src/lib/p
 - Migration `20260930120000_no_hardcoding` keeps the two existing plans (name -> code, display name, starting values for the new features).
 
 ### Decisions for you
-1. **Top-performer default** counts Personality, IQ, Language and Skill (EQ left out) to match "four tests" in CLAUDE.md, since the database has five test types. It is a setting; change it under Settings > Top performer.
+1. **Top-performer rule (decided):** Q1 in IQ, EQ, Language and Skill. Personality is excluded because it has no better or worse direction. It is a setting (Settings > Top performer); this is its starting value.
 2. **Self-learning thresholds** (too easy above 90% correct, too hard below 10%, low discrimination below 0.3, bias gap above 0.2) and **pool targets** (Personality 50, EQ 30, IQ 40, Language 30, Skill 40) are my starting guesses, only the 200-response figure comes from CLAUDE.md. Tune them in Settings.
 3. **Starting plan features:** Basic = all candidates, 25 shortlisted, 5 open job openings, no AI search, no ATS/API; Advanced = everything, unlimited. Edit under Plans.
 4. **Courses and lessons** have tables but no screens yet; their admin screens arrive with the training module, per the rule.

@@ -125,7 +125,7 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
   },
   currency: { code: "PKR", locale: "en-PK" },
   quartiles: { q1TopPercent: 25, q2TopPercent: 50, q3TopPercent: 75, minCohortSize: 30 },
-  topPerformer: { requiredQuartile: 1, countedTests: ["PERSONALITY", "IQ", "LANGUAGE", "SKILL"] },
+  topPerformer: { requiredQuartile: 1, countedTests: ["IQ", "EQ", "LANGUAGE", "SKILL"] },
   itemDefaults: { discrimination: 1, difficultyEasy: -1, difficultyMedium: 0, difficultyHard: 1 },
   selfLearning: {
     minResponsesForRecalibration: 200,
