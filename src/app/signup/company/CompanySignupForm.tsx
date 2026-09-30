@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
-export default function CompanySignupForm() {
+export default function CompanySignupForm({ cities }: { cities: { id: string; name: string }[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -17,7 +17,7 @@ export default function CompanySignupForm() {
     const payload = {
       companyName: form.get("companyName"),
       industry: form.get("industry"),
-      city: form.get("city"),
+      cityId: form.get("cityId"),
       adminName: form.get("adminName"),
       adminEmail: form.get("adminEmail"),
       adminPassword: form.get("adminPassword"),
@@ -62,7 +62,19 @@ export default function CompanySignupForm() {
         <legend className="text-sm font-semibold text-zinc-900">Company</legend>
         <Field label="Company name" name="companyName" type="text" required />
         <Field label="Industry" name="industry" type="text" />
-        <Field label="City" name="city" type="text" />
+        <div>
+          <label htmlFor="cityId" className="label">
+            City
+          </label>
+          <select id="cityId" name="cityId" defaultValue="" className="input">
+            <option value="">Select city (optional)</option>
+            {cities.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </fieldset>
 
       <fieldset className="flex flex-col gap-4 border-t border-zinc-200 pt-4">

@@ -35,7 +35,8 @@ function fakePrisma(existingContents: string[]) {
   const createMany = vi.fn().mockResolvedValue({ count: 0 });
   const auditCreate = vi.fn().mockResolvedValue({});
   const prisma = {
-    language: { findUnique: vi.fn().mockResolvedValue({ id: "en-id", code: "en" }) },
+    language: { findFirst: vi.fn().mockResolvedValue({ id: "en-id", code: "en", isDefault: true }) },
+    siteSetting: { findUnique: vi.fn().mockResolvedValue(null) },
     question: {
       findMany: vi.fn().mockResolvedValue(existingContents.map((content) => ({ content }))),
       createMany,

@@ -45,8 +45,10 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
   reports, ATS export (push candidates to the ATS), notifications
 - COMPANY_ADMIN: manages company recruiters and subscription, job openings, reports,
   ATS & webhooks and API keys (company settings), notifications
-- PLATFORM_ADMIN: question bank, approvals, job roles, regions/languages, companies, users,
-  plans, payments (separate from plans), reports
+- PLATFORM_ADMIN: question bank, approvals, job roles, regions/languages/cities, companies, users,
+  plans and plan features, payments (separate from plans), test settings, salary benchmarks,
+  pilot mode, settings (branding, homepage, currency, quartile and top-performer rules, question
+  defaults, pool targets), privacy policy, message templates, reports
 
 ## Modules
 1. Auth and profiles (candidate: city, region, experience, job role, minimum salary)
@@ -105,6 +107,21 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 - Salary data: seeded sample benchmarks by role, city and experience. Keep it replaceable.
 - Seed data: 4 job roles (Accountant, Sales, Customer Service, IT Support), English + Urdu,
   60+ sample candidates with completed tests, 3 companies, recruiters on both plans.
+
+## No hardcoding
+Nothing business-related may be static or hardcoded. Every value an admin might want to change
+must live in the database and be editable from the PLATFORM_ADMIN panel, including: job roles,
+regions, languages, cities, plans, prices, plan features, test settings (question count, time
+limit, retake days, stop rules), quartile thresholds, top-performer rules, salary benchmarks,
+email/notification templates, courses and lessons, homepage and privacy policy text, branding
+(name, logo, colours). Seed data only sets starting values. Security rules stay in code.
+- Plan features are on/off options and numeric limits stored in the database (PlanFeature rows,
+  Plan.features). Every access check in code must read these features through `src/lib/planFeatures.ts`
+  (`hasFeature`, `featureLimit`, `canAddMore`). Never compare a plan's name or code.
+- Settings groups live in `SiteSetting` (definitions and starting values in
+  `src/lib/settings/definitions.ts`); read them with `getSetting()`. The numbers quoted elsewhere in
+  this file (stop rules, quartiles, limits) are the starting values, not constants to copy into code.
+- Adding a new admin-editable value means adding its edit screen in the same change.
 
 ## Security and privacy (bank-grade, non-negotiable)
 - Never log passwords, tokens, CNIC, salaries or test answers.

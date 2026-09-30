@@ -54,18 +54,6 @@ export async function listQuestions(prisma: PrismaClient, filters: ListFilters) 
   return { total, rows };
 }
 
-/**
- * Approved-question counts the test engine can actually use, versus what each pool should hold.
- * Targets are rough starting points for an adaptive test with exposure limits; tune freely.
- */
-export const RECOMMENDED_APPROVED: Record<TestTypeValue, number> = {
-  PERSONALITY: 50,
-  EQ: 30,
-  IQ: 40,
-  LANGUAGE: 30,
-  SKILL: 40,
-};
-
 export type Coverage = {
   byStatus: Array<{
     testType: TestTypeValue;

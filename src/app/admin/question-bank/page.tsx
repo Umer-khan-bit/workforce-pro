@@ -13,6 +13,7 @@ import {
   parseListFilters,
   type ListFilters,
 } from "@/lib/questionBank/schema";
+import { getSetting } from "@/lib/settings";
 import CoverageTables from "./CoverageTables";
 import ImportIpipButton from "./ImportIpipButton";
 import RowActions from "./RowActions";
@@ -43,11 +44,12 @@ export default async function QuestionBankPage({
 }) {
   const filters = parseListFilters(await searchParams);
 
-  const [{ total, rows }, coverage, jobRoles, languages] = await Promise.all([
+  const [{ total, rows }, coverage, jobRoles, languages, targets] = await Promise.all([
     listQuestions(prisma, filters),
     getCoverage(prisma),
     prisma.jobRole.findMany({ orderBy: { name: "asc" } }),
     prisma.language.findMany({ orderBy: { name: "asc" } }),
+    getSetting("poolTargets"),
   ]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -70,7 +72,7 @@ export default async function QuestionBankPage({
         </div>
       </div>
 
-      <CoverageTables coverage={coverage} />
+      <CoverageTables coverage={coverage} targets={targets} />
 
       <section aria-labelledby="questions-heading" className="mt-8">
         <h2 id="questions-heading" className="text-lg font-semibold text-zinc-900">All questions</h2>

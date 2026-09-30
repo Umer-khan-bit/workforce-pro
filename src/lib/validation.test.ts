@@ -11,7 +11,7 @@ const validCandidate = {
   email: "ayesha@example.com",
   password: "supersecret1",
   phone: "03001234567",
-  city: "Lahore",
+  cityId: "city-1",
   regionId: "region-1",
   experienceYears: 3,
   jobRoleId: "role-1",
@@ -67,7 +67,7 @@ describe("companySignupSchema", () => {
   const validCompany = {
     companyName: "Acme Recruiting",
     industry: "Retail",
-    city: "Karachi",
+    cityId: "city-2",
     adminName: "Bilal Ahmed",
     adminEmail: "bilal@acme.com",
     adminPassword: "supersecret1",
@@ -78,7 +78,7 @@ describe("companySignupSchema", () => {
   });
 
   it("accepts optional industry/city being omitted", () => {
-    const { industry, city, ...rest } = validCompany;
+    const { industry, cityId, ...rest } = validCompany;
     expect(companySignupSchema.safeParse(rest).success).toBe(true);
   });
 

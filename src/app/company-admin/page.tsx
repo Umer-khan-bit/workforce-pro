@@ -2,16 +2,19 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ModuleGrid from "@/components/ModuleGrid";
 import Stat from "@/components/Stat";
-import { formatPkr, formatPlanName, getCompanyPlan } from "@/lib/companyPlan";
+import { getCompanyPlan } from "@/lib/companyPlan";
+import { formatMoney } from "@/lib/money";
+import { getCurrency } from "@/lib/settings";
 
 export default async function CompanyAdminDashboard() {
   const session = await auth();
   const companyId = session!.user.companyId!;
 
-  const [company, plan, recruiterCount] = await Promise.all([
+  const [company, plan, recruiterCount, currency] = await Promise.all([
     prisma.company.findUnique({ where: { id: companyId } }),
     getCompanyPlan(companyId),
     prisma.user.count({ where: { companyId, role: "RECRUITER", isActive: true } }),
+    getCurrency(),
   ]);
 
   return (
@@ -23,8 +26,8 @@ export default async function CompanyAdminDashboard() {
         <Stat label="Company" value={company?.name ?? "-"} hint={company?.city ?? undefined} />
         <Stat
           label="Plan"
-          value={plan ? formatPlanName(plan.name) : "None"}
-          hint={plan ? `${formatPkr(plan.priceMonthly)} / month (placeholder price)` : undefined}
+          value={plan ? plan.name : "None"}
+          hint={plan ? `${formatMoney(plan.priceMonthly, currency)} / month` : undefined}
         />
         <Stat label="Active recruiters" value={recruiterCount} />
       </div>

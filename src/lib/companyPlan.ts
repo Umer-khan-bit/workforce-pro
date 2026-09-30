@@ -10,10 +10,7 @@ export async function getCompanyPlan(companyId: string) {
   return subscription ? { ...subscription.plan, endDate: subscription.endDate } : null;
 }
 
-export function formatPlanName(name: string): string {
-  return name.charAt(0) + name.slice(1).toLowerCase();
-}
-
-export function formatPkr(amount: number): string {
-  return `PKR ${amount.toLocaleString("en-PK")}`;
+/** The feature values a company is entitled to. No plan means no features. */
+export async function getCompanyFeatures(companyId: string): Promise<unknown> {
+  return (await getCompanyPlan(companyId))?.features ?? {};
 }

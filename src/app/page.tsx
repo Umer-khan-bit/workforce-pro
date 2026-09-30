@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { ROLE_HOME_PATH } from "@/lib/authz";
 import PublicPage from "@/components/PublicPage";
+import { getSetting } from "@/lib/settings";
 
 export default async function Home() {
   const session = await auth();
@@ -12,23 +13,23 @@ export default async function Home() {
     redirect(ROLE_HOME_PATH[session.user.role]);
   }
 
+  const home = await getSetting("homepage");
+
   return (
     <PublicPage>
       <div className="text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Workforce Pro</h1>
-        <p className="mt-3 text-zinc-600">
-          Take assessments, get ranked, get hired. Or find the right candidates faster.
-        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{home.headline}</h1>
+        <p className="mt-3 text-zinc-600">{home.subheadline}</p>
 
         <div className="mt-8 flex flex-col gap-3">
           <Link href="/login" className="btn-primary w-full">
-            Log in
+            {home.loginLabel}
           </Link>
           <Link href="/signup" className="btn-secondary w-full">
-            Candidate sign up
+            {home.candidateSignupLabel}
           </Link>
           <Link href="/signup/company" className="btn-secondary w-full">
-            Company sign up
+            {home.companySignupLabel}
           </Link>
         </div>
       </div>

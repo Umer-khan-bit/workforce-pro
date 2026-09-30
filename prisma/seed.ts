@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { seedDemoData } from "./seedDemo";
 import { importIpipItems } from "../src/lib/questionBank/ipipImport";
+import { seedConfig } from "./seedConfig";
 
 const prisma = new PrismaClient();
 
@@ -77,6 +78,13 @@ async function main() {
     });
   }
   console.log("Region-language mappings ready (English primary, Urdu secondary for all regions)");
+
+  const config = await seedConfig(prisma, regions);
+  console.log(
+    `Configuration ready: ${config.cities} cities, ${config.plans} plans, ${config.testConfigs} test settings, ` +
+      `${config.experienceBands} experience bands, ${config.templates} message templates ` +
+      `(${config.settings} new setting groups)`
+  );
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL;
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;

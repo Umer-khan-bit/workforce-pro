@@ -80,7 +80,7 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             label: "Badges",
             description: "Recognition for top performance.",
             planned: [
-              "Top Performer badge for Q1 in all four tests",
+              "Top Performer badge when you meet the top-performer rule",
               "Recognition email when you earn it",
             ],
           },
@@ -134,7 +134,7 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             description: "Search, filter and rank assessed candidates.",
             planned: [
               "Sort and filter by job role, city, experience, salary and quartile per test",
-              '"Q1 in all tests" filter (exclusive to the Advanced plan)',
+              '"Q1 in all tests" filter (available when the company plan includes exclusive Q1 access)',
               "Plain-language AI search",
               "Only candidates whose minimum salary fits your offer",
               "Candidate detail report (every profile view is audit-logged)",
@@ -218,7 +218,7 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             label: "Subscription & billing",
             description: "Your plan and payments.",
             planned: [
-              "Current plan: Basic (all candidates) or Advanced (adds exclusive access to Q1 scorers)",
+              "Current plan and what it includes (the features set by the platform admin)",
               "Subscribe or upgrade through the demo checkout (simulated payment)",
             ],
           },
@@ -302,11 +302,9 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "test-settings",
             label: "Test settings",
-            description: "Length and time limit per test.",
-            planned: [
-              "Stop rules: SE below 0.35 or 20 items (minimum 10)",
-              "Time limit per test",
-            ],
+            description: "Question counts, time limits, retake days and stop rules per test.",
+            planned: [],
+            live: true,
           },
         ],
       },
@@ -325,11 +323,9 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "plans",
             label: "Plans & subscriptions",
-            description: "Basic and Advanced plans and who is on them.",
-            planned: [
-              "Edit plan features and price",
-              "All company subscriptions and their status",
-            ],
+            description: "Create plans, set prices and choose what each plan includes.",
+            planned: [],
+            live: true,
           },
           {
             slug: "payments",
@@ -344,7 +340,8 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "pilot-mode",
             label: "Pilot mode",
             description: "Restrict the platform to one company or team.",
-            planned: ["Turn pilot mode on or off", "Choose the company or team allowed in"],
+            planned: [],
+            live: true,
           },
         ],
       },
@@ -361,18 +358,15 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "salary-benchmarks",
             label: "Salary benchmarks",
             description: "Data behind the salary guide.",
-            planned: [
-              "Sample benchmarks by job role, city and experience (demo data, replaceable)",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "reference-data",
             label: "Roles, regions & languages",
-            description: "Job roles, regions and the region-to-language map.",
-            planned: [
-              "Add or edit job roles",
-              "Regions and which language each region's language test uses",
-            ],
+            description: "Job roles, regions, cities, languages, the region-to-language map and experience bands.",
+            planned: [],
+            live: true,
           },
           {
             slug: "users",
@@ -397,6 +391,32 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
               "Searchable log of admin actions",
               "Every recruiter view of a candidate profile",
             ],
+          },
+        ],
+      },
+      {
+        label: "Settings",
+        items: [
+          {
+            slug: "settings",
+            label: "Settings",
+            description: "Branding, homepage, currency, quartile and top-performer rules, question defaults and targets.",
+            planned: [],
+            live: true,
+          },
+          {
+            slug: "privacy-policy",
+            label: "Privacy policy",
+            description: "Publish new versions of the privacy policy.",
+            planned: [],
+            live: true,
+          },
+          {
+            slug: "message-templates",
+            label: "Message templates",
+            description: "Wording of emails and in-app alerts.",
+            planned: [],
+            live: true,
           },
         ],
       },

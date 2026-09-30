@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseListFilters, questionInputSchema, toQuestionData } from "./schema";
+import { parseListFilters, questionInputSchema, toQuestionData, type ItemDefaults } from "./schema";
+
+// Starting values; the real ones come from Settings > Question defaults.
+const defaults: ItemDefaults = { discrimination: 1, difficultyEasy: -1, difficultyMedium: 0, difficultyHard: 1 };
 
 const options = [
   { key: "A", text: "One" },
@@ -65,8 +68,14 @@ describe("questionInputSchema", () => {
 describe("toQuestionData", () => {
   it("sets the starting difficulty parameter from easy/medium/hard", () => {
     const b = (difficulty: string) =>
-      toQuestionData(questionInputSchema.parse({ ...validIq, difficulty })).bParam;
+      toQuestionData(questionInputSchema.parse({ ...validIq, difficulty }), defaults).bParam;
     expect([b("EASY"), b("MEDIUM"), b("HARD")]).toEqual([-1, 0, 1]);
+  });
+
+  it("uses the admin-configured defaults, not fixed numbers", () => {
+    const custom: ItemDefaults = { discrimination: 1.4, difficultyEasy: -2, difficultyMedium: 0.5, difficultyHard: 2.5 };
+    const data = toQuestionData(questionInputSchema.parse({ ...validIq, difficulty: "MEDIUM" }), custom);
+    expect(data).toMatchObject({ aParam: 1.4, bParam: 0.5 });
   });
 
   it("clears options, answer and difficulty when the format does not use them", () => {
@@ -77,7 +86,8 @@ describe("toQuestionData", () => {
         content: "I am the life of the party.",
         difficulty: "HARD",
         reverseKeyed: true,
-      })
+      }),
+      defaults
     );
     expect(data).toMatchObject({ options: null, correctAnswer: null, difficulty: "MEDIUM", bParam: 0, reverseKeyed: true });
   });

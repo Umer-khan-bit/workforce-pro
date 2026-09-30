@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ModuleGrid from "@/components/ModuleGrid";
 import Stat from "@/components/Stat";
-import { formatPlanName, getCompanyPlan } from "@/lib/companyPlan";
+import { getCompanyPlan } from "@/lib/companyPlan";
 
 export default async function RecruiterDashboard() {
   const session = await auth();
@@ -21,7 +21,7 @@ export default async function RecruiterDashboard() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Stat label="Company" value={company?.name ?? "-"} hint={company?.city ?? undefined} />
-        <Stat label="Company plan" value={plan ? formatPlanName(plan.name) : "None"} />
+        <Stat label="Company plan" value={plan ? plan.name : "None"} />
         <Stat label="Candidates on the platform" value={candidateCount} />
       </div>
 

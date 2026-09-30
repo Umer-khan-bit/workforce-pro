@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import BrandMark from "@/components/BrandMark";
 
 export type ShellNavGroup = {
   label?: string;
@@ -11,6 +12,8 @@ export type ShellNavGroup = {
 };
 
 export default function AppShell({
+  brandName,
+  brandLogo,
   roleLabel,
   homeHref,
   groups,
@@ -18,6 +21,8 @@ export default function AppShell({
   userEmail,
   children,
 }: {
+  brandName: string;
+  brandLogo: string | null;
   roleLabel: string;
   homeHref: string;
   groups: ShellNavGroup[];
@@ -36,7 +41,7 @@ export default function AppShell({
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-4 lg:hidden">
         <Link href={homeHref} className="flex items-baseline gap-2">
-          <span className="text-base font-semibold text-brand-800">Workforce Pro</span>
+          <BrandMark name={brandName} logoDataUrl={brandLogo} />
           <span className="text-xs text-zinc-500">{roleLabel}</span>
         </Link>
         <button
@@ -81,9 +86,13 @@ export default function AppShell({
           <Link
             href={homeHref}
             onClick={() => setOpen(false)}
-            className="block text-lg font-semibold"
+            className="flex items-center gap-2 text-lg font-semibold"
           >
-            Workforce Pro
+            {brandLogo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brandLogo} alt="" className="h-8 max-w-28 w-auto rounded bg-white object-contain p-1" />
+            )}
+            <span>{brandName}</span>
           </Link>
           <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-brand-300">
             {roleLabel}

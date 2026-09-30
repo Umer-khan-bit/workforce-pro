@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/adminGuard";
 import { questionInputSchema, toQuestionData } from "@/lib/questionBank/schema";
+import { getSetting } from "@/lib/settings";
 import { findMissingReference } from "@/lib/questionBank/references";
 
 export async function POST(request: Request) {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const data = toQuestionData(parsed.data);
+  const data = toQuestionData(parsed.data, await getSetting("itemDefaults"));
   const missing = await findMissingReference(prisma, data);
   if (missing) return NextResponse.json({ error: missing }, { status: 400 });
 

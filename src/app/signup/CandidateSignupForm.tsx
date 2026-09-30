@@ -7,13 +7,18 @@ import { signIn } from "next-auth/react";
 
 type LookupItem = { id: string; name: string };
 
+type CityItem = LookupItem & { regionId: string };
+
 export default function CandidateSignupForm({
   regions,
   jobRoles,
+  cities,
 }: {
   regions: LookupItem[];
   jobRoles: LookupItem[];
+  cities: CityItem[];
 }) {
+  const [regionId, setRegionId] = useState("");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,8 +34,8 @@ export default function CandidateSignupForm({
       email: form.get("email"),
       password: form.get("password"),
       phone: form.get("phone"),
-      city: form.get("city"),
-      regionId: form.get("regionId"),
+      cityId: form.get("cityId"),
+      regionId,
       experienceYears: form.get("experienceYears"),
       jobRoleId: form.get("jobRoleId"),
       minimumSalary: form.get("minimumSalary"),
@@ -76,9 +81,22 @@ export default function CandidateSignupForm({
       <Field label="Email" name="email" type="email" required />
       <Field label="Password" name="password" type="password" required minLength={8} />
       <Field label="Phone" name="phone" type="tel" required />
-      <Field label="City" name="city" type="text" required />
-
-      <SelectField label="Region" name="regionId" required options={regions} />
+      <SelectField
+        label="Region"
+        name="regionId"
+        required
+        options={regions}
+        value={regionId}
+        onChange={setRegionId}
+      />
+      <SelectField
+        key={regionId}
+        label="City"
+        name="cityId"
+        required
+        disabled={!regionId}
+        options={cities.filter((c) => c.regionId === regionId)}
+      />
       <Field label="Years of experience" name="experienceYears" type="number" min={0} max={60} required />
       <SelectField label="Job role" name="jobRoleId" required options={jobRoles} />
       <Field label="Minimum expected salary" name="minimumSalary" type="number" min={0} required />
@@ -153,11 +171,17 @@ function SelectField({
   name,
   required,
   options,
+  value,
+  onChange,
+  disabled,
 }: {
   label: string;
   name: string;
   required?: boolean;
   options: LookupItem[];
+  value?: string;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -168,7 +192,10 @@ function SelectField({
         id={name}
         name={name}
         required={required}
-        defaultValue=""
+        disabled={disabled}
+        {...(onChange
+          ? { value, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value) }
+          : { defaultValue: "" })}
         className="input"
       >
         <option value="" disabled>

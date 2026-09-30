@@ -56,12 +56,17 @@ export const ALLOWED_QUESTION_TYPES: Record<TestTypeValue, QuestionTypeValue[]> 
   SKILL: ["MCQ"],
 };
 
-/** Default 2PL difficulty (b) for an uncalibrated item. Matches the test-engine rules. */
-export const DIFFICULTY_TO_B: Record<DifficultyValue, number> = {
-  EASY: -1,
-  MEDIUM: 0,
-  HARD: 1,
+/** Starting 2PL values for an uncalibrated item. Edited in Settings > Question defaults. */
+export type ItemDefaults = {
+  discrimination: number;
+  difficultyEasy: number;
+  difficultyMedium: number;
+  difficultyHard: number;
 };
+
+export function difficultyToB(difficulty: DifficultyValue, d: ItemDefaults): number {
+  return { EASY: d.difficultyEasy, MEDIUM: d.difficultyMedium, HARD: d.difficultyHard }[difficulty];
+}
 
 export const OPTION_KEYS = ["A", "B", "C", "D"] as const;
 
@@ -121,7 +126,7 @@ export type QuestionInput = z.infer<typeof questionInputSchema>;
  * the formats that use them; the rest are cleared so stale values can't survive an edit.
  * `options: null` means "store SQL NULL" (the route maps it to Prisma.DbNull).
  */
-export function toQuestionData(q: QuestionInput) {
+export function toQuestionData(q: QuestionInput, defaults: ItemDefaults) {
   const hasOptions = q.type === "MCQ" || q.type === "SITUATIONAL_JUDGEMENT";
   const difficulty: DifficultyValue = q.type === "MCQ" ? q.difficulty : "MEDIUM";
   return {
@@ -133,7 +138,8 @@ export function toQuestionData(q: QuestionInput) {
     reverseKeyed: q.type === "LIKERT" ? q.reverseKeyed : false,
     topic: q.topic ?? null,
     difficulty,
-    bParam: DIFFICULTY_TO_B[difficulty],
+    aParam: defaults.discrimination,
+    bParam: difficultyToB(difficulty, defaults),
     jobRoleId: q.jobRoleId ?? null,
     languageId: q.languageId ?? null,
   };

@@ -1,5 +1,6 @@
-import type { PrismaClient, PlanName, Role } from "@prisma/client";
+import type { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { CITY_SEEDS, SALARY_BENCHMARK_SEEDS } from "../src/lib/seedData";
 
 /**
  * Demo data for clicking through the whole system. Only runs when DEMO_MODE=true
@@ -9,15 +10,7 @@ import bcrypt from "bcryptjs";
 
 const DEMO_EMAIL_DOMAIN = "demo.test";
 const DEFAULT_DEMO_PASSWORD = "Demo@12345";
-const PRIVACY_POLICY_VERSION = "1.0";
 const CANDIDATE_COUNT = 64;
-
-// Prices are placeholders until real pricing is agreed.
-const PLANS: Array<{ name: PlanName; priceMonthly: number; features: Record<string, unknown> }> = [
-  // Basic = all candidates. Advanced adds exclusive access to Q1 scorers (CLAUDE.md, module 11).
-  { name: "BASIC", priceMonthly: 15000, features: { allCandidates: true, q1Exclusive: false } },
-  { name: "ADVANCED", priceMonthly: 40000, features: { allCandidates: true, q1Exclusive: true } },
-];
 
 type DemoUser = { name: string; email: string };
 
@@ -25,7 +18,8 @@ const DEMO_COMPANIES: Array<{
   name: string;
   industry: string;
   city: string;
-  plan: PlanName;
+  /** Plan code (see Plans in the admin panel). */
+  plan: string;
   admin: DemoUser;
   recruiters: DemoUser[];
 }> = [
@@ -33,7 +27,7 @@ const DEMO_COMPANIES: Array<{
     name: "Karachi Tech Solutions",
     industry: "Information Technology",
     city: "Karachi",
-    plan: "ADVANCED",
+    plan: "advanced",
     // The one login per role: companyadmin@ and recruiter@ belong to this company.
     admin: { name: "Bilal Ahmed", email: `companyadmin@${DEMO_EMAIL_DOMAIN}` },
     recruiters: [
@@ -45,7 +39,7 @@ const DEMO_COMPANIES: Array<{
     name: "Lahore Retail Group",
     industry: "Retail",
     city: "Lahore",
-    plan: "BASIC",
+    plan: "basic",
     admin: { name: "Farah Naz", email: `admin.lahore@${DEMO_EMAIL_DOMAIN}` },
     recruiters: [
       { name: "Usman Ghani", email: `recruiter.usman@${DEMO_EMAIL_DOMAIN}` },
@@ -56,7 +50,7 @@ const DEMO_COMPANIES: Array<{
     name: "Islamabad Business Services",
     industry: "Business Process Outsourcing",
     city: "Islamabad",
-    plan: "ADVANCED",
+    plan: "advanced",
     admin: { name: "Tariq Mehmood", email: `admin.islamabad@${DEMO_EMAIL_DOMAIN}` },
     recruiters: [{ name: "Zainab Hussain", email: `recruiter.zainab@${DEMO_EMAIL_DOMAIN}` }],
   },
@@ -81,33 +75,7 @@ const SURNAMES = [
   "Durrani", "Kakar", "Baloch", "Rehman", "Nawaz", "Zaidi", "Rizvi", "Cheema", "Dar", "Lodhi",
 ];
 
-// Weighted roughly by population; each city maps to its province / territory.
-const CITIES: Array<{ city: string; region: string; weight: number }> = [
-  { city: "Karachi", region: "Sindh", weight: 16 },
-  { city: "Lahore", region: "Punjab", weight: 16 },
-  { city: "Islamabad", region: "Islamabad Capital Territory", weight: 8 },
-  { city: "Rawalpindi", region: "Punjab", weight: 7 },
-  { city: "Faisalabad", region: "Punjab", weight: 7 },
-  { city: "Multan", region: "Punjab", weight: 5 },
-  { city: "Gujranwala", region: "Punjab", weight: 4 },
-  { city: "Sialkot", region: "Punjab", weight: 3 },
-  { city: "Hyderabad", region: "Sindh", weight: 5 },
-  { city: "Sukkur", region: "Sindh", weight: 2 },
-  { city: "Peshawar", region: "Khyber Pakhtunkhwa", weight: 6 },
-  { city: "Mardan", region: "Khyber Pakhtunkhwa", weight: 2 },
-  { city: "Abbottabad", region: "Khyber Pakhtunkhwa", weight: 2 },
-  { city: "Quetta", region: "Balochistan", weight: 4 },
-  { city: "Gilgit", region: "Gilgit-Baltistan", weight: 1 },
-  { city: "Muzaffarabad", region: "Azad Kashmir", weight: 1 },
-];
-
-// Typical monthly PKR for a fresher, and the rise per year of experience.
-const SALARY_BY_ROLE: Record<string, { base: number; perYear: number }> = {
-  Accountant: { base: 50000, perYear: 8000 },
-  Sales: { base: 45000, perYear: 9000 },
-  "Customer Service": { base: 38000, perYear: 6000 },
-  "IT Support": { base: 50000, perYear: 10000 },
-};
+const CITIES = CITY_SEEDS;
 
 /** Small deterministic PRNG so every run of the seed produces the same people. */
 function mulberry32(seed: number) {
@@ -160,7 +128,7 @@ function buildCandidates(jobRoleNames: string[]): SeedCandidate[] {
     const jobRoleName = pick(jobRoleNames);
     // Skewed towards early-career, like a real applicant pool.
     const experienceYears = Math.min(12, Math.floor(Math.pow(rand(), 1.6) * 13));
-    const { base, perYear } = SALARY_BY_ROLE[jobRoleName] ?? { base: 40000, perYear: 7000 };
+    const { base, perYear } = SALARY_BENCHMARK_SEEDS[jobRoleName] ?? { base: 40000, perYear: 7000 };
     const raw = base + experienceYears * perYear * (0.85 + rand() * 0.3);
     const prefix = 300 + Math.floor(rand() * 50); // 0300-0349: Jazz, Zong, Telenor, Ufone
     const line = String(Math.floor(rand() * 10_000_000)).padStart(7, "0");
@@ -206,6 +174,12 @@ export type DemoSeedSummary = {
   candidates: number;
 };
 
+function requirePlan(plans: Map<string, string>, code: string): string {
+  const id = plans.get(code);
+  if (!id) throw new Error(`Plan "${code}" not found. Run the core seed first.`);
+  return id;
+}
+
 export async function seedDemoData(
   prisma: PrismaClient,
   lookups: { jobRoles: Lookup[]; regions: Lookup[] }
@@ -223,20 +197,10 @@ export async function seedDemoData(
   const regionId = new Map(lookups.regions.map((r) => [r.name, r.id]));
   const jobRoleId = new Map(lookups.jobRoles.map((r) => [r.name, r.id]));
 
-  // Plans
-  const plans = new Map<PlanName, string>();
-  for (const plan of PLANS) {
-    const row = await prisma.plan.upsert({
-      where: { name: plan.name },
-      update: {},
-      create: {
-        name: plan.name,
-        priceMonthly: plan.priceMonthly,
-        features: plan.features as object,
-      },
-    });
-    plans.set(plan.name, row.id);
-  }
+  // Plans come from the core seed (seedConfig); demo companies just subscribe to them.
+  const planRows = await prisma.plan.findMany({ select: { id: true, code: true } });
+  const plans = new Map(planRows.map((p) => [p.code, p.id]));
+  const policy = await prisma.policyDocument.findFirst({ where: { kind: "PRIVACY", isCurrent: true } });
 
   // Companies, company admins, recruiters, subscriptions
   let recruiterCount = 0;
@@ -276,7 +240,7 @@ export async function seedDemoData(
       await prisma.subscription.create({
         data: {
           companyId: company.id,
-          planId: plans.get(c.plan)!,
+          planId: requirePlan(plans, c.plan),
           status: "ACTIVE",
           startDate: start,
           endDate: end,
@@ -306,11 +270,42 @@ export async function seedDemoData(
             minimumSalary: c.minimumSalary,
             consentGiven: true,
             consentAt: new Date(),
-            privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+            privacyPolicyVersion: policy?.version ?? null,
           },
         },
       },
     });
+  }
+
+  // Sample salary benchmarks (role x city x experience band) for the salary guide.
+  const [bands, cityRows, roleRows] = await Promise.all([
+    prisma.experienceBand.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.city.findMany(),
+    prisma.jobRole.findMany(),
+  ]);
+  for (const role of roleRows) {
+    const pay = SALARY_BENCHMARK_SEEDS[role.name];
+    if (!pay) continue;
+    for (const city of cityRows) {
+      for (const band of bands) {
+        const years = band.maxYears === null ? band.minYears : (band.minYears + band.maxYears) / 2;
+        const avg = Math.round((pay.base + pay.perYear * years) / 1000) * 1000;
+        await prisma.salaryBenchmark.upsert({
+          where: {
+            jobRoleId_city_experienceBandId: { jobRoleId: role.id, city: city.name, experienceBandId: band.id },
+          },
+          update: {},
+          create: {
+            jobRoleId: role.id,
+            city: city.name,
+            experienceBandId: band.id,
+            minSalary: Math.round((avg * 0.8) / 1000) * 1000,
+            avgSalary: avg,
+            maxSalary: Math.round((avg * 1.25) / 1000) * 1000,
+          },
+        });
+      }
+    }
   }
 
   // One login per role. The demo platform admin is separate from the real one
@@ -335,7 +330,7 @@ export async function seedDemoData(
       { role: "COMPANY_ADMIN", email: `companyadmin@${DEMO_EMAIL_DOMAIN}` },
       { role: "PLATFORM_ADMIN", email: demoAdmin },
     ],
-    plans: PLANS.length,
+    plans: plans.size,
     companies: DEMO_COMPANIES.length,
     recruiters: recruiterCount,
     candidates: candidates.length,

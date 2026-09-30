@@ -1,4 +1,69 @@
-# Workforce Pro - Day 1 status
+# Workforce Pro - status (Day 1, plus Day 2 part 1 and the no-hardcoding fix)
+
+> Newest first: the two sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 2, part 1: question bank (done)
+
+Platform admin > **Question bank**: list, search and filter by test, job role, language, difficulty and status (pending, approved, retired, flagged); add, edit, retire and restore; import the 50 public-domain IPIP Big Five items (24 reverse-keyed, approved, English); coverage tables showing gaps against the pool targets. Manual questions are created Approved and record who approved them and when. Retiring never deletes.
+
+## No-hardcoding audit and fix (done)
+
+New permanent rule in CLAUDE.md ("No hardcoding"): nothing business-related is static; it lives in the database and is edited in the Platform admin panel; seed data only sets starting values; security rules stay in code.
+
+### What was hardcoded and where it lives now
+
+| Was hardcoded | Now | Edit it at (Platform admin) |
+| --- | --- | --- |
+| Job roles, regions, languages, region-to-language map | database (added active flags; default language) | Roles, regions & languages |
+| **Cities** (free-text box on signup; list only in the seed) | `City` table; signup uses a region-filtered dropdown (company signup too) | Roles, regions & languages |
+| Experience bands | `ExperienceBand` table | Roles, regions & languages |
+| **Plans** (fixed BASIC/ADVANCED enum), prices, features | `Plan` (free-text name/code, active, order) + `PlanFeature` definitions; admins can add plans | Plans & subscriptions |
+| Plan features (only two, checked nowhere) | on/off options and numeric limits: all candidates, exclusive Q1 access, AI search, ATS/API access, max shortlists, max job openings | Plans & subscriptions |
+| Test settings (counts, time limit, retake days, SE stop rule) | `TestConfig`, now seeded for all five tests, no schema defaults | Test settings |
+| Salary benchmarks | `SalaryBenchmark` (now keyed to experience bands); sample data in demo mode | Salary benchmarks |
+| Pilot mode | `PilotConfig` | Pilot mode |
+| Brand name (6 places), logo, colours | `branding` setting; one picked colour generates all shades; logo stored as a small image in the database | Settings > Branding |
+| Homepage text and buttons | `homepage` setting | Settings > Homepage |
+| Privacy policy text and version | `PolicyDocument`, versioned; signup records the current version | Privacy policy |
+| Currency ("PKR", "en-PK") | `currency` setting (`formatMoney`) | Settings > Currency |
+| Quartile cut-offs and the 30-candidate fallback | `quartiles` setting | Settings > Quartiles |
+| Top-performer rule | `topPerformer` setting | Settings > Top performer |
+| Uncalibrated-question defaults (a = 1, b = -1/0/+1) | `itemDefaults` setting; question edits no longer reset calibrated values | Settings > Question defaults |
+| Recalibration and flagging thresholds | `selfLearning` setting | Settings > Self-learning |
+| Pool targets behind red/amber in the question bank | `poolTargets` setting | Settings > Question pool targets |
+| Email and in-app message wording | `MessageTemplate` (9 templates; fixed keys and placeholders, editable wording; sending arrives on Day 4) | Message templates |
+| Text "(placeholder price)", default language "en" in the IPIP import | removed / uses the default language | - |
+
+Kept in code on purpose (confirmed): security rules (rate limits, bcrypt, role checks, password length), product structure (the five test types, question formats, A-D keys, Likert 1-5, role menus, field maxima, page size) and question content (already in the database).
+
+### Plan features drive access
+Access checks must call `hasFeature`, `featureLimit` or `canAddMore` (`src/lib/planFeatures.ts`) with a plan's features, never compare a plan name or code. A test scans the source and fails if any file does. No plan, or a missing value, means no access (never "unlimited by accident"). Nothing in the app enforces the features yet because search, shortlists and job openings are not built; they will use these helpers.
+
+### How it works
+- Settings live in `SiteSetting` (one row per group), validated by zod. Definitions and starting values: `src/lib/settings/definitions.ts`; read with `getSetting()`. Starting values are written by the seed only when the row is missing, so re-seeding never overwrites admin edits.
+- Every page now renders on demand (`dynamic = "force-dynamic"` in the root layout). The production build had been prerendering login, privacy and both signup pages, which would have frozen admin edits until the next build.
+- Every admin write is audit-logged (settings log which group changed, never the values).
+- Migration `20260930120000_no_hardcoding` keeps the two existing plans (name -> code, display name, starting values for the new features).
+
+### Decisions for you
+1. **Top-performer default** counts Personality, IQ, Language and Skill (EQ left out) to match "four tests" in CLAUDE.md, since the database has five test types. It is a setting; change it under Settings > Top performer.
+2. **Self-learning thresholds** (too easy above 90% correct, too hard below 10%, low discrimination below 0.3, bias gap above 0.2) and **pool targets** (Personality 50, EQ 30, IQ 40, Language 30, Skill 40) are my starting guesses, only the 200-response figure comes from CLAUDE.md. Tune them in Settings.
+3. **Starting plan features:** Basic = all candidates, 25 shortlisted, 5 open job openings, no AI search, no ATS/API; Advanced = everything, unlimited. Edit under Plans.
+4. **Courses and lessons** have tables but no screens yet; their admin screens arrive with the training module, per the rule.
+5. Pilot mode saves the setting; enforcing it across signup and search is part of Day 6's security pass.
+
+### Tests
+- **Vitest: 117 passing** (was 65): settings definitions and validation, brand-colour shades, money format, plan features (incl. the no-plan-name scan), message templates, reference-data rules (default language, bands, benchmarks), test-settings and plan validation, and a check that every admin API handler starts with the platform-admin guard.
+- **Playwright: 25 passing** (22 existing, with signup updated for the city dropdown, plus 3 new: branding change shows site-wide, add and delete a plan through the UI, cities on signup come from the admin list).
+- Also checked by hand against the running app: every new admin screen loads; settings, plans, policy, templates, test settings, pilot, reference data and salary benchmarks save and validate; in-use items refuse deletion; a candidate account gets 403 on every admin route; signup records the current policy version and rejects a city outside the chosen region.
+- `tsc --noEmit` clean; `eslint` 0 errors (3 pre-existing warnings).
+
+### Note on ports
+A dev server you had running on 7310 was stopped at your request earlier; the servers I started on 7310 and 7330 for checking were mine and are stopped again. Start the app with `npm run dev`.
+
+---
+
+## Day 1 write-up
 
 ## What you can do now
 
@@ -44,14 +109,14 @@ Modules per role, matching `CLAUDE.md` (placeholders except where noted):
 - **Candidate (9):** Dashboard, Assessments, My results (scores, quartiles, AI feedback, report), Badges, Salary guide, Training, Recruiter requests, Notifications, Profile & privacy
 - **Recruiter (8):** Dashboard, Candidate search, Job openings, Shortlists, Contact requests, Reports, ATS export, Notifications
 - **Company admin (8):** Dashboard, Recruiters (**real, from Day 0**), Job openings, Subscription & billing, Reports, ATS & webhooks, API keys, Notifications
-- **Platform admin (16):** Dashboard; Assessment content: Question bank, Approvals, Item analysis, Recalibration, Test settings; Business: Companies, Plans & subscriptions, Payments, Pilot mode; Platform: Courses, Salary benchmarks, Roles regions & languages, Users, Reports, Audit log
+- **Platform admin (19 after the no-hardcoding work, which added a Settings group: Settings, Privacy policy, Message templates):** Dashboard; Assessment content: Question bank, Approvals, Item analysis, Recalibration, Test settings; Business: Companies, Plans & subscriptions, Payments, Pilot mode; Platform: Courses, Salary benchmarks, Roles regions & languages, Users, Reports, Audit log
 
 #### CLAUDE.md is the source of truth for modules
 CLAUDE.md "User roles" was updated and modules 16-20 were added (job openings, contact requests, notifications, company settings, platform business tools). The navigation was then restored to match. Rules captured there: a contact request is only allowed if the offer meets the candidate's minimum salary; API keys and webhooks are company settings (company admin) while recruiters push candidates to the ATS; Payments is separate from Plans & subscriptions; AI feedback stays inside My results. Recruiters and candidates have no separate "AI feedback" or recruiter "Salary guide" page.
 
 ### Demo seed (`prisma/seedDemo.ts`, called from `prisma/seed.ts`)
 - Runs only when `DEMO_MODE=true`; otherwise the seed behaves exactly as before.
-- **Plans:** Basic (PKR 15,000/mo) and Advanced (PKR 40,000/mo), (Basic = all candidates, Advanced adds exclusive Q1 access). `features` now holds only what CLAUDE.md defines (`allCandidates`, `q1Exclusive`); the earlier invented limits (seats, shortlist caps, etc.) are gone. **The prices are still placeholders.**
+- **Plans:** Basic (PKR 15,000/mo) and Advanced (PKR 40,000/mo). Plans are now created by the core seed and edited in Platform admin > Plans & subscriptions (see the no-hardcoding section above). **The prices are still placeholders.**
 - **Companies:** Karachi Tech Solutions (Advanced), Lahore Retail Group (Basic), Islamabad Business Services (Advanced), each with an active subscription, a company admin and 1-2 recruiters (5 recruiters total).
 - **Candidates:** 64, with Pakistani names, 16 cities mapped to the right province/territory, mobile numbers in the 0300-0349 range, all four job roles, 0-12 years of experience (skewed towards early career) and a salary expectation scaled to role and experience. Consent and privacy-policy version are filled in.
 - Deterministic and idempotent: running the seed again changes nothing (checked - still 64 candidates, 3 companies, 3 subscriptions).

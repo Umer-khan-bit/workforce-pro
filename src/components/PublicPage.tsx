@@ -1,7 +1,9 @@
 import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
+import { getSetting } from "@/lib/settings";
 
 /** Shared frame for logged-out pages: brand header plus a centred column. */
-export default function PublicPage({
+export default async function PublicPage({
   children,
   width = "md",
 }: {
@@ -9,13 +11,14 @@ export default function PublicPage({
   width?: "sm" | "md" | "lg";
 }) {
   const max = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg" }[width];
+  const brand = await getSetting("branding");
 
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex h-14 max-w-5xl items-center px-4">
-          <Link href="/" className="text-base font-semibold text-brand-800">
-            Workforce Pro
+          <Link href="/">
+            <BrandMark name={brand.name} logoDataUrl={brand.logoDataUrl} />
           </Link>
         </div>
       </header>

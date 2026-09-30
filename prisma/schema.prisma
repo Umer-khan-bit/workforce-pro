@@ -52,9 +52,9 @@ enum SessionStatus {
   EXPIRED
 }
 
-enum PlanName {
-  BASIC
-  ADVANCED
+enum PlanFeatureKind {
+  BOOLEAN
+  LIMIT
 }
 
 enum SubscriptionStatus {
@@ -262,12 +262,26 @@ model Company {
 
 model Plan {
   id           String   @id @default(cuid())
-  name         PlanName @unique
+  code         String   @unique
+  name         String
+  description  String?
+  /// Feature values keyed by PlanFeature.key: true/false for BOOLEAN, a number (or null = unlimited) for LIMIT.
   features     Json
   priceMonthly Int
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
 
   subscriptions Subscription[]
+}
+
+/// What a plan can switch on or off. Code checks read these keys, never the plan name.
+model PlanFeature {
+  key         String          @id
+  label       String
+  description String?
+  kind        PlanFeatureKind
+  sortOrder   Int             @default(0)
 }
 
 model Subscription {
@@ -296,7 +310,7 @@ model Payment {
   enrollmentId      String?
   enrollment        Enrollment?    @relation(fields: [enrollmentId], references: [id])
   amount            Int
-  currency          String         @default("PKR")
+  currency          String
   status            PaymentStatus  @default(PENDING)
   provider          String
   providerReference String?
@@ -325,7 +339,10 @@ model JobRole {
 model Region {
   id        String   @id @default(cuid())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  cities City[]
 
   candidateProfiles CandidateProfile[]
   questions         Question[]
@@ -336,10 +353,33 @@ model Language {
   id        String   @id @default(cuid())
   name      String
   code      String   @unique
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
 
   questions       Question[]
   regionLanguages RegionLanguage[]
+}
+
+model City {
+  id        String   @id @default(cuid())
+  name      String
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([regionId, name])
+}
+
+model ExperienceBand {
+  id        String @id @default(cuid())
+  label     String @unique
+  minYears  Int
+  maxYears  Int?
+  sortOrder Int    @default(0)
+
+  salaryBenchmarks SalaryBenchmark[]
 }
 
 model RegionLanguage {
@@ -371,8 +411,8 @@ model Question {
   region        Region?        @relation(fields: [regionId], references: [id])
   languageId    String?
   language      Language?      @relation(fields: [languageId], references: [id])
-  aParam        Float          @default(1)
-  bParam        Float          @default(0)
+  aParam        Float
+  bParam        Float
   status        QuestionStatus @default(DRAFT)
   isPretest     Boolean        @default(false)
   createdById   String?
@@ -419,28 +459,28 @@ model RecalibrationRun {
 model TestConfig {
   id                String   @id @default(cuid())
   testType          TestType @unique
-  minItems          Int      @default(10)
-  maxItems          Int      @default(20)
-  seThreshold       Float    @default(0.35)
-  timeLimitMinutes  Int      @default(15)
-  retakeWaitingDays Int      @default(30)
-  pretestItemCount  Int      @default(2)
+  minItems          Int
+  maxItems          Int
+  seThreshold       Float
+  timeLimitMinutes  Int
+  retakeWaitingDays Int
+  pretestItemCount  Int
   updatedAt         DateTime @updatedAt
 }
 
 // ---------- Test engine ----------
 
 model TestSession {
-  id                 String            @id @default(cuid())
+  id                 String           @id @default(cuid())
   candidateProfileId String
-  candidateProfile   CandidateProfile  @relation(fields: [candidateProfileId], references: [id])
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   testType           TestType
-  status             SessionStatus     @default(IN_PROGRESS)
-  theta              Float             @default(0)
+  status             SessionStatus    @default(IN_PROGRESS)
+  theta              Float            @default(0)
   standardError      Float?
-  itemsAdministered  Int               @default(0)
+  itemsAdministered  Int              @default(0)
   resumeState        Json?
-  startedAt          DateTime          @default(now())
+  startedAt          DateTime         @default(now())
   completedAt        DateTime?
   expiresAt          DateTime?
 
@@ -523,17 +563,18 @@ model Badge {
 // ---------- Salary guide ----------
 
 model SalaryBenchmark {
-  id             String   @id @default(cuid())
-  jobRoleId      String
-  jobRole        JobRole  @relation(fields: [jobRoleId], references: [id])
-  city           String
-  experienceBand String
-  minSalary      Int
-  avgSalary      Int
-  maxSalary      Int
-  updatedAt      DateTime @updatedAt
+  id               String         @id @default(cuid())
+  jobRoleId        String
+  jobRole          JobRole        @relation(fields: [jobRoleId], references: [id])
+  city             String
+  experienceBandId String
+  experienceBand   ExperienceBand @relation(fields: [experienceBandId], references: [id])
+  minSalary        Int
+  avgSalary        Int
+  maxSalary        Int
+  updatedAt        DateTime       @updatedAt
 
-  @@unique([jobRoleId, city, experienceBand])
+  @@unique([jobRoleId, city, experienceBandId])
 }
 
 // ---------- Training ----------
@@ -651,16 +692,16 @@ model ShortlistStatusHistory {
 }
 
 model ContactRequest {
-  id                 String                @id @default(cuid())
+  id                 String               @id @default(cuid())
   recruiterId        String
-  recruiter          User                  @relation("ContactRequestRecruiter", fields: [recruiterId], references: [id])
+  recruiter          User                 @relation("ContactRequestRecruiter", fields: [recruiterId], references: [id])
   candidateProfileId String
-  candidateProfile   CandidateProfile      @relation(fields: [candidateProfileId], references: [id])
+  candidateProfile   CandidateProfile     @relation(fields: [candidateProfileId], references: [id])
   jobOpeningId       String
-  jobOpening         JobOpening            @relation(fields: [jobOpeningId], references: [id])
-  status             ContactRequestStatus  @default(SENT)
+  jobOpening         JobOpening           @relation(fields: [jobOpeningId], references: [id])
+  status             ContactRequestStatus @default(SENT)
   message            String?
-  sentAt             DateTime              @default(now())
+  sentAt             DateTime             @default(now())
   respondedAt        DateTime?
 
   @@index([candidateProfileId])
@@ -699,15 +740,15 @@ model WebhookEndpoint {
 }
 
 model WebhookDelivery {
-  id          String                 @id @default(cuid())
+  id          String                @id @default(cuid())
   endpointId  String
-  endpoint    WebhookEndpoint        @relation(fields: [endpointId], references: [id])
+  endpoint    WebhookEndpoint       @relation(fields: [endpointId], references: [id])
   event       String
   payload     Json
-  status      WebhookDeliveryStatus  @default(PENDING)
-  attempt     Int                    @default(1)
+  status      WebhookDeliveryStatus @default(PENDING)
+  attempt     Int                   @default(1)
   respondedAt DateTime?
-  createdAt   DateTime               @default(now())
+  createdAt   DateTime              @default(now())
 
   @@index([endpointId])
 }
@@ -735,6 +776,41 @@ model PilotConfig {
   companyId String?  @unique
   company   Company? @relation(fields: [companyId], references: [id])
   updatedAt DateTime @updatedAt
+}
+
+/// One row per settings group (branding, homepage, currency, quartiles, ...). Shape is validated in code.
+model SiteSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
+
+/// Versioned legal text. The newest current row is shown; each candidate's consent records its version.
+model PolicyDocument {
+  id          String   @id @default(cuid())
+  kind        String
+  version     String
+  title       String
+  body        String   @db.Text
+  isCurrent   Boolean  @default(false)
+  publishedAt DateTime @default(now())
+  createdById String?
+
+  @@unique([kind, version])
+}
+
+/// Email / in-app message wording. Keys are fixed (they match a trigger); the wording is editable.
+model MessageTemplate {
+  key         String              @id
+  name        String
+  description String?
+  channel     NotificationChannel
+  subject     String
+  body        String              @db.Text
+  variables   Json
+  isActive    Boolean             @default(true)
+  updatedAt   DateTime            @updatedAt
 }
 
 // ---------- Notifications & audit ----------

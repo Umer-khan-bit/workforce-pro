@@ -11,10 +11,12 @@
   --foreground: #18212b;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
+/*
+ * Brand shades are plain (non-inline) theme variables so the colour picked in Platform admin >
+ * Settings > Branding can replace them at runtime (see the style tag in the root layout).
+ * The values below are only the fallback used before any setting is saved.
+ */
+@theme {
   /* Brand: deep teal. The only accent colour in the app. */
   --color-brand-50: #effaf8;
   --color-brand-100: #d5f3ee;
@@ -26,6 +28,11 @@
   --color-brand-700: #1c6560;
   --color-brand-800: #1a514e;
   --color-brand-900: #18433f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

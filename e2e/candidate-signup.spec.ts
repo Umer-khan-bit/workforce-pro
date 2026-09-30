@@ -13,8 +13,8 @@ test("candidate can sign up, reaches their dashboard, and is denied other roles'
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("supersecret1");
   await page.getByLabel("Phone").fill("03001234567");
-  await page.getByLabel("City").fill("Lahore");
   await page.getByLabel("Region").selectOption({ label: "Punjab" });
+  await page.getByLabel("City").selectOption({ label: "Lahore" });
   await page.getByLabel("Years of experience").fill("2");
   await page.getByLabel("Job role").selectOption({ label: "IT Support" });
   await page.getByLabel("Minimum expected salary").fill("60000");
@@ -44,7 +44,8 @@ test("candidate signup rejects a duplicate email", async ({ page }) => {
     data: { email, password: "irrelevant", role: "CANDIDATE", name: "Existing" },
   });
 
-  const region = await prisma.region.findFirstOrThrow();
+  const city = await prisma.city.findFirstOrThrow({ include: { region: true } });
+  const region = city.region;
   const jobRole = await prisma.jobRole.findFirstOrThrow();
 
   await page.goto("/signup");
@@ -52,8 +53,8 @@ test("candidate signup rejects a duplicate email", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("supersecret1");
   await page.getByLabel("Phone").fill("03001234567");
-  await page.getByLabel("City").fill("Karachi");
   await page.getByLabel("Region").selectOption({ label: region.name });
+  await page.getByLabel("City").selectOption({ label: city.name });
   await page.getByLabel("Years of experience").fill("1");
   await page.getByLabel("Job role").selectOption({ label: jobRole.name });
   await page.getByLabel("Minimum expected salary").fill("40000");

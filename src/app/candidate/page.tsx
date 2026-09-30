@@ -2,14 +2,18 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ModuleGrid from "@/components/ModuleGrid";
 import Stat from "@/components/Stat";
-import { formatPkr } from "@/lib/companyPlan";
+import { formatMoney } from "@/lib/money";
+import { getCurrency } from "@/lib/settings";
 
 export default async function CandidateDashboard() {
   const session = await auth();
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId: session!.user.id },
-    include: { jobRole: true, region: true },
-  });
+  const [profile, currency] = await Promise.all([
+    prisma.candidateProfile.findUnique({
+      where: { userId: session!.user.id },
+      include: { jobRole: true, region: true },
+    }),
+    getCurrency(),
+  ]);
 
   return (
     <div>
@@ -29,7 +33,7 @@ export default async function CandidateDashboard() {
         />
         <Stat
           label="Minimum salary"
-          value={profile?.minimumSalary != null ? formatPkr(profile.minimumSalary) : "-"}
+          value={profile?.minimumSalary != null ? formatMoney(profile.minimumSalary, currency) : "-"}
           hint="per month"
         />
       </div>

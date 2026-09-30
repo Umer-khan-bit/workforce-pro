@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { IPIP_50_ITEMS } from "./ipipItems";
+import { readSetting } from "@/lib/settings/store";
 
 export type IpipImportResult = { created: number; skipped: number };
 
@@ -12,8 +13,10 @@ export async function importIpipItems(
   prisma: PrismaClient,
   actorId: string | null
 ): Promise<IpipImportResult> {
-  const english = await prisma.language.findUnique({ where: { code: "en" } });
-  if (!english) throw new Error("English language is missing. Run the seed first.");
+  // The IPIP items are English, so they go in under the default language (set in the admin panel).
+  const english = await prisma.language.findFirst({ where: { isDefault: true } });
+  if (!english) throw new Error("No default language is set. Run the seed or set one in the admin panel.");
+  const defaults = await readSetting(prisma, "itemDefaults");
 
   const existing = await prisma.question.findMany({
     where: { testType: "PERSONALITY", languageId: english.id },
@@ -31,6 +34,8 @@ export async function importIpipItems(
         content: i.content,
         topic: i.trait,
         reverseKeyed: i.reverse,
+        aParam: defaults.discrimination,
+        bParam: defaults.difficultyMedium,
         languageId: english.id,
         status: "APPROVED" as const,
         approvedById: actorId,

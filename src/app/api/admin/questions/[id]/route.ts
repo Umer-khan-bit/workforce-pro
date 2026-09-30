@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/adminGuard";
 import { questionInputSchema, toQuestionData } from "@/lib/questionBank/schema";
+import { getSetting } from "@/lib/settings";
 import { findMissingReference } from "@/lib/questionBank/references";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,14 +23,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     );
   }
 
-  const data = toQuestionData(parsed.data);
+  const data = toQuestionData(parsed.data, await getSetting("itemDefaults"));
   const missing = await findMissingReference(prisma, data);
   if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+
+  // Keep calibrated parameters: the starting values only apply when the difficulty label changes.
+  const { aParam: _keepA, bParam, ...rest } = data;
+  void _keepA;
 
   await prisma.question.update({
     where: { id },
     data: {
-      ...data,
+      ...rest,
+      ...(data.difficulty !== existing.difficulty ? { bParam } : {}),
       options: data.options ?? Prisma.DbNull,
       // Saving an approved question is the admin re-approving its current wording.
       ...(existing.status === "APPROVED"

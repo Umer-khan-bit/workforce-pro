@@ -1,11 +1,10 @@
 import {
   NO_LANGUAGE,
-  RECOMMENDED_APPROVED,
   coverageLevel,
   type Coverage,
   type CoverageLevel,
 } from "@/lib/questionBank/queries";
-import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/questionBank/schema";
+import { TEST_TYPES, TEST_TYPE_LABELS, type TestTypeValue } from "@/lib/questionBank/schema";
 
 const LEVEL_STYLES: Record<CoverageLevel, string> = {
   gap: "bg-red-50 font-semibold text-red-700",
@@ -25,7 +24,13 @@ function Cell({ approved, target }: { approved: number; target: number }) {
   );
 }
 
-export default function CoverageTables({ coverage }: { coverage: Coverage }) {
+export default function CoverageTables({
+  coverage,
+  targets,
+}: {
+  coverage: Coverage;
+  targets: Record<TestTypeValue, number>;
+}) {
   const languageColumns = [...coverage.languages.map((l) => ({ id: l.id ?? NO_LANGUAGE, name: l.name }))];
   const unsetHasAny = TEST_TYPES.some((t) => (coverage.approvedByLanguage[t][NO_LANGUAGE] ?? 0) > 0);
   if (unsetHasAny) languageColumns.push({ id: NO_LANGUAGE, name: "No language set" });
@@ -62,7 +67,7 @@ export default function CoverageTables({ coverage }: { coverage: Coverage }) {
                   <th scope="row" className="px-4 py-2.5 font-medium text-zinc-900">
                     {TEST_TYPE_LABELS[r.testType]}
                   </th>
-                  <Cell approved={r.approved} target={RECOMMENDED_APPROVED[r.testType]} />
+                  <Cell approved={r.approved} target={targets[r.testType]} />
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.pending}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.retired}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.flagged}</td>
@@ -90,10 +95,10 @@ export default function CoverageTables({ coverage }: { coverage: Coverage }) {
               {TEST_TYPES.map((t) => (
                 <tr key={t} className="border-b border-zinc-100">
                   <th scope="row" className="px-4 py-2.5 font-medium text-zinc-900">
-                    {TEST_TYPE_LABELS[t]} <span className="font-normal text-zinc-500">({RECOMMENDED_APPROVED[t]})</span>
+                    {TEST_TYPE_LABELS[t]} <span className="font-normal text-zinc-500">({targets[t]})</span>
                   </th>
                   {languageColumns.map((l) => (
-                    <Cell key={l.id} approved={coverage.approvedByLanguage[t][l.id] ?? 0} target={RECOMMENDED_APPROVED[t]} />
+                    <Cell key={l.id} approved={coverage.approvedByLanguage[t][l.id] ?? 0} target={targets[t]} />
                   ))}
                 </tr>
               ))}
@@ -104,7 +109,7 @@ export default function CoverageTables({ coverage }: { coverage: Coverage }) {
         <div className="card overflow-x-auto p-0 xl:col-span-2">
           <table className="w-full min-w-[20rem] text-left text-sm">
             <caption className="px-4 pt-4 text-left text-sm font-medium text-zinc-700">
-              Approved job-skill questions by job role (target {RECOMMENDED_APPROVED.SKILL} each)
+              Approved job-skill questions by job role (target {targets.SKILL} each)
             </caption>
             <thead>
               <tr className="border-b border-zinc-200 text-zinc-500">
@@ -116,7 +121,7 @@ export default function CoverageTables({ coverage }: { coverage: Coverage }) {
               {coverage.roles.map((r) => (
                 <tr key={r.id} className="border-b border-zinc-100">
                   <th scope="row" className="px-4 py-2.5 font-medium text-zinc-900">{r.name}</th>
-                  <Cell approved={r.approved} target={RECOMMENDED_APPROVED.SKILL} />
+                  <Cell approved={r.approved} target={targets.SKILL} />
                 </tr>
               ))}
             </tbody>

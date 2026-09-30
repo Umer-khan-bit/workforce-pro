@@ -4,8 +4,6 @@ import { hashPassword } from "@/lib/password";
 import { candidateSignupSchema } from "@/lib/validation";
 import { signupRateLimitResponse } from "@/lib/signupRateLimit";
 
-const PRIVACY_POLICY_VERSION = "1.0";
-
 export async function POST(request: Request) {
   const limited = signupRateLimitResponse(request, "candidate");
   if (limited) return limited;
@@ -20,15 +18,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, email, password, phone, city, regionId, experienceYears, jobRoleId, minimumSalary } =
+  const { name, email, password, phone, cityId, regionId, experienceYears, jobRoleId, minimumSalary } =
     parsed.data;
 
-  const [region, jobRole] = await Promise.all([
+  const [region, jobRole, city, policy] = await Promise.all([
     prisma.region.findUnique({ where: { id: regionId } }),
     prisma.jobRole.findUnique({ where: { id: jobRoleId } }),
+    prisma.city.findUnique({ where: { id: cityId } }),
+    prisma.policyDocument.findFirst({ where: { kind: "PRIVACY", isCurrent: true } }),
   ]);
-  if (!region || !jobRole) {
+  if (!region?.isActive || !jobRole?.isActive) {
     return NextResponse.json({ error: "Invalid region or job role" }, { status: 400 });
+  }
+  if (!city?.isActive || city.regionId !== region.id) {
+    return NextResponse.json({ error: "Choose a city in the selected region" }, { status: 400 });
+  }
+  if (!policy) {
+    // Consent has to point at a published policy version.
+    return NextResponse.json({ error: "Signup is unavailable right now" }, { status: 503 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -47,14 +54,14 @@ export async function POST(request: Request) {
       candidateProfile: {
         create: {
           phone,
-          city,
+          city: city.name,
           regionId,
           jobRoleId,
           experienceYears,
           minimumSalary,
           consentGiven: true,
           consentAt: new Date(),
-          privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+          privacyPolicyVersion: policy.version,
         },
       },
     },

@@ -2,6 +2,7 @@ import type { Role } from "@prisma/client";
 import { auth } from "@/auth";
 import { ROLE_NAV, navHref } from "@/lib/navigation";
 import AppShell from "@/components/AppShell";
+import { getSetting } from "@/lib/settings";
 
 /** Shared layout for the four role areas: sidebar/drawer navigation plus the page. */
 export default async function RoleLayout({
@@ -11,7 +12,7 @@ export default async function RoleLayout({
   role: Role;
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const [session, brand] = await Promise.all([auth(), getSetting("branding")]);
   const nav = ROLE_NAV[role];
 
   const groups = nav.groups.map((g) => ({
@@ -21,6 +22,8 @@ export default async function RoleLayout({
 
   return (
     <AppShell
+      brandName={brand.name}
+      brandLogo={brand.logoDataUrl}
       roleLabel={nav.roleLabel}
       homeHref={nav.base}
       groups={groups}

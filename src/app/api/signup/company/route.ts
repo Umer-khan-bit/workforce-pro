@@ -18,7 +18,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const { companyName, industry, city, adminName, adminEmail, adminPassword } = parsed.data;
+  const { companyName, industry, cityId, adminName, adminEmail, adminPassword } = parsed.data;
+
+  const city = cityId ? await prisma.city.findUnique({ where: { id: cityId } }) : null;
+  if (cityId && !city?.isActive) {
+    return NextResponse.json({ error: "Choose a city from the list" }, { status: 400 });
+  }
 
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (existing) {
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
     data: {
       name: companyName,
       industry: industry || null,
-      city: city || null,
+      city: city?.name ?? null,
       users: {
         create: {
           email: adminEmail,
