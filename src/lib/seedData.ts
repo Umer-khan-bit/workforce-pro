@@ -84,6 +84,20 @@ export const PRIVACY_POLICY_SEED = {
   ].join("\n\n"),
 };
 
+/**
+ * Later versions of the privacy policy. Each one adds a paragraph to the version before it. The seed
+ * publishes a version only if it is missing and the current policy is still the previous seeded one,
+ * so a policy text an admin has written is never replaced.
+ */
+export const PRIVACY_POLICY_UPDATES = [
+  {
+    version: "1.1",
+    previousVersion: "1.0",
+    paragraph:
+      "Some tests include a short written answer. The text of that answer (never your name or any other personal detail) is graded by an AI service, and the grade and feedback are stored with your results. AI only scores and recommends; it never decides who is hired.",
+  },
+];
+
 /** Typical monthly salary for a fresher, and the rise per year of experience (sample benchmarks). */
 export const SALARY_BENCHMARK_SEEDS: Record<string, { base: number; perYear: number }> = {
   Accountant: { base: 50000, perYear: 8000 },

@@ -24,8 +24,16 @@ export default async function ApprovalsPage({
   const testType = TEST_TYPES.find((t) => t === one("testType"));
   const source = SOURCES.find((s) => s === one("source"));
   const page = Math.max(1, Number.parseInt(one("page") ?? "1", 10) || 1);
+  const q = one("q")?.trim().slice(0, 100) || undefined;
+  const verdict = (["OK", "NEEDS_FIX", "REJECT"] as const).find((v) => v === one("verdict"));
 
-  const where = { status: "PENDING_APPROVAL" as const, ...(testType ? { testType } : {}), ...(source ? { source } : {}) };
+  const where = {
+    status: "PENDING_APPROVAL" as const,
+    ...(testType ? { testType } : {}),
+    ...(source ? { source } : {}),
+    ...(verdict ? { reviewVerdict: verdict } : {}),
+    ...(q ? { OR: [{ content: { contains: q, mode: "insensitive" as const } }, { topic: { contains: q, mode: "insensitive" as const } }] } : {}),
+  };
 
   const [total, flagged, questions, languages] = await Promise.all([
     prisma.question.count({ where }),
@@ -69,6 +77,8 @@ export default async function ApprovalsPage({
     const params = new URLSearchParams();
     if (testType) params.set("testType", testType);
     if (source) params.set("source", source);
+    if (verdict) params.set("verdict", verdict);
+    if (q) params.set("q", q);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return qs ? `/admin/approvals?${qs}` : "/admin/approvals";
@@ -102,13 +112,26 @@ export default async function ApprovalsPage({
             {SOURCES.map((s) => <option key={s} value={s}>{SOURCE_LABEL[s]}</option>)}
           </select>
         </div>
+        <div>
+          <label htmlFor="a-verdict" className="label">AI review</label>
+          <select id="a-verdict" name="verdict" defaultValue={verdict ?? ""} className="input">
+            <option value="">Any result</option>
+            <option value="OK">OK</option>
+            <option value="NEEDS_FIX">Needs fixing</option>
+            <option value="REJECT">Reject</option>
+          </select>
+        </div>
+        <div className="min-w-48 flex-1">
+          <label htmlFor="a-q" className="label">Search</label>
+          <input id="a-q" name="q" defaultValue={q ?? ""} placeholder="Question text or topic" className="input" />
+        </div>
         <button type="submit" className="btn-primary">Filter</button>
-        {(testType || source) && <Link href="/admin/approvals" className="btn-secondary">Clear</Link>}
+        {(testType || source || verdict || q) && <Link href="/admin/approvals" className="btn-secondary">Clear</Link>}
       </form>
 
       <p className="mt-4 text-sm text-zinc-600" aria-live="polite">{total} pending</p>
 
-      <ApprovalsTable key={`${testType}-${source}-${page}`} rows={rows} />
+      <ApprovalsTable key={`${testType}-${source}-${verdict}-${q}-${page}`} rows={rows} />
 
       {pages > 1 && (
         <nav aria-label="Pagination" className="mt-4 flex items-center justify-between text-sm">

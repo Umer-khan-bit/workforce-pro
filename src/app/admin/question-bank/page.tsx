@@ -163,6 +163,7 @@ export default async function QuestionBankPage({
                   <td className="px-4 py-3">{q.type === "MCQ" ? DIFFICULTY_LABELS[q.difficulty] : "-"}</td>
                   <td className="px-4 py-3">
                     <span className={`badge ${STATUS_BADGE[q.status] ?? ""}`}>{STATUS_LABELS[q.status]}</span>
+                    {q.isPretest && <span className="badge ml-1.5 bg-brand-50 text-brand-800" title="Shown to candidates but not scored, until it is calibrated">Pretest</span>}
                     {q.itemStatistic?.flagged && (
                       <span className="badge ml-1.5 bg-red-50 text-red-700">Flagged</span>
                     )}

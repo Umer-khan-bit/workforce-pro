@@ -97,6 +97,23 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 - Skill: questions from the candidate's selected job role only.
 - Quartiles: percentile vs. candidates of the same job role; fall back to all candidates if fewer than 30.
 - Keep every test short (target 10–15 minutes). Save progress so a candidate can resume.
+- Decided while building the engine (all numbers below are Settings, not constants):
+  - Personality gets trait scores only: no percentile and no quartile (it has no better or worse direction).
+  - Language score = (1 - w) x multiple-choice ability + w x writing grade, with w = 30% to start
+    (Settings > Tests). The CEFR level is also shown on its own. The language tested is the primary
+    language of the candidate's region; if there are too few approved questions, show "Not available yet".
+  - The timer is the server's clock and keeps running if the browser is closed. When time runs out the test
+    is scored if the minimum number of scored answers is in (pretest answers do not count), otherwise it is
+    marked expired with no score and can be retaken at once. Otherwise a retake waits `retakeWaitingDays`.
+  - Approved questions are operational (scored) unless approved "as pretest (unscored)"; pretest items are
+    shown but never scored and are the ones recalibration measures first.
+  - Rankings are always labelled "based on N candidates" (with a caution when N is under the minimum).
+    Anonymised candidates and results still waiting for their writing grade are left out of rankings.
+  - Written answers go to Claude as text only (never the name); the privacy policy says so, and the grading
+    prompt and CEFR rubric are in Settings > Advanced > AI prompts. If grading fails, the score stays
+    provisional and is finished the next time the candidate opens their result.
+  - Tests that use the adaptive engine, or the Language writing task, must never send the correct answer,
+    item parameters or pretest flags to the browser.
 
 ## Self-learning rules
 - Recalibration job (scheduled + manual button) re-estimates item parameters from responses

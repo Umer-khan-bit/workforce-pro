@@ -378,6 +378,15 @@ describe("bulkApprove", () => {
     expect(call.data.approvedAt).toBeInstanceOf(Date);
   });
 
+  it("marks the questions as pretest (unscored) when asked, and as operational otherwise", async () => {
+    const pre = approveDb(rows);
+    await bulkApprove(pre.db, ["a", "b"], "admin-1", false, true);
+    expect(pre.updateMany.mock.calls[0][0].data).toMatchObject({ status: "APPROVED", isPretest: true });
+    const normal = approveDb(rows);
+    await bulkApprove(normal.db, ["a", "b"], "admin-1", false);
+    expect(normal.updateMany.mock.calls[0][0].data).toMatchObject({ isPretest: false });
+  });
+
   it("approves flagged ones too when asked", async () => {
     const { db } = approveDb(rows);
     const r = await bulkApprove(db, ["a", "b", "c", "d"], "admin-1", true);

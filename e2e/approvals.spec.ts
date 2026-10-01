@@ -61,7 +61,7 @@ test("bulk approve skips questions the AI review flagged, unless asked", async (
   const ok = await makePending("E2E alpha: a fine question?", "OK");
   const flagged = await makePending("E2E beta: a flagged question?", "NEEDS_FIX");
   await logIn(page);
-  await page.goto("/admin/approvals");
+  await page.goto("/admin/approvals?q=E2E");
 
   await expect(card(page, "E2E beta").getByText("AI review: needs fixing")).toBeVisible();
   await expect(card(page, "E2E beta").getByText("Wording is ambiguous.")).toBeVisible();
@@ -90,7 +90,7 @@ test("reject keeps the question, marks it rejected and stores the reason; approv
   const approveId = await makePending("E2E delta: to be approved singly?", "OK");
   const editId = await makePending("E2E epsilon: to be edited?", "OK");
   await logIn(page);
-  await page.goto("/admin/approvals");
+  await page.goto("/admin/approvals?q=E2E");
 
   await card(page, "E2E gamma").getByRole("button", { name: "Reject" }).click();
   await card(page, "E2E gamma").getByPlaceholder("Reason (optional)").fill("Too easy");

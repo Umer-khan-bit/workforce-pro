@@ -7,6 +7,8 @@ import {
   SETTING_SCHEMAS,
   aiGenerationSchema,
   accountsSchema,
+  testEngineSchema,
+  testingSchema,
   aiPromptsSchema,
   brandingSchema,
   itemDefaultsSchema,
@@ -97,9 +99,9 @@ describe("settings screen", () => {
 
   it("puts the technical settings under Advanced and everything else on the main tabs", () => {
     const advanced = SETTING_GROUPS.filter((g) => g.advanced).map((g) => g.key).sort();
-    expect(advanced).toEqual(["aiGeneration", "aiPrompts", "itemDefaults", "selfLearning"]);
+    expect(advanced).toEqual(["aiGeneration", "aiPrompts", "itemDefaults", "selfLearning", "testEngine"]);
     const general = SETTING_GROUPS.filter((g) => !g.advanced).map((g) => g.key);
-    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "currency", "quartiles", "topPerformer", "poolTargets"]));
+    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "testing", "currency", "quartiles", "topPerformer", "poolTargets"]));
   });
 
   it("shows the allowed placeholders under each prompt", () => {
@@ -124,6 +126,39 @@ describe("accounts & trials", () => {
     expect(accountsSchema.safeParse({ ...ok, passwordResetMinutes: 1 }).success).toBe(false);
     expect(accountsSchema.safeParse({ ...ok, emailVerificationHours: 0 }).success).toBe(false);
     expect(accountsSchema.safeParse({ ...ok, defaultPlanCode: "Has Spaces!" }).success).toBe(false);
+  });
+});
+
+describe("test settings", () => {
+  const t = DEFAULT_SETTINGS.testing;
+  const e = DEFAULT_SETTINGS.testEngine;
+
+  it("starts with the agreed values: 30% writing, CEFR scores rising from A1 to C2", () => {
+    expect(t.writingWeightPercent).toBe(30);
+    expect([t.cefrScoreA1, t.cefrScoreA2, t.cefrScoreB1, t.cefrScoreB2, t.cefrScoreC1, t.cefrScoreC2]).toEqual([-2, -1.2, -0.4, 0.4, 1.2, 2]);
+    expect(testingSchema.safeParse(t).success).toBe(true);
+  });
+
+  it("rejects CEFR scores that do not rise, a minimum above the maximum, and a weight over 100", () => {
+    expect(testingSchema.safeParse({ ...t, cefrScoreB1: -1.5 }).success).toBe(false);
+    expect(testingSchema.safeParse({ ...t, writingMinWords: 300, writingMaxWords: 200 }).success).toBe(false);
+    expect(testingSchema.safeParse({ ...t, writingWeightPercent: 120 }).success).toBe(false);
+    expect(testingSchema.safeParse({ ...t, instructionsGeneral: "" }).success).toBe(false);
+  });
+
+  it("validates the adaptive-engine settings", () => {
+    expect(testEngineSchema.safeParse(e).success).toBe(true);
+    expect(testEngineSchema.safeParse({ ...e, topK: 0 }).success).toBe(false);
+    expect(testEngineSchema.safeParse({ ...e, maxExposureRate: 0 }).success).toBe(false);
+    expect(testEngineSchema.safeParse({ ...e, maxExposureRate: 1.5 }).success).toBe(false);
+    expect(testEngineSchema.safeParse({ ...e, topicBalancePenalty: -1 }).success).toBe(false);
+  });
+
+  it("the writing prompts accept only their own placeholders", () => {
+    const p = DEFAULT_SETTINGS.aiPrompts;
+    expect(aiPromptsSchema.safeParse(p).success).toBe(true);
+    expect(aiPromptsSchema.safeParse({ ...p, writingScoringPrompt: "Grade in {{language}} using {{rubric}} for {{candidateName}}" }).success).toBe(false);
+    expect(aiPromptsSchema.safeParse({ ...p, writingRubric: "Rubric mentioning {{language}}" }).success).toBe(false);
   });
 });
 

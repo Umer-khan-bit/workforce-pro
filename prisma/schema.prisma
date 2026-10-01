@@ -61,6 +61,7 @@ enum ReviewVerdict {
 enum AiRunKind {
   GENERATE
   TRANSLATE
+  GRADE
 }
 
 enum AiRunStatus {
@@ -567,6 +568,7 @@ model TestSession {
   candidateProfileId String
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   testType           TestType
+  languageId         String?
   status             SessionStatus    @default(IN_PROGRESS)
   theta              Float            @default(0)
   standardError      Float?
@@ -591,11 +593,14 @@ model Response {
   question       Question    @relation(fields: [questionId], references: [id])
   answerGiven    Json
   isCorrect      Boolean?
+  /// false for unscored pretest items that are only collected for calibration
+  isScored       Boolean     @default(true)
   responseTimeMs Int?
   thetaBefore    Float?
   thetaAfter     Float?
   answeredAt     DateTime    @default(now())
 
+  @@unique([sessionId, questionId])
   @@index([sessionId])
   @@index([questionId])
 }
@@ -624,6 +629,18 @@ model Score {
   percentile         Float?
   quartile           Int?
   cefrLevel          CefrLevel?
+  /// Ability estimate (IRT) for adaptive tests; for Language it is the composite with the writing grade.
+  theta              Float?
+  standardError      Float?
+  /// The number percentile and quartile are ranked on (theta, or the 0-100 EQ score). Null for Personality.
+  rankValue          Float?
+  /// Trait scores for Personality, accuracy and writing breakdown for others.
+  details            Json?
+  /// What the percentile was measured against: the candidate's job role or all candidates.
+  cohortScope        String?
+  cohortSize         Int?
+  /// True while the writing task is still waiting to be graded.
+  provisional        Boolean          @default(false)
   computedAt         DateTime         @default(now())
 
   @@index([candidateProfileId, testType])

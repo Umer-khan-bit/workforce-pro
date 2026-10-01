@@ -45,6 +45,7 @@ export async function listQuestions(prisma: PrismaClient, filters: ListFilters) 
         difficulty: true,
         status: true,
         reverseKeyed: true,
+        isPretest: true,
         jobRole: { select: { name: true } },
         language: { select: { name: true, isRtl: true } },
         itemStatistic: { select: { flagged: true } },

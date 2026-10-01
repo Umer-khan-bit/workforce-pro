@@ -1,6 +1,67 @@
-# Workforce Pro - status (Day 1, Day 2, the no-hardcoding fix and the account fixes)
+# Workforce Pro - status (Day 1, Day 2, the no-hardcoding fix, the account fixes and Day 3 part 1)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 3, part 1: the test engine (done)
+
+Follows "Test engine rules" in CLAUDE.md. Every number below is a Settings value, not a constant.
+
+**Candidate screens**
+- **My tests** (`/candidate/tests`, the old "Assessments" placeholder): one card per test (Personality, IQ, EQ, Language, Job skill) showing Not started, In progress (Resume), Completed (summary and retake date from the test settings), or **Not available yet** with the reason (too few approved questions for your language or job role, or no Language writing task). Starting needs a confirmed email address (`requireVerifiedEmail()` on every test endpoint, and the page explains it).
+- **Start screen:** number of questions, time limit, the instructions from Settings > Tests, and (Language) the notice that AI grades the writing.
+- **Test screen** (full screen, mobile first): one question at a time, countdown timer, progress bar, 44px+ buttons, a Next button that stays at the thumb, no going back. Every answer is saved on the server, so closing the browser and coming back resumes at the same question with the same clock. At zero the page submits automatically (an unfinished essay is sent as it stands), and the server enforces the deadline on every request anyway.
+- **Result summary** after each test: quartile and percentile with "based on N candidates in your job role / across all job roles" (and a caution when N is under the minimum), CEFR level and feedback for Language, trait bars for Personality, retake date. The full results page and AI feedback stay for Day 4.
+
+**Engine** (`src/lib/testEngine/`)
+- **IRT 2PL with EAP:** theta starts at 0 and is re-estimated after every scored answer (standard-normal prior, grid -4 to +4); the standard error comes from the same posterior. Checked against an independent high-resolution calculation.
+- **Next question:** maximum information at the current theta among unseen items, with topic balance and exposure control (random pick among the best K, and a cap on how often one item is used, both in Settings > Advanced > Test engine). Never repeats a question.
+- **Stopping rule:** standard error below the test's threshold after at least the minimum number of scored items, or the maximum. Pretest items do not count.
+- **Pretest:** up to the test's pretest count of unscored items at random positions inside the first questions, never first; their answers feed the running item statistics.
+- **Personality and EQ** are fixed length, balanced across traits or dimensions, shuffled with a per-session seed so a resumed test keeps its order.
+- **Language:** a CAT on the multiple-choice part, then one writing prompt graded by Claude against the CEFR rubric in Settings (prompt, rubric, word limits and weight are all settings). Only the prompt and the answer text are sent, never the name; each grading is an AI run in the audit log. If grading fails the score stays *provisional* (no ranking) and is finished the next time the candidate opens the result.
+
+**Scoring**
+- **Stored per test:** raw score, theta and standard error, percentile, quartile, who it was ranked against and how many, and a provisional flag.
+- **IQ and Skill:** raw score = % correct; ranked on theta. **EQ:** 0-100 from Likert (reverse-keyed) and situational-judgement items; ranked on that. **Language:** composite = 70% multiple-choice ability + 30% writing (CEFR scores on the same scale), both in Settings; with no writing it is the multiple-choice ability alone.
+- **Personality:** five trait scores from 1 to 5, reverse-keyed items flipped (1-5 becomes 5-1), Emotional Stability scored toward stability. **No percentile and no quartile**, as decided.
+- **Ranking:** percentile (ties count half) against each other candidate's latest finished result, same job role if it has at least the minimum from Settings (30), otherwise everyone; quartile from the cut-offs in Settings. Anonymised candidates and provisional results are left out.
+- **Timer rules (decided):** the server clock keeps running when the browser is closed. At timeout the test is scored if the minimum number of scored answers is in; otherwise it is marked expired with no score and can be retaken at once.
+
+**Also done**
+- **Approve as pretest (unscored)** in the approval queue (bulk and single); a Pretest badge in the question bank.
+- **Approvals page:** search and an "AI review" filter (needed once the queue holds hundreds of questions).
+- **Privacy policy v1.1** (published as a new version, so existing consent records stay accurate): "Some tests include a short written answer. The text of that answer (never your name or any other personal detail) is graded by an AI service..." Candidates who accepted 1.0 are informed again on the Language start screen; you may want to ask existing candidates to accept 1.1.
+- **Settings:** new Tests group (instructions, writing notice, writing weight, word limits, CEFR scores) and Advanced > Test engine; two new prompts under Advanced > AI prompts.
+- New migration `20260930210000_test_engine` (score fields, `isScored`, one answer per question per session, language used by the session, AI run kind for grading). `npm run content:demo` runs the generator for demo content.
+
+### Demo questions are ready to approve
+The generator ran once for English demo content (stopped well inside the $4 cap): **245 new questions, all Pending**, estimated cost **$1.12** (29 batches, each written and then reviewed by a second Claude pass). **Approvals now holds 248 pending questions**; 75 are flagged by the AI review (Needs fixing or Reject), 173 are marked OK.
+
+| Test | New pending | Notes |
+| --- | --- | --- |
+| IQ | 31 | easy 10, medium 13, hard 10 (one batch returned a single question, so 31 instead of 40; top up from Generate) |
+| EQ | 30 | 18 situational-judgement, 12 Likert |
+| Language | 30 | 24 multiple choice (8 easy, 8 medium, 8 hard) and 6 writing prompts |
+| Skill: Accountant | 41 | easy 11, medium 20, hard 10 |
+| Skill: Customer Service | 35 | easy 10, medium 20, hard 5 |
+| Skill: IT Support | 40 | easy 10, medium 20, hard 10 |
+| Skill: Sales | 39 | easy 10, medium 20, hard 9 |
+
+Suggested way to approve: Approvals > filter **AI review = OK** > Select all on the page > Approve (repeat per page, or filter by test). Read the flagged ones one by one (Edit or Reject). Tick "Approve as pretest (unscored)" for any batch you want measured before it counts; otherwise approved questions are scored straight away. Until then, only Personality can be taken with the real bank (50 approved items); IQ has 9 approved and Skill 3.
+
+### Decisions and things to know
+- **Restart your dev server.** The database client was regenerated while your `npm run dev` on port 7310 was running (I did not stop it). Stop it and start it again so it picks up the new tables and fields.
+- **Language of each test** is the primary language of the candidate's region (today English everywhere). The Urdu personality translations stay Pending, so a region mapped to Urdu would show Personality as "Not available yet".
+- **Exposure control** divides an item's uses by the number of tests taken, with a warm-up floor (30 tests) so a fresh bank is not over-restricted; items over the cap are only skipped while at least K alternatives remain.
+- The generator does not check that a batch returned the number of questions asked for (the IQ batch above returned 1 of 10). Worth adding.
+- Writing grading uses the "writer" model and prices from Settings > Advanced > AI generation.
+
+### Tests
+- **Vitest: 295 passing** (was 202). Engine maths (probability, information, EAP vs an independent calculation, standard-error shrinkage), stopping rule, item selection (max information, no repeats, topic balance, exposure cap, randomised top K, seeded and order-independent), pretest placement, fixed forms, reverse-keying (all 8 Emotional Stability items), Personality/EQ/Language scoring, percentile and quartile (ties, boundaries, custom cut-offs, role vs all fallback) and settings validation, plus integration tests that play whole sessions against the real database in an isolated world: adaptive behaviour for strong and weak candidates, pretest and statistics, resume, the timer (scored vs expired vs late answers), retake dates, Language with a fake Claude (composite, weights, short or long essays, provisional then regraded, no name sent), cohort fallback, secrecy of answers, ownership, double submits from two tabs, audit log contents, and the API routes (403 for non-candidates and unconfirmed emails).
+- **Playwright: 39 passing** (33 + 6 new, on a phone-sized screen): a full IQ test with instructions, timer, progress, closing the browser and resuming, result, retake date and lock; a full Personality test; auto-submit on timeout (scored) and too-early timeout (no score, immediate retake); the Language writing screen up to the word counter (not submitted, because the real grader costs money); an unconfirmed email blocked on the page and through the API.
+- `tsc` clean; `eslint` 0 errors (3 old warnings).
+
+---
 
 ## Account gaps and fixes (done)
 

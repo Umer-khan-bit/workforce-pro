@@ -8,6 +8,7 @@ import { bulkApprove } from "@/lib/questionBank/bulkApprove";
 const bodySchema = z.object({
   ids: z.array(z.string().min(1)).min(1, "Select at least one question").max(200),
   includeFlagged: z.boolean().default(false),
+  asPretest: z.boolean().default(false),
 });
 
 export async function POST(request: Request) {
@@ -17,10 +18,11 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const { approvedIds, ...summary } = await bulkApprove(prisma, parsed.data.ids, guard.userId, parsed.data.includeFlagged);
+  const { approvedIds, ...summary } = await bulkApprove(prisma, parsed.data.ids, guard.userId, parsed.data.includeFlagged, parsed.data.asPretest);
   await audit(guard.userId, "QUESTIONS_BULK_APPROVED", "Question", null, {
     ...summary,
     includeFlagged: parsed.data.includeFlagged,
+    asPretest: parsed.data.asPretest,
     ids: approvedIds,
   });
   return NextResponse.json(summary);

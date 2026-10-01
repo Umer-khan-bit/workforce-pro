@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio --port 7320",
     "prisma:seed": "tsx prisma/seed.ts",
+    "content:demo": "tsx --env-file=.env prisma/generateDemoContent.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

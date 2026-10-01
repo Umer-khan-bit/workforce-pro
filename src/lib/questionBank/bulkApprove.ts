@@ -11,13 +11,15 @@ export type BulkApproveResult = {
 /**
  * Approves the chosen pending questions in one step. Questions the AI review marked NEEDS_FIX or
  * REJECT are skipped unless `includeFlagged` is set, so a bulk click cannot publish a problem
- * question by accident.
+ * question by accident. With `asPretest`, approved questions are marked as pretest items: they are
+ * shown to candidates but not scored, so their difficulty can be measured before they count.
  */
 export async function bulkApprove(
   prisma: PrismaClient,
   ids: string[],
   actorId: string,
-  includeFlagged: boolean
+  includeFlagged: boolean,
+  asPretest = false
 ): Promise<BulkApproveResult & { approvedIds: string[] }> {
   const unique = [...new Set(ids)];
   const rows = await prisma.question.findMany({
@@ -31,7 +33,7 @@ export async function bulkApprove(
   if (approvedIds.length > 0) {
     await prisma.question.updateMany({
       where: { id: { in: approvedIds }, status: "PENDING_APPROVAL" },
-      data: { status: "APPROVED", approvedById: actorId, approvedAt: new Date(), rejectionReason: null },
+      data: { status: "APPROVED", approvedById: actorId, approvedAt: new Date(), rejectionReason: null, isPretest: asPretest },
     });
   }
   return {

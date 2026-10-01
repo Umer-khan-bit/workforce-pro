@@ -5,6 +5,7 @@ import {
   FEATURE_SEEDS,
   PLAN_SEEDS,
   PRIVACY_POLICY_SEED,
+  PRIVACY_POLICY_UPDATES,
   TEST_CONFIG_SEEDS,
 } from "../src/lib/seedData";
 import { TEMPLATE_SEEDS } from "../src/lib/messageTemplates";
@@ -56,6 +57,26 @@ export async function seedConfig(prisma: PrismaClient, regions: Array<{ id: stri
   const hasPolicy = await prisma.policyDocument.findFirst({ where: { kind: PRIVACY_POLICY_SEED.kind } });
   if (!hasPolicy) {
     await prisma.policyDocument.create({ data: { ...PRIVACY_POLICY_SEED, isCurrent: true } });
+  }
+
+  // New privacy policy versions: add a paragraph only when the current text is still the seeded one.
+  for (const update of PRIVACY_POLICY_UPDATES) {
+    const exists = await prisma.policyDocument.findFirst({ where: { kind: PRIVACY_POLICY_SEED.kind, version: update.version } });
+    if (exists) continue;
+    const current = await prisma.policyDocument.findFirst({ where: { kind: PRIVACY_POLICY_SEED.kind, isCurrent: true } });
+    if (!current || current.version !== update.previousVersion) continue;
+    await prisma.$transaction([
+      prisma.policyDocument.updateMany({ where: { kind: PRIVACY_POLICY_SEED.kind }, data: { isCurrent: false } }),
+      prisma.policyDocument.create({
+        data: {
+          kind: PRIVACY_POLICY_SEED.kind,
+          version: update.version,
+          title: current.title,
+          body: `${current.body}\n\n${update.paragraph}`,
+          isCurrent: true,
+        },
+      }),
+    ]);
   }
 
   for (const t of TEMPLATE_SEEDS) {

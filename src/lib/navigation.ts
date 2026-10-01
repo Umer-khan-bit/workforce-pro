@@ -55,15 +55,11 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
         items: [
           dashboard("Your profile, progress and next steps."),
           {
-            slug: "assessments",
-            label: "Assessments",
-            description: "Personality, IQ & EQ, language and job-skill tests.",
-            planned: [
-              "Personality (Big Five) and EQ tests",
-              "Adaptive IQ, language and job-skill tests",
-              "Language test by region, with a short writing task graded on the CEFR scale (A1-C2)",
-              "Short timed sessions that save progress so you can resume",
-            ],
+            slug: "tests",
+            label: "My tests",
+            description: "Take your Personality, IQ, EQ, Language and job-skill tests and see your result.",
+            planned: [],
+            live: true,
           },
           {
             slug: "results",

@@ -36,6 +36,7 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [includeFlagged, setIncludeFlagged] = useState(false);
+  const [asPretest, setAsPretest] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
   async function approveOne(id: string) {
     setBusy(true);
     setMessage(null);
-    const r = await post(`/api/admin/questions/${id}/approve`);
+    const r = await post(`/api/admin/questions/${id}/approve`, { asPretest });
     setBusy(false);
     if (!r.ok) return setMessage({ text: r.data?.error ?? "Something went wrong", ok: false });
     setSelected((s) => { const n = new Set(s); n.delete(id); return n; });
@@ -87,7 +88,7 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
   async function approveSelected() {
     setBusy(true);
     setMessage(null);
-    const r = await post("/api/admin/questions/bulk-approve", { ids: selectedIds, includeFlagged });
+    const r = await post("/api/admin/questions/bulk-approve", { ids: selectedIds, includeFlagged, asPretest });
     setBusy(false);
     if (!r.ok) return setMessage({ text: r.data?.error ?? "Something went wrong", ok: false });
     const d = r.data as { approved: number; skippedFlagged: number; skippedNotPending: number };
@@ -114,6 +115,10 @@ export default function ApprovalsTable({ rows }: { rows: PendingRow[] }) {
         <label className="flex min-h-11 items-center gap-2 text-sm text-zinc-700">
           <input type="checkbox" className="size-5 accent-brand-700" checked={includeFlagged} onChange={(e) => setIncludeFlagged(e.target.checked)} />
           Include questions flagged by the AI review
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-zinc-700">
+          <input type="checkbox" className="size-5 accent-brand-700" checked={asPretest} onChange={(e) => setAsPretest(e.target.checked)} />
+          Approve as pretest (unscored)
         </label>
         <button onClick={approveSelected} disabled={busy || selectedIds.length === 0} className="btn-primary">
           Approve selected ({selectedIds.length})
