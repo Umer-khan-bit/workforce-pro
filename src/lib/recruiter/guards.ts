@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { PrismaClient } from "@prisma/client";
 import { auth } from "@/auth";
 import { HiringError } from "./shortlist";
 import { ContactError } from "./contactRequests";
@@ -26,17 +25,4 @@ export function hiringErrorResponse(err: unknown): NextResponse {
   throw err;
 }
 
-/**
- * The offer a recruiter is searching with, which is what the minimum-salary rule is checked against: the top
- * salary of a chosen job opening, or an amount they typed, or (when neither is given) the highest top salary
- * among the company's open job openings. Null means there is no offer yet, so no candidates can be shown.
- */
-export async function resolveOffer(db: Pick<PrismaClient, "jobOpening">, companyId: string, args: { openingId?: string | null; offer?: number | null }): Promise<{ offerMax: number | null; openingId: string | null }> {
-  if (args.openingId) {
-    const opening = await db.jobOpening.findFirst({ where: { id: args.openingId, companyId }, select: { id: true, salaryRangeMax: true } });
-    if (opening) return { offerMax: opening.salaryRangeMax, openingId: opening.id };
-  }
-  if (typeof args.offer === "number" && Number.isFinite(args.offer) && args.offer > 0) return { offerMax: Math.round(args.offer), openingId: null };
-  const best = await db.jobOpening.aggregate({ where: { companyId, status: "OPEN" }, _max: { salaryRangeMax: true } });
-  return { offerMax: best._max.salaryRangeMax ?? null, openingId: null };
-}
+export { resolveOffer, type ResolvedOffer } from "./offer";

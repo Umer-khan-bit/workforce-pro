@@ -192,7 +192,8 @@ describe.skipIf(!dbUp)("changing plan (real database)", () => {
       const note = await prisma.notification.findFirstOrThrow({ where: { userId: soon.admin.id, type: "SUBSCRIPTION_EXPIRING" } });
       expect(note.title).toBe("Your plan is expiring");
       expect(await warnIfExpiring(prisma, soon.company.id)).toBe(false); // once per subscription
-      expect(await prisma.notification.count({ where: { userId: soon.admin.id, type: "SUBSCRIPTION_EXPIRING" } })).toBe(1);
+      expect(await prisma.notification.count({ where: { userId: soon.admin.id, type: "SUBSCRIPTION_EXPIRING", channel: "IN_APP" } })).toBe(1);
+      expect(await prisma.notification.count({ where: { userId: soon.admin.id, type: "SUBSCRIPTION_EXPIRING", channel: "EMAIL" } })).toBe(1); // and the same warning by email
       expect(await prisma.notification.count({ where: { userId: soon.recruiter.id, type: "SUBSCRIPTION_EXPIRING" } })).toBe(0); // admins only
     });
 

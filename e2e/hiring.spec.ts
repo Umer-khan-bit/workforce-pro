@@ -204,7 +204,7 @@ test("without an offer nobody is shown; typing an offer reveals the candidates t
   await candidate("fit", { minimum: 40_000, city: "Sialkot", display: `Fits Forty ${kit.run}` });
   await signIn(page, w.recruiter.email, "/recruiter");
   await page.goto(`/recruiter/candidates?role=${kit.role.id}&city=Sialkot`);
-  await expect(page.getByTestId("no-offer")).toContainText("Enter the highest salary you can offer");
+  await expect(page.getByTestId("no-offer")).toContainText("enter the highest salary you can offer");
   await expect(page.getByTestId("candidate-row")).toHaveCount(0);
   await page.getByLabel("Highest salary you can offer").fill("45000");
   await page.getByRole("button", { name: "Search", exact: true }).click();

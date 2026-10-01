@@ -13,6 +13,7 @@ type Values = {
   experienceYears: string;
   jobRoleId: string;
   minimumSalary: string;
+  gender: string;
 };
 
 export default function ProfileForm({
@@ -55,6 +56,7 @@ export default function ProfileForm({
         experienceYears: v.experienceYears,
         jobRoleId: v.jobRoleId,
         minimumSalary: v.minimumSalary,
+        gender: v.gender,
       }),
     });
     const data = await res.json().catch(() => null);
@@ -72,7 +74,7 @@ export default function ProfileForm({
 
   return (
     <form onSubmit={handleSubmit} className="card mt-3 flex max-w-2xl flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="pf-name" className="label">Full name</label>
           <input id="pf-name" className="input" required minLength={2} value={v.name} onChange={(e) => set("name", e.target.value)} />
@@ -119,6 +121,16 @@ export default function ProfileForm({
           <label htmlFor="pf-salary" className="label">Minimum expected salary per month ({currencyCode})</label>
           <input id="pf-salary" type="number" min={0} className="input max-w-xs" required value={v.minimumSalary} onChange={(e) => set("minimumSalary", e.target.value)} />
           <p className="mt-1 text-xs text-zinc-500">Recruiters can only contact you with an offer at or above this amount.</p>
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="pf-gender" className="label">Gender (optional)</label>
+          <select id="pf-gender" className="input max-w-xs" value={v.gender} onChange={(e) => set("gender", e.target.value)}>
+            <option value="">Prefer not to say</option>
+            <option value="FEMALE">Female</option>
+            <option value="MALE">Male</option>
+            <option value="OTHER">Other</option>
+          </select>
+          <p className="mt-1 text-xs text-zinc-500">Optional. Used only to check that the tests are fair to everyone. It is never shown to recruiters or companies.</p>
         </div>
       </div>
 

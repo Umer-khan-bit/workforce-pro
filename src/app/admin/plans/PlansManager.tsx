@@ -45,7 +45,7 @@ export default function PlansManager({
     <div className="mt-6 flex flex-col gap-10">
       <section aria-labelledby="plans-h">
         <h2 id="plans-h" className="text-lg font-semibold text-zinc-900">Plans</h2>
-        <div className="mt-3 grid gap-5 xl:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-5 xl:grid-cols-2">
           {plans.map((p) => (
             <PlanForm key={p.id} features={features} currencyCode={currencyCode} plan={p} />
           ))}
@@ -161,7 +161,7 @@ function PlanForm({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {isNew && (
           <div>
             <label htmlFor={`code-${dom}`} className="label">Code</label>

@@ -54,6 +54,7 @@ export async function createCompany(
     const shortlists = await prisma.shortlist.findMany({ where: { recruiter: { companyId: company.id } }, select: { id: true } });
     await prisma.shortlistStatusHistory.deleteMany({ where: { shortlistId: { in: shortlists.map((s) => s.id) } } });
     await prisma.shortlist.deleteMany({ where: { id: { in: shortlists.map((s) => s.id) } } });
+    await prisma.atsExport.deleteMany({ where: { companyId: company.id } });
     await prisma.contactRequest.deleteMany({ where: { jobOpening: { companyId: company.id } } });
     await prisma.jobOpening.deleteMany({ where: { companyId: company.id } });
     await prisma.payment.deleteMany({ where: { companyId: company.id } });

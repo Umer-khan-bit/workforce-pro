@@ -43,7 +43,7 @@ export default function PolicyForm({
 
   return (
     <form onSubmit={handleSubmit} className="card mt-4 flex max-w-3xl flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="sm:col-span-2">
           <label htmlFor="p-title" className="label">Title</label>
           <input id="p-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} />

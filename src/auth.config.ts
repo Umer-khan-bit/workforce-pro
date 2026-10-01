@@ -3,6 +3,7 @@ import type { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getAllowedRoles } from "@/lib/authz";
 import { PASSWORD_CHANGE_REQUIRED_BODY, isApiPath, passwordChangeBlocksApi } from "@/lib/passwordGate";
+import { crossSiteBlocks } from "@/lib/originGuard";
 
 /**
  * Edge-safe config shared between middleware and the full auth.ts.
@@ -38,6 +39,11 @@ export const authConfig = {
       // Every API route: a user who must change their password gets a 403 (except the change-password and
       // sign-out routes). Each route still does its own role and ownership checks after this.
       if (isApiPath(pathname)) {
+        // A browser page of another site cannot make this one change data.
+        const appHost = process.env.APP_BASE_URL ? (() => { try { return new URL(process.env.APP_BASE_URL!).host; } catch { return null; } })() : null;
+        if (crossSiteBlocks({ method: request.method ?? "GET", pathname, origin: request.headers?.get("origin") ?? null, host: request.nextUrl.host, allowedHosts: appHost ? [appHost] : [] })) {
+          return NextResponse.json({ error: "This request came from another website and was blocked.", code: "CROSS_SITE_BLOCKED" }, { status: 403 });
+        }
         if (passwordChangeBlocksApi(pathname, auth?.user?.mustChangePassword)) {
           return NextResponse.json(PASSWORD_CHANGE_REQUIRED_BODY, { status: 403 });
         }

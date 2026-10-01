@@ -9,6 +9,7 @@ export const profileUpdateSchema = candidateSignupSchema.pick({
   experienceYears: true,
   jobRoleId: true,
   minimumSalary: true,
+  gender: true,
 });
 
 export type ProfileSnapshot = {
@@ -19,6 +20,7 @@ export type ProfileSnapshot = {
   experienceYears: number | null;
   jobRoleId: string | null;
   minimumSalary: number | null;
+  gender: string | null;
 };
 
 const LABELS: Record<keyof ProfileSnapshot, string> = {
@@ -29,6 +31,7 @@ const LABELS: Record<keyof ProfileSnapshot, string> = {
   experienceYears: "experience",
   jobRoleId: "job role",
   minimumSalary: "minimum salary",
+  gender: "gender",
 };
 
 /**

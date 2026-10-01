@@ -1,6 +1,71 @@
-# Workforce Pro - status (Day 1 to Day 5, the fixes and the demo data)
+# Workforce Pro - status (Day 1 to Day 6, the fixes and the demo data)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 6: ATS and API, pilot mode, self-learning, scheduled jobs, security pass, mobile (done)
+
+Restart `npm run dev` after pulling: there is a new migration (`20261004090000_ats_learning_jobs`) and a new `.env` line, `JOBS_AUTORUN="true"`, which starts the built-in scheduler (already added to this laptop's `.env`). Run `npx prisma db seed` once more to give the demo candidates a gender and to make two sample fairness reports (already done here).
+
+### What was built
+- **Search default offer.** With no offer entered, the search uses the top salary of the recruiter's most recent open job opening (else the company's most recent one) and says which: "Using your most recent open job opening: ...". The Job opening dropdown shows "Most recent open job opening (default)"; typing an amount or choosing another opening replaces it. With no open opening at all the old "enter an amount" message stays. The same rule applies on the candidate report, the dashboard and the reports.
+- **API keys** (company admin > API keys). Keys look like `wfp_...`, are shown once, only a hash is stored (plus a short prefix for the list), can be revoked, have a request limit per minute and a cap per company (Settings). Needs the plan feature "ATS and API access".
+- **REST API** (`/api/v1`, `Authorization: Bearer <key>`): `GET /shortlist`, `POST /shortlist/{id}/status`, `GET /job-openings`. Candidate data in the API never includes the minimum salary, phone or email.
+- **Webhooks with a delivery log** (company admin > ATS & webhooks). Events: candidate shortlisted, stage changed, hired, contact request answered, pushed to the ATS, and a test event. Each delivery is signed (`X-Workforce-Signature: sha256=...` over `timestamp.body`, secret shown once), logged with status, reason and attempt, can be resent, and is retried by the scheduler (attempts, timeout and minutes between tries are Settings). When the last attempt fails the company admins are notified. Addresses must be https and not point inside a private network; redirects are never followed. In demo mode, and only then, the app's own mock receiver is allowed.
+- **Built-in mock ATS and push.** Recruiters push shortlisted candidates from **ATS export**; they appear in a table for the company admin. Pushing again updates the entry, it does not duplicate. The code uses an `AtsConnector` interface so a real ATS can be plugged in later.
+- **CSV and Excel export** of the shortlist (UTF-8, Urdu names work; text that a spreadsheet could run as a formula is neutralised; the minimum salary is never exported).
+- **Pilot mode is enforced.** While it is on, recruiters and company admins of other companies cannot log in (an open session ends at the next click, with a clear message), no new company can sign up, and other companies' API keys and webhooks stop working. Candidates and platform admins are not affected. Switching it off puts everything back.
+- **Self-learning.** *Item analysis* (admin) lists questions with answers, share correct, discrimination, difficulty and bias gaps, in three views: Needs review, Pretest ready, All. *Recalibration* re-estimates difficulty and discrimination (2PL fit with a gentle prior) for every question with at least 200 answers (a Setting), saves the new values on the question so the adaptive tests use them, and flags questions that are too easy, too hard, do not separate strong from weak candidates, or show possible bias (DIF by gender, region and test language, compared only among equally able candidates). Flagged questions wait for the admin: **Keep it** (not flagged again until a full set of new answers), **Retire** (never deleted), and a calibrated pretest question can be made operational. A **Recalibrate now** button and a run history are on the Recalibration page.
+- **Monthly fairness report** (admin > Fairness report): for IQ, EQ, Language and Job skill, by gender, region and test language: people, mean percentile, share in the top half, and an impact ratio (flagged under 0.8, the four-fifths rule). Groups under the minimum size (Settings) show "Too few to report", so small groups cannot be identified. Made automatically for the month before, on a day set in Settings, or on demand; the admins get a notification.
+- **Scheduled jobs** (admin > Scheduled jobs): recalibration, fairness report, test reminders, plan-expiry warnings and webhook retries, with a Run now button each and a run log. **Test reminders** go in the app and by email to verified candidates who have untaken tests, after a number of days since signing up and again after a repeat period. **Plan-expiry warnings** now go to every company admin, in the app and by email, for every company (before, only when the admin opened the dashboard). The scheduler runs inside the server when `JOBS_AUTORUN=true`, and an outside scheduler can call `POST /api/jobs/run` with `Authorization: Bearer <CRON_SECRET>` (the endpoint does not exist unless a secret of at least 16 characters is set).
+- **Audit log screen** (admin > Audit log) with filters by action and by person.
+- **Gender** (optional) on the candidate profile and signup, used only for the fairness analysis; shown nowhere to recruiters.
+- **Settings:** new groups "ATS and API" and "Scheduled jobs", and `Self-learning > minimum group size`. Four new message templates (test reminder in app and email, plan expiry email, fairness report ready, webhook failing).
+
+### Security pass (against CLAUDE.md)
+Automatic checks now fail if a rule is broken (`src/lib/security.test.ts`): every API route has a role, API-key or secret check unless it is on a short, explained public list; every route that reads a body validates it with zod; every admin action that changes data is audited; nothing logs passwords, tokens, secrets, CNIC, salaries or answers; every rate-limit call is awaited; no secret-looking text in the code and `.env` is not committed; every environment variable the code reads is documented in `.env.example`; emailed links never use the Host header.
+
+Found and fixed:
+1. **No security headers.** Added `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, a `Content-Security-Policy` for framing, forms and base address, HSTS on a live site, and removed `X-Powered-By`.
+2. **No cross-site check on the API.** Session cookies were SameSite=Lax only; the proxy now also refuses data-changing API calls whose `Origin` is another website (`CROSS_SITE_BLOCKED`).
+3. **Emails written to the console in production** when SMTP is missing included the whole message (reset links). In production only the subject is logged now.
+4. Test clean-up gap: ATS export rows are removed with a candidate in the test helpers.
+
+Reviewed and fine: bcrypt hashing, zod validation, role checks, audit entries, rate limits, single-use hashed email tokens, `APP_BASE_URL` links, the email verification gate, and anonymisation (deleted candidates are skipped by search, shortlists, exports and the fairness report; their ATS export rows are deleted).
+
+**Accepted risk:** `npm audit` reports high-severity advisories in `nodemailer` (no fixed version exists yet) and in Prisma's CLI config helper (a development tool). Our use of nodemailer is plain-text mail to one validated address; none of the vulnerable features (raw messages, file or URL attachments, address lists) are used. Review again when nodemailer publishes a fix.
+
+### Mobile check of every screen
+A new end-to-end spec (`e2e/mobile.spec.ts`) opens every screen of every role, plus the public pages and the detail screens, at 390 px wide and fails on a missing heading or any sideways scroll. All pass. It also prompted one fix: every grid that holds a wide table now starts as one column, so a table scrolls inside its own box instead of widening the page (class names only, in 62 files).
+
+### Tests
+- **Vitest: 731 passing** (was 646). **Playwright: 92 passing** (was 80). `tsc` clean, `eslint` 0 errors, `next build` succeeds.
+- New: item-analysis maths (fit, discrimination, DIF with equal and unequal ability, flag rules), fairness maths (suppression, four-fifths, months), recalibration against a real database (flags a too-easy and a biased question, leaves a healthy one, never deletes, respects "Keep it"), job schedule rules and runner (skipped when running, stale runs), reminders (verified only, once, not for deleted accounts), plan-expiry warnings in app and email, API keys (hash only, revoke, plan feature, other company), webhooks (signature, redirects refused, retries, failure notice, other company), webhook address rules, mock ATS (no duplicates), CSV and Excel export (formula neutralising, real zip), pilot rules, default offer, the cross-site guard, the security scans, and end-to-end tests for all of it plus a phone check of every screen.
+- No test calls the real Claude API or sends a real email.
+
+### Decisions I made (change any of them)
+1. **Default offer** = the top salary of the recruiter's own most recent *open* opening, else the company's most recent open one. A typed amount or a chosen opening always wins.
+2. **Pilot mode** blocks recruiters and company admins of other companies; candidates and platform admins keep working. Signup of new companies is refused while it is on.
+3. **API keys** are per company and created by the company admin; the plan feature "ATS and API access" is checked on every call, so a downgrade stops them at once. Starting limits (Settings): 10 active keys per company, 120 requests a minute per key.
+4. **Webhook signature** is HMAC-SHA256 over `timestamp.body` (in the style of Stripe), so receivers can reject old replays.
+5. **Webhook addresses**: https only and no private networks, so a company cannot make our server call internal services. The only exception is demo mode's own receiver.
+6. **Retries:** 5 attempts, 10 minutes between tries, 5 second timeout (all Settings). The admins are told once, when the last attempt fails.
+7. **Export columns** are the same as the push payload: reference, name, city, experience, job opening, stage, quartile and percentile per test, CEFR. No minimum salary, phone or email.
+8. **Gender** is optional (female, male, other, prefer not to say) and only the first two are compared in the bias check, because the other groups are too small to compare on their own.
+9. **DIF method:** the difference in the share correct between a group and everyone else, among candidates of similar ability (five ability bands). A gap over 20 points (Setting) flags the question. With two groups the gaps mirror each other, so the sign only says which of the two groups was picked.
+10. **A flagged question is never changed automatically** except its difficulty numbers; the admin decides. "Keep it" silences a question until it has as many new answers as the recalibration threshold (200).
+11. **Fairness report** uses results scored in that month for the four ranked tests, leaves out deleted accounts and provisional scores, and hides groups under 30 people (Setting).
+12. **Schedule (starting values):** recalibration weekly, reminders after 3 days and again after 7, plan warnings daily, fairness report on the 2nd of the month, webhook retries on every look. The scheduler looks every 5 minutes (`JOBS_TICK_SECONDS`) and is off in the Playwright server.
+13. **Reminders** name the next untaken test and go in the app and by email, one message per candidate per period.
+14. **Cross-site guard** ignores requests without an `Origin` header (API clients, curl, our own server code) because they are not browser form posts; those are protected by their own credentials.
+
+### Not done / worth knowing
+- **No Git remote is configured, so nothing was pushed.** Add one (`git remote add origin <url>`) and I will push.
+- Real ATS connectors (Greenhouse, Lever) are not built; only the interface and the mock.
+- Recalibration needs real answer volume to flag anything: with the demo data no question has 200 answers, so a run checks 0 questions, which is correct. To try it, lower "Answers needed before recalibrating" in Settings > Advanced > Self-learning.
+- A webhook delivery is sent in the background by the request that caused it; if the server stops at that moment, the retry job picks it up once the server is running again.
+- The in-process scheduler suits one server. With several servers, call `/api/jobs/run` from one outside scheduler (a run in progress blocks a second one).
+
+---
 
 ## Day 5: recruiter tools, billing, reports and notifications (done)
 
@@ -41,8 +106,8 @@ Run the seed once (`npx prisma db seed`) to get the demo hiring data (already do
 
 ### Not done / worth knowing
 - **No Git remote is configured, so nothing was pushed.** Add one (`git remote add origin <url>`) and I will push.
-- The monthly fairness report (module 12) is not built yet; it needs the Day 6 bias analysis.
-- ATS export, webhooks and API keys are Day 6; the `atsApiAccess` feature is already in the plans and in `entitlements.ts`.
+- (Done in Day 6) The monthly fairness report.
+- (Done in Day 6) ATS export, webhooks and API keys.
 - Plans do not renew by themselves; with a real payment provider a renewal job would be added.
 - Emails go to the server console until SMTP is set up.
 

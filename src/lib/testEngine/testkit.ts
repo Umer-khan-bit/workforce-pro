@@ -152,6 +152,7 @@ export async function createKit(prisma: PrismaClient, tag = "kit") {
     await prisma.lessonProgress.deleteMany({ where: { enrollment: { candidateProfileId: { in: profileIds } } } });
     await prisma.payment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { enrollment: { candidateProfileId: { in: profileIds } } }] } });
     await prisma.enrollment.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+    await prisma.atsExport.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
     await prisma.contactRequest.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
     const listed = await prisma.shortlist.findMany({ where: { candidateProfileId: { in: profileIds } }, select: { id: true } });
     await prisma.shortlistStatusHistory.deleteMany({ where: { shortlistId: { in: listed.map((x) => x.id) } } });

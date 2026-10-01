@@ -80,7 +80,7 @@ export default async function QuestionBankPage({
       <section aria-labelledby="questions-heading" className="mt-8">
         <h2 id="questions-heading" className="text-lg font-semibold text-zinc-900">All questions</h2>
 
-        <form method="get" className="card mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <form method="get" className="card mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-4">
             <label htmlFor="f-q" className="label">Search</label>
             <input id="f-q" name="q" defaultValue={filters.q ?? ""} placeholder="Question text or topic" className="input" />

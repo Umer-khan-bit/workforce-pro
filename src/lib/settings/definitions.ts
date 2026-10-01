@@ -76,6 +76,8 @@ export const selfLearningSchema = z
     tooHardCorrectRate: z.coerce.number().min(0).max(1),
     minDiscrimination: z.coerce.number().min(0).max(4),
     maxDifGap: z.coerce.number().min(0).max(1),
+    /** A group needs at least this many answers to an item before its result is compared with other groups. */
+    minGroupResponses: z.coerce.number().int().min(5).max(100000),
   })
   .refine((s) => s.tooHardCorrectRate < s.tooEasyCorrectRate, {
     message: "The 'too hard' rate must be lower than the 'too easy' rate",
@@ -293,6 +295,28 @@ export const billingSchema = z.object({
   expiryWarningDays: z.coerce.number().int().min(0).max(60),
 });
 
+export const scheduledJobsSchema = z.object({
+  /** Master switch for the jobs that run by themselves (they can always be run by hand). */
+  enabled: z.enum(["yes", "no"]),
+  recalibrationEveryDays: z.coerce.number().int().min(1).max(365),
+  /** A candidate is reminded about tests they have not taken after this many days since signing up. */
+  reminderAfterDays: z.coerce.number().int().min(1).max(365),
+  /** ... and again after this many days if they still have not taken them. */
+  reminderRepeatDays: z.coerce.number().int().min(1).max(365),
+  /** Day of the month (1-28) when the report for the month before is made. */
+  fairnessReportDay: z.coerce.number().int().min(1).max(28),
+});
+
+export const integrationsSchema = z.object({
+  webhookTimeoutSeconds: z.coerce.number().int().min(1).max(30),
+  /** Delivery attempts for one webhook event before it is given up on. */
+  webhookMaxAttempts: z.coerce.number().int().min(1).max(10),
+  webhookRetryMinutes: z.coerce.number().int().min(1).max(1440),
+  /** Requests per minute allowed for each API key. */
+  apiRequestsPerMinute: z.coerce.number().int().min(10).max(10000),
+  maxApiKeys: z.coerce.number().int().min(1).max(100),
+});
+
 export const SETTING_SCHEMAS = {
   branding: brandingSchema,
   homepage: homepageSchema,
@@ -312,6 +336,8 @@ export const SETTING_SCHEMAS = {
   aiResults: aiResultsSchema,
   recruiterTools: recruiterToolsSchema,
   billing: billingSchema,
+  scheduledJobs: scheduledJobsSchema,
+  integrations: integrationsSchema,
 } as const;
 
 export type SettingKey = keyof typeof SETTING_SCHEMAS;
@@ -347,6 +373,7 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
     tooHardCorrectRate: 0.1,
     minDiscrimination: 0.3,
     maxDifGap: 0.2,
+    minGroupResponses: 30,
   },
   poolTargets: { PERSONALITY: 50, EQ: 30, IQ: 40, LANGUAGE: 30, SKILL: 40 },
   aiGeneration: {
@@ -397,6 +424,8 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
   aiResults: { model: "claude-sonnet-5-5", effort: "low", maxOutputTokens: 2000, tipCount: 3, maxWords: 120 },
   recruiterTools: { pageSize: 20, searchPoolLimit: 5000, reportDefaultDays: 90 },
   billing: { periodDays: 30, prorate: "yes", expiryWarningDays: 7 },
+  scheduledJobs: { enabled: "yes", recalibrationEveryDays: 7, reminderAfterDays: 3, reminderRepeatDays: 7, fairnessReportDay: 2 },
+  integrations: { webhookTimeoutSeconds: 5, webhookMaxAttempts: 5, webhookRetryMinutes: 10, apiRequestsPerMinute: 120, maxApiKeys: 10 },
   aiPrompts: {
     systemPrompt:
       "You are an expert psychometrician and assessment item writer for a recruitment platform. You write clear, fair, culturally neutral test questions, each with exactly one defensible answer. Questions must be self-contained and must never contain personal data about real people. Return only the requested JSON.",
@@ -596,6 +625,31 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    key: "integrations",
+    title: "ATS and API",
+    description: "Limits for company API keys and webhooks.",
+    fields: [
+      { name: "maxApiKeys", label: "API keys per company", type: "number", help: "The most active API keys one company can have at a time." },
+      { name: "apiRequestsPerMinute", label: "API requests per minute (per key)", type: "number", help: "A key that goes over this is told to slow down for the rest of the minute." },
+      { name: "webhookTimeoutSeconds", label: "Webhook timeout (seconds)", type: "number", help: "How long to wait for a company's server to answer a webhook before counting it as failed." },
+      { name: "webhookMaxAttempts", label: "Webhook delivery attempts", type: "number", help: "How many times one webhook event is tried (the first try plus retries) before it is given up on." },
+      { name: "webhookRetryMinutes", label: "Minutes between retries", type: "number", help: "How long to wait before trying a failed webhook again." },
+    ],
+  },
+  {
+    key: "scheduledJobs",
+    title: "Scheduled jobs",
+    advanced: true,
+    description: "The jobs that run by themselves: recalibration, reminders, plan warnings, webhook retries and the fairness report.",
+    fields: [
+      { name: "enabled", label: "Run jobs automatically", type: "select", options: [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }], help: "If No, nothing runs by itself; every job can still be run by hand under Scheduled jobs." },
+      { name: "recalibrationEveryDays", label: "Recalibrate every (days)", type: "number", help: "How often question difficulty is re-estimated from candidates' answers." },
+      { name: "reminderAfterDays", label: "First test reminder after (days)", type: "number", help: "Candidates who have not taken all their tests get a reminder this many days after signing up." },
+      { name: "reminderRepeatDays", label: "Repeat the reminder after (days)", type: "number", help: "If they still have not taken the tests, remind them again after this many days." },
+      { name: "fairnessReportDay", label: "Fairness report day of the month", type: "number", help: "On this day (1 to 28) the fairness report for the previous month is made." },
+    ],
+  },
+  {
     key: "poolTargets",
     title: "Question pool targets",
     description: "Approved questions wanted per test. Drives the red and amber gaps in the question bank.",
@@ -641,6 +695,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { name: "tooHardCorrectRate", label: "Too hard below this correct rate", type: "number", step: 0.01, help: "A question answered correctly by fewer than this share (0.1 = 10%) is flagged as too hard." },
       { name: "minDiscrimination", label: "Low discrimination below", type: "number", step: 0.05, help: "Questions that do not separate strong from weak candidates at least this well are flagged." },
       { name: "maxDifGap", label: "Possible bias above this gap", type: "number", step: 0.01, help: "If two groups of candidates do differently on a question by more than this, it is flagged for bias." },
+      { name: "minGroupResponses", label: "Answers a group needs before it is compared", type: "number", help: "Bias is only checked for groups with at least this many answers to the question; smaller groups are left out (and are never shown in the fairness report)." },
     ],
   },
   {

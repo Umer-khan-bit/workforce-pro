@@ -187,7 +187,7 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
             </h1>
 
             {view.question.type === "LIKERT" ? (
-              <div role="radiogroup" aria-labelledby="question-h" className="mt-6 grid gap-3 sm:grid-cols-5" dir="ltr">
+              <div role="radiogroup" aria-labelledby="question-h" className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-5" dir="ltr">
                 {LIKERT_LABELS.map((label, i) => {
                   const value = i + 1;
                   const selected = choice?.value === value;

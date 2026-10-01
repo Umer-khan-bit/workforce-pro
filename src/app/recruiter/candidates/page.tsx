@@ -31,7 +31,7 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
     prisma.city.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
   const cityNames = [...new Set(cities.map((c) => c.name))];
-  const { offerMax, openingId } = await resolveOffer(prisma, companyId, { openingId: query.opening, offer: query.offer });
+  const { offerMax, openingId, source, opening: offerOpening } = await resolveOffer(prisma, companyId, { recruiterId: session!.user.id, openingId: query.opening, offer: query.offer });
   const money = (n: number) => formatMoney(n, currency);
   const openingOptions = openings.map((o) => ({ id: o.id, label: `${o.title ?? o.jobRole.name}${o.city ? `, ${o.city}` : ""}` }));
 
@@ -60,11 +60,11 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
           <AiSearchBox offer={query.offer ?? offerMax} opening={openingId} enabled={ent.canUseAiSearch} blockedMessage={planBlockMessage(ent, "AI search")} />
           {aiNote && <p role="status" className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900" data-testid="ai-understood"><strong>AI understood:</strong> {aiNote}</p>}
 
-          <form method="get" className="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Filters">
+          <form method="get" className="card grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Filters">
             <div>
               <label htmlFor="s-opening" className="label">Job opening</label>
-              <select id="s-opening" name="opening" className="input" defaultValue={openingId ?? ""}>
-                <option value="">None (use the amount)</option>
+              <select id="s-opening" name="opening" className="input" defaultValue={source === "opening" ? (openingId ?? "") : ""}>
+                <option value="">{offerOpening && source === "default" ? "Most recent open job opening (default)" : "None (use the amount)"}</option>
                 {openings.map((o) => <option key={o.id} value={o.id}>{o.title ?? o.jobRole.name} - up to {money(o.salaryRangeMax)}</option>)}
               </select>
             </div>
@@ -123,9 +123,15 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
             </div>
           </form>
 
+          {source === "default" && offerOpening && (
+            <p role="status" className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900" data-testid="default-offer">
+              Using your most recent open job opening: <strong>{offerOpening.label}</strong>, up to {money(offerOpening.salaryRangeMax)}. Pick another job opening or type an amount below to change it.
+            </p>
+          )}
+
           {offerMax === null && (
             <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="no-offer">
-              Enter the highest salary you can offer, or create a job opening, to see candidates. Candidates are only shown when their salary expectations fit your offer.{" "}
+              You have no open job opening. Create one, or enter the highest salary you can offer, to see candidates. Candidates are only shown when their salary expectations fit your offer.{" "}
               <Link href="/recruiter/job-openings" className="underline">Job openings</Link>
             </p>
           )}

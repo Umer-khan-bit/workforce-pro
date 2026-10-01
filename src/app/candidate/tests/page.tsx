@@ -71,7 +71,7 @@ export default async function MyTestsPage() {
           Confirm your email address to start tests. Use the link we emailed you, or ask for a new one from the banner above.
         </p>
       )}
-      <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+      <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {overview.cards.map((card) => (
           <Card key={card.testType} card={card} verified={overview.verified} />
         ))}

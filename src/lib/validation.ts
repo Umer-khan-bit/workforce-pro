@@ -10,6 +10,8 @@ export const candidateSignupSchema = z.object({
   experienceYears: z.coerce.number().int().min(0).max(60),
   jobRoleId: z.string().min(1, "Job role is required"),
   minimumSalary: z.coerce.number().int().min(0),
+  /** Optional; empty or "NONE" means prefer not to say. */
+  gender: z.preprocess((v) => (v === "" || v === "NONE" || v === null ? undefined : v), z.enum(["FEMALE", "MALE", "OTHER"]).optional()),
   consentGiven: z
     .boolean()
     .refine((v) => v === true, { message: "You must accept the privacy policy" }),

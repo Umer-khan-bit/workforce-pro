@@ -51,6 +51,7 @@ export async function deleteTestData(emails: string[], companyName?: string) {
   await prisma.lessonProgress.deleteMany({ where: { enrollment: { candidateProfileId: { in: profileIds } } } });
   await prisma.payment.deleteMany({ where: { OR: [{ userId: { in: ids } }, { enrollment: { candidateProfileId: { in: profileIds } } }] } });
   await prisma.enrollment.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+  await prisma.atsExport.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
   await prisma.contactRequest.deleteMany({ where: { OR: [{ candidateProfileId: { in: profileIds } }, { recruiterId: { in: ids } }] } });
   await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
   await prisma.auditLog.deleteMany({

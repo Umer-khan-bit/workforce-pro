@@ -45,7 +45,7 @@ export default function CoverageTables({
         pool size shown in brackets.
       </p>
 
-      <div className="mt-4 grid gap-6 xl:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="card overflow-x-auto p-0">
           <table className="w-full min-w-[30rem] text-left text-sm">
             <caption className="px-4 pt-4 text-left text-sm font-medium text-zinc-700">

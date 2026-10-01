@@ -44,7 +44,7 @@ export default async function CompanyAdminDashboard() {
 
       <PlanCallout access={access} href="/company-admin/subscription" />
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Company" value={company?.name ?? "-"} hint={company?.city ?? undefined} />
         <Stat label="Plan" value={planName} hint={hint} />
         <Stat label="Active recruiters" value={recruiterCount} />

@@ -39,8 +39,8 @@ export async function PATCH(request: Request) {
   }
 
   const changed = changedProfileFields(
-    { name: user.name, phone: profile.phone, city: profile.city, regionId: profile.regionId, experienceYears: profile.experienceYears, jobRoleId: profile.jobRoleId, minimumSalary: profile.minimumSalary },
-    { name: input.name, phone: input.phone, city: city.name, regionId: region.id, experienceYears: input.experienceYears, jobRoleId: jobRole.id, minimumSalary: input.minimumSalary }
+    { name: user.name, phone: profile.phone, city: profile.city, regionId: profile.regionId, experienceYears: profile.experienceYears, jobRoleId: profile.jobRoleId, minimumSalary: profile.minimumSalary, gender: profile.gender },
+    { name: input.name, phone: input.phone, city: city.name, regionId: region.id, experienceYears: input.experienceYears, jobRoleId: jobRole.id, minimumSalary: input.minimumSalary, gender: input.gender ?? null }
   );
 
   if (changed.length > 0) {
@@ -55,6 +55,7 @@ export async function PATCH(request: Request) {
           experienceYears: input.experienceYears,
           jobRoleId: jobRole.id,
           minimumSalary: input.minimumSalary,
+          gender: input.gender ?? null,
         },
       }),
       prisma.auditLog.create({

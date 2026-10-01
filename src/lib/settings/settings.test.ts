@@ -99,9 +99,9 @@ describe("settings screen", () => {
 
   it("puts the technical settings under Advanced and everything else on the main tabs", () => {
     const advanced = SETTING_GROUPS.filter((g) => g.advanced).map((g) => g.key).sort();
-    expect(advanced).toEqual(["aiGeneration", "aiPrompts", "aiResults", "itemDefaults", "selfLearning", "testEngine"]);
+    expect(advanced).toEqual(["aiGeneration", "aiPrompts", "aiResults", "itemDefaults", "scheduledJobs", "selfLearning", "testEngine"]);
     const general = SETTING_GROUPS.filter((g) => !g.advanced).map((g) => g.key);
-    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "testing", "currency", "quartiles", "topPerformer", "poolTargets", "salaryGuide", "training", "recruiterTools", "billing"]));
+    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "testing", "currency", "quartiles", "topPerformer", "poolTargets", "salaryGuide", "training", "recruiterTools", "billing", "integrations"]));
   });
 
   it("shows the allowed placeholders under each prompt", () => {

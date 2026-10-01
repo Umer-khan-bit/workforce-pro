@@ -26,7 +26,7 @@ export default async function CandidateDashboard() {
       <h1 className="text-2xl font-semibold text-zinc-900">Welcome, {session?.user.name}</h1>
       <p className="mt-1 text-zinc-600">Your profile, progress and next steps.</p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Job role" value={profile?.jobRole?.name ?? "-"} />
         <Stat
           label="Location"
@@ -56,7 +56,7 @@ export default async function CandidateDashboard() {
         {results.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-700">No results yet. <Link href="/candidate/tests" className="text-brand-700 underline">Take your first test</Link>.</p>
         ) : (
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {results.map((r) => (
               <li key={r.scoreId} className="rounded-lg bg-zinc-50 px-3 py-2 text-sm">
                 <p className="text-zinc-500">{TEST_TITLES[r.testType]}</p>

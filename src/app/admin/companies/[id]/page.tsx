@@ -35,7 +35,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
       <h1 className="mt-2 text-2xl font-semibold text-zinc-900" data-testid="company-name">{company.name}</h1>
       <p className="mt-1 text-zinc-600">{[company.industry, company.city].filter(Boolean).join(" · ") || "No industry or city given"} · joined {fmt(company.createdAt)}</p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
         <Stat label="Plan" value={access.plan?.name ?? (access.state === "ended" ? "Ended" : "None")} hint={access.endsAt ? `until ${fmt(access.endsAt)}` : undefined} />
         <Stat label="Open job openings" value={openings} />
         <Stat label="In the pipeline" value={pipeline} />

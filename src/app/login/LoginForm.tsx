@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { PILOT_LOGIN_MESSAGE } from "@/lib/pilot-messages";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function LoginForm() {
     setSubmitting(false);
 
     if (result?.error) {
-      setError("Incorrect email or password.");
+      setError(result.code === "pilot_mode" ? PILOT_LOGIN_MESSAGE : "Incorrect email or password.");
       return;
     }
 

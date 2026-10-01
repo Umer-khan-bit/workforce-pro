@@ -48,7 +48,7 @@ export default async function TrainingPage() {
           {enrollments.length === 0 ? (
             <p className="card mt-2 text-sm text-zinc-700">You have not joined a course yet.</p>
           ) : (
-            <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+            <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {enrollments.map((e) => (
                 <li key={e.id} className="card" data-testid="my-course">
                   <Link href={`/candidate/training/${e.course.id}`} className="font-medium text-brand-700 underline">{e.course.title}</Link>
@@ -68,7 +68,7 @@ export default async function TrainingPage() {
           {catalog.length === 0 ? (
             <p className="card mt-2 text-sm text-zinc-700">There are no more courses for you right now.</p>
           ) : (
-            <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+            <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {catalog.map((c) => (
                 <li key={c.id} className="card flex flex-col" data-testid="catalog-course">
                   <div className="flex items-start justify-between gap-2">

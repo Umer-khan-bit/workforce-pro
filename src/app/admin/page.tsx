@@ -28,7 +28,7 @@ export default async function PlatformAdminDashboard() {
       <h1 className="text-2xl font-semibold text-zinc-900">Welcome, {session?.user.name}</h1>
       <p className="mt-1 text-zinc-600">Platform health and activity.</p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Stat label="Candidates" value={candidates} />
         <Stat label="Companies" value={companies} />
         <Stat label="Recruiters" value={recruiters} />

@@ -121,6 +121,17 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 - Auto-flag items that are too easy/hard, have low discrimination, or show bias (DIF by gender,
   region, language). Flagged items go to admin review; they are never deleted automatically.
 - AI never makes hiring decisions. It only scores, ranks and recommends.
+- Decided while building Day 6 (all numbers are Settings: `selfLearning`, `scheduledJobs`, `integrations`):
+  - Recalibration (`src/lib/learning/recalibrate.ts`) re-fits difficulty and discrimination (2PL with a gentle prior) from
+    COMPLETED sessions and saves them on the question. It flags too easy, too hard, low discrimination and DIF by gender,
+    region and test language (compared among equally able candidates, groups under the minimum size ignored). It only
+    ever sets a flag: retiring is the admin's decision (Item analysis: Keep it / Retire / Make operational).
+  - "Keep it" records `reviewedAtCount`; the item is not flagged again until it has that many new answers again.
+  - The monthly fairness report (`fairness.ts`) uses four-fifths impact ratios and hides groups under the minimum size.
+    Gender is optional on the candidate profile and used only here and in the DIF check; recruiters never see it.
+  - Scheduled jobs (`src/lib/jobs`): recalibration, fairness report, test reminders, plan-expiry warnings, webhook
+    retries. Each run is a `JobRun`. The in-process scheduler starts only when `JOBS_AUTORUN=true`; an outside scheduler
+    can call `POST /api/jobs/run` with `CRON_SECRET` (the endpoint is off without a secret). Tests never start it.
 
 ## Results, salary guide, training and notifications (decided)
 - My results shows the candidate's latest result for each test (quartile, "better than X% of N candidates",
@@ -203,6 +214,14 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 - Payments: full checkout flow with a simulated gateway (success/failure), no real money.
   Keep a `PaymentProvider` interface so PayFast/JazzCash can be plugged in later.
 - ATS: mock ATS inside the app that receives pushed candidates. Keep an `AtsConnector` interface.
+  - Decided: company API keys (`wfp_...`, hash only, shown once), REST API under `/api/v1` (Bearer key), signed webhooks
+    (HMAC-SHA256 over `timestamp.body`, https and no private networks, never follow redirects, delivery log, retries from
+    Settings), push from the shortlist and CSV/Excel export. All gated by the plan feature `atsApiAccess` through
+    `entitlements.ts`, and by pilot mode. Candidate data in the API and exports never includes minimum salary, phone or email.
+  - Pilot mode blocks recruiters and company admins of other companies at login and on every request, blocks company
+    signup, and stops other companies' API keys and webhooks. Candidates and platform admins are unaffected.
+  - The search offer defaults to the top salary of the recruiter's most recent open job opening (`resolveOffer` in
+    `src/lib/recruiter/offer.ts`); a typed amount or a chosen opening wins.
 - Salary data: seeded sample benchmarks by role, city and experience. Keep it replaceable.
 - Seed data: 4 job roles (Accountant, Sales, Customer Service, IT Support), English + Urdu,
   60+ sample candidates with completed tests, 3 companies, recruiters on both plans.
@@ -249,6 +268,12 @@ email/notification templates, courses and lessons, homepage and privacy policy t
   (`src/lib/passwordGate.ts`, matcher `/api/:path*`), so new routes are covered without calling anything.
 - Account deletion anonymises a candidate (personal data erased, test statistics kept, audit event kept).
   Candidate search, shortlists, cohorts and exports must skip profiles where `anonymisedAt` is set.
+- Day 6 security pass: security headers on every response (`next.config.ts`), a cross-site check on data-changing API
+  calls (`src/lib/originGuard.ts`, used by the proxy), no message bodies logged in production when SMTP is missing, and
+  `src/lib/security.test.ts`, which fails when a route has no role/API-key/secret check, reads a body without zod,
+  changes admin data without an audit entry, logs a secret, forgets to `await` the rate limiter, or uses an environment
+  variable missing from `.env.example`. A new route must pass these without being added to an exception list unless it
+  is public on purpose (and then say why in that list).
 
 ## How to work
 - One module at a time. Do not start the next module until the current one works.

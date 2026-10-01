@@ -168,6 +168,12 @@ enum BadgeType {
   TOP_PERFORMER_ALL_TESTS
 }
 
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
 enum CefrLevel {
   A1
   A2
@@ -281,6 +287,8 @@ model CandidateProfile {
   jobRoleId            String?
   jobRole              JobRole?  @relation(fields: [jobRoleId], references: [id])
   minimumSalary        Int?
+  /// Optional. Used only to check the tests for fairness (never shown to recruiters or companies). Empty = prefer not to say.
+  gender               Gender?
   consentGiven         Boolean   @default(false)
   consentAt            DateTime?
   privacyPolicyVersion String?
@@ -314,13 +322,14 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users            User[]
-  subscriptions    Subscription[]
-  jobOpenings      JobOpening[]
-  apiKeys          ApiKey[]
-  webhookEndpoints WebhookEndpoint[]
-  pilotConfig      PilotConfig?
-  payments         Payment[]
+  users             User[]
+  subscriptions     Subscription[]
+  jobOpenings       JobOpening[]
+  apiKeys           ApiKey[]
+  webhookEndpoints  WebhookEndpoint[]
+  pilotConfig       PilotConfig?
+  payments          Payment[]
+  mockAtsCandidates MockAtsCandidate[]
 }
 
 model Plan {
@@ -564,6 +573,8 @@ model ItemStatistic {
   flagReason       String?
   reviewedById     String?
   reviewedAt       DateTime?
+  /// How many answers the item had when an admin last reviewed it; it is only flagged again after enough new answers.
+  reviewedAtCount  Int?
   lastCalibratedAt DateTime?
   updatedAt        DateTime  @updatedAt
 }
@@ -573,8 +584,49 @@ model RecalibrationRun {
   startedAt    DateTime  @default(now())
   completedAt  DateTime?
   itemsUpdated Int       @default(0)
+  itemsChecked Int       @default(0)
+  itemsFlagged Int       @default(0)
   triggeredBy  String
   status       String    @default("RUNNING")
+  error        String?
+}
+
+/// One run of a scheduled job (recalibration, reminders, plan warnings, webhook retries, fairness report).
+model JobRun {
+  id          String    @id @default(cuid())
+  job         String
+  trigger     String
+  status      String    @default("RUNNING")
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  summary     Json?
+  error       String?
+
+  @@index([job, startedAt])
+}
+
+/// The monthly fairness report: how candidates of each group do on the tests. One per month.
+model FairnessReport {
+  id          String   @id @default(cuid())
+  /// "2026-09"
+  month       String   @unique
+  generatedAt DateTime @default(now())
+  generatedBy String?
+  data        Json
+}
+
+/// The built-in mock ATS: a candidate pushed from a shortlist lands here, like it would in a customer's real ATS.
+model MockAtsCandidate {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  /// Our reference for the shortlist entry the candidate was pushed from.
+  externalRef String
+  externalId  String   @unique
+  payload     Json
+  receivedAt  DateTime @default(now())
+
+  @@index([companyId])
 }
 
 model TestConfig {
@@ -908,17 +960,23 @@ model WebhookEndpoint {
 }
 
 model WebhookDelivery {
-  id          String                @id @default(cuid())
-  endpointId  String
-  endpoint    WebhookEndpoint       @relation(fields: [endpointId], references: [id])
-  event       String
-  payload     Json
-  status      WebhookDeliveryStatus @default(PENDING)
-  attempt     Int                   @default(1)
-  respondedAt DateTime?
-  createdAt   DateTime              @default(now())
+  id             String                @id @default(cuid())
+  endpointId     String
+  endpoint       WebhookEndpoint       @relation(fields: [endpointId], references: [id])
+  event          String
+  payload        Json
+  status         WebhookDeliveryStatus @default(PENDING)
+  attempt        Int                   @default(1)
+  respondedAt    DateTime?
+  /// The HTTP status the receiving server answered with, or the reason it failed.
+  responseStatus Int?
+  error          String?
+  /// When an automatic retry is due (null when no retry is planned).
+  nextAttemptAt  DateTime?
+  createdAt      DateTime              @default(now())
 
   @@index([endpointId])
+  @@index([status, nextAttemptAt])
 }
 
 model ApiKey {
@@ -927,6 +985,8 @@ model ApiKey {
   company     Company   @relation(fields: [companyId], references: [id])
   label       String?
   hashedKey   String    @unique
+  /// The first characters of the key, so a company can tell its keys apart. The key itself is never stored.
+  prefix      String?
   createdById String
   createdBy   User      @relation("ApiKeyCreatedBy", fields: [createdById], references: [id])
   lastUsedAt  DateTime?

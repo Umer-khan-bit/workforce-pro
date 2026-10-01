@@ -18,7 +18,7 @@ export default async function RecruiterReportsPage({ searchParams }: { searchPar
 
   const [hiring, { offerMax }, openOpenings, contactCounts] = await Promise.all([
     hiringReport(prisma, { recruiterId: session!.user.id }, days),
-    resolveOffer(prisma, companyId, {}),
+    resolveOffer(prisma, companyId, { recruiterId: session!.user.id }),
     prisma.jobOpening.count({ where: { companyId, createdById: session!.user.id, status: "OPEN" } }),
     prisma.contactRequest.groupBy({ by: ["status"], where: { recruiterId: session!.user.id, sentAt: { gte: daysAgo(days) } }, _count: { _all: true } }),
   ]);
@@ -32,7 +32,7 @@ export default async function RecruiterReportsPage({ searchParams }: { searchPar
       <p className="mt-1 text-zinc-600">Your hiring activity and the candidates that fit your offers.</p>
       <PeriodPicker base="/recruiter/reports" days={days} />
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Shortlisted" value={hiring.total} hint={`Last ${days} days`} />
         <Stat label="Hired" value={hiring.timeToHire.hires} hint="In this period" />
         <Stat label="Requests sent" value={sent} hint={sent ? `${accepted} accepted` : undefined} />

@@ -5,10 +5,14 @@ import { companySignupSchema } from "@/lib/validation";
 import { signupRateLimitResponse } from "@/lib/signupRateLimit";
 import { newCompanySubscription } from "@/lib/trial";
 import { inBackground, sendVerificationEmail } from "@/lib/accountEmails";
+import { getPilot, PILOT_SIGNUP_MESSAGE } from "@/lib/pilot";
 
 export async function POST(request: Request) {
   const limited = await signupRateLimitResponse(request, "company");
   if (limited) return limited;
+
+  // Pilot mode: no new companies while the platform is restricted to one.
+  if ((await getPilot(prisma)).enabled) return NextResponse.json({ error: PILOT_SIGNUP_MESSAGE, code: "PILOT_MODE" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   const parsed = companySignupSchema.safeParse(body);

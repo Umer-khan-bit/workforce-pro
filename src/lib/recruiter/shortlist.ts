@@ -4,6 +4,7 @@ import { notifyUser } from "@/lib/notifications";
 import { isTopPerformer } from "@/lib/results/topPerformer";
 import { recruiterVisibleWhere } from "./candidateAccess";
 import { getEntitlements, hasRoom, planBlockMessage } from "./entitlements";
+import { emitWebhook } from "@/lib/ats/webhooks";
 
 export class HiringError extends Error {
   constructor(
@@ -78,6 +79,7 @@ export async function addToShortlist(db: Db, args: { recruiterId: string; candid
       return created;
     });
     await db.auditLog.create({ data: { actorId: actor.id, action: "CANDIDATE_SHORTLISTED", targetType: "CandidateProfile", targetId: candidate.id, metadata: { jobOpeningId: opening.id } } });
+    await emitWebhook(db, actor.companyId, "shortlist.created", { reference: entry.id, status: "SHORTLISTED", candidate: { id: candidate.id }, jobOpening: { id: opening.id, title: opening.title } });
     return entry;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") throw new HiringError(409, "ALREADY_SHORTLISTED", "This candidate is already on your shortlist for that job opening.");
@@ -112,6 +114,10 @@ export async function setShortlistStatus(db: Db, args: { actorId: string; shortl
     return row;
   });
   await db.auditLog.create({ data: { actorId: actor.id, action: "SHORTLIST_STATUS_CHANGED", targetType: "Shortlist", targetId: entry.id, metadata: { from: entry.status, to: args.status } } });
+
+  const hook = { reference: entry.id, status: args.status, previousStatus: entry.status, candidate: { id: entry.candidateProfileId }, jobOpening: { id: entry.jobOpeningId } };
+  await emitWebhook(db, actor.companyId, "shortlist.status_changed", hook);
+  if (args.status === "HIRED") await emitWebhook(db, actor.companyId, "candidate.hired", hook);
 
   if (args.status === "HIRED") {
     const admins = await db.user.findMany({ where: { companyId: actor.companyId, role: "COMPANY_ADMIN", isActive: true }, select: { id: true } });

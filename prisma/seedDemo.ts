@@ -92,6 +92,7 @@ type Lookup = { id: string; name: string };
 
 type SeedCandidate = {
   name: string;
+  gender: "FEMALE" | "MALE";
   email: string;
   phone: string;
   city: string;
@@ -118,7 +119,8 @@ function buildCandidates(jobRoleNames: string[]): SeedCandidate[] {
   const candidates: SeedCandidate[] = [];
 
   while (candidates.length < CANDIDATE_COUNT) {
-    const first = pick(rand() < 0.5 ? MALE_NAMES : FEMALE_NAMES);
+    const male = rand() < 0.5;
+    const first = pick(male ? MALE_NAMES : FEMALE_NAMES);
     const last = pick(SURNAMES);
     const key = `${first} ${last}`;
     if (used.has(key)) continue;
@@ -135,6 +137,7 @@ function buildCandidates(jobRoleNames: string[]): SeedCandidate[] {
 
     candidates.push({
       name: key,
+      gender: male ? "MALE" : "FEMALE",
       email: `${first}.${last}@${DEMO_EMAIL_DOMAIN}`.toLowerCase(),
       phone: `0${prefix}${line}`,
       city,
@@ -149,6 +152,7 @@ function buildCandidates(jobRoleNames: string[]): SeedCandidate[] {
   candidates[0] = {
     ...candidates[0],
     name: "Ayesha Khan",
+    gender: "FEMALE",
     email: `candidate@${DEMO_EMAIL_DOMAIN}`,
     city: "Lahore",
     regionName: "Punjab",
@@ -270,6 +274,7 @@ export async function seedDemoData(
             jobRoleId: jobRoleId.get(c.jobRoleName),
             experienceYears: c.experienceYears,
             minimumSalary: c.minimumSalary,
+            gender: c.gender,
             consentGiven: true,
             consentAt: new Date(),
             privacyPolicyVersion: policy?.version ?? null,
@@ -277,6 +282,11 @@ export async function seedDemoData(
         },
       },
     });
+  }
+
+  // Candidates seeded before the optional gender field existed get it too (the fairness report needs it).
+  for (const c of candidates) {
+    await prisma.candidateProfile.updateMany({ where: { gender: null, user: { email: c.email } }, data: { gender: c.gender } });
   }
 
   // Sample salary benchmarks (role x city x experience band) for the salary guide.

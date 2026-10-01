@@ -34,7 +34,10 @@ function transportFromEnv(): nodemailer.Transporter | null {
 export async function sendEmail(mail: Mail): Promise<{ delivered: boolean }> {
   const transport = transportFromEnv();
   if (!transport) {
-    console.log(`[email not sent: SMTP is not configured]\nTo: ${mail.to}\nSubject: ${mail.subject}\n\n${mail.text}\n`);
+    // In development the whole message is shown, so reset and confirmation links can be followed. On a live site
+    // nothing but the subject is written: the body can hold a login link, and links are never logged there.
+    if (process.env.NODE_ENV === "production") console.log(`[email not sent: SMTP is not configured] Subject: ${mail.subject}`);
+    else console.log(`[email not sent: SMTP is not configured]\nTo: ${mail.to}\nSubject: ${mail.subject}\n\n${mail.text}\n`);
     return { delivered: false };
   }
   try {

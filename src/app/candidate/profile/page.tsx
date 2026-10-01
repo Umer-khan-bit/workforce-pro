@@ -46,6 +46,7 @@ export default async function ProfilePage() {
             experienceYears: String(profile.experienceYears ?? 0),
             jobRoleId: profile.jobRoleId ?? "",
             minimumSalary: String(profile.minimumSalary ?? 0),
+            gender: profile.gender ?? "",
           }}
         />
       </section>

@@ -144,8 +144,9 @@ export async function assignPlan(db: Db, args: { actorId: string; companyId: str
 }
 
 /**
- * Warns the company admins when the plan is about to end (Settings > Billing: how many days before). It is
- * called when a company admin opens their dashboard, and warns once per subscription, not on every visit.
+ * Warns the company admins (in the app and by email) when the plan is about to end (Settings > Billing: how many days
+ * before). The scheduled plan-expiry job calls it for every company, and the company admin dashboard calls it too;
+ * it warns once per subscription, not on every visit.
  */
 export async function warnIfExpiring(db: Db, companyId: string): Promise<boolean> {
   const [billing, access] = await Promise.all([readSetting(db, "billing"), getCompanyAccess(companyId)]);
@@ -157,14 +158,26 @@ export async function warnIfExpiring(db: Db, companyId: string): Promise<boolean
   for (const a of admins) {
     const already = await db.notification.count({ where: { userId: a.id, type: "SUBSCRIPTION_EXPIRING", createdAt: { gt: subscription?.startDate ?? new Date(0) } } });
     if (already > 0) continue;
-    const ok = await notifyUser(db, {
-      userId: a.id,
-      templateKey: "SUBSCRIPTION_EXPIRING_IN_APP",
-      type: "SUBSCRIPTION_EXPIRING",
-      values: { companyName: company?.name ?? "Your company", planName: access.plan.name, endDate: dateText(access.endsAt) },
-      link: "/company-admin/subscription",
-    });
+    const values = { companyName: company?.name ?? "Your company", planName: access.plan.name, endDate: dateText(access.endsAt) };
+    const ok = await notifyUser(db, { userId: a.id, templateKey: "SUBSCRIPTION_EXPIRING_IN_APP", type: "SUBSCRIPTION_EXPIRING", values, link: "/company-admin/subscription" });
+    // The same warning by email.
+    await notifyUser(db, { userId: a.id, templateKey: "SUBSCRIPTION_EXPIRING_EMAIL", type: "SUBSCRIPTION_EXPIRING", values, link: "/company-admin/subscription" });
     sent = ok || sent;
   }
   return sent;
+}
+
+/** The scheduled plan-expiry job: warns every company whose plan is about to end. Companies outside a pilot are skipped. */
+export async function warnExpiringPlans(db: Db, now = new Date(), onlyCompanyIds?: string[]): Promise<{ checked: number; warned: number }> {
+  const billing = await readSetting(db, "billing");
+  if (billing.expiryWarningDays <= 0) return { checked: 0, warned: 0 };
+  const pilot = await db.pilotConfig.findFirst();
+  const horizon = new Date(now.getTime() + billing.expiryWarningDays * DAY_MS);
+  const subs = await db.subscription.findMany({ where: { status: { in: ["ACTIVE", "TRIALING"] }, endDate: { gt: now, lte: horizon }, ...(onlyCompanyIds ? { companyId: { in: onlyCompanyIds } } : {}) }, select: { companyId: true }, distinct: ["companyId"] });
+  let warned = 0;
+  for (const s of subs) {
+    if (pilot?.enabled && pilot.companyId !== s.companyId) continue;
+    if (await warnIfExpiring(db, s.companyId)) warned++;
+  }
+  return { checked: subs.length, warned };
 }

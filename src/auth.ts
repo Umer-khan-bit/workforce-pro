@@ -6,6 +6,13 @@ import { verifyPassword } from "@/lib/password";
 import { AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS, isRateLimited } from "@/lib/rateLimit";
 import { authConfig } from "@/auth.config";
 import { syncTokenWithDatabase } from "@/lib/sessionToken";
+import { CredentialsSignin } from "next-auth";
+import { getPilot, pilotBlocksUser } from "@/lib/pilot";
+
+/** Login refused because of pilot mode (the page shows its own message). */
+class PilotModeError extends CredentialsSignin {
+  code = "pilot_mode";
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -40,6 +47,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const valid = await verifyPassword(password, user.password);
         if (!valid) return null;
+
+        // Only after the password is right, so nobody can probe which companies are in the pilot.
+        if (pilotBlocksUser(await getPilot(prisma), { role: user.role, companyId: user.companyId })) throw new PilotModeError();
 
         return {
           id: user.id,

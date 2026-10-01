@@ -33,7 +33,7 @@ export default async function CandidateDetailPage({ params, searchParams }: { pa
       </div>
     );
   }
-  const { offerMax, openingId } = await resolveOffer(prisma, companyId, { openingId: query.opening, offer: query.offer });
+  const { offerMax, openingId } = await resolveOffer(prisma, companyId, { recruiterId: session!.user.id, openingId: query.opening, offer: query.offer });
   const detail = offerMax === null ? null : await getCandidateDetail(prisma, { recruiterUserId: session!.user.id, companyId, candidateProfileId: id, offerMax, entitlements: ent });
   if (offerMax === null || !detail) notFound();
 

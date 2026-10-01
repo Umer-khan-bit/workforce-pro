@@ -62,7 +62,7 @@ export default function OpeningsManager({ rows, roles, cities, moneyCode, showOw
   }
 
   const formView = (
-    <form onSubmit={save} className="card grid gap-4 sm:grid-cols-2" aria-label={editing === "new" ? "New job opening" : "Edit job opening"}>
+    <form onSubmit={save} className="card grid grid-cols-1 gap-4 sm:grid-cols-2" aria-label={editing === "new" ? "New job opening" : "Edit job opening"}>
       <div>
         <label htmlFor="o-role" className="label">Job role</label>
         <select id="o-role" className="input" value={form.jobRoleId} onChange={(e) => set("jobRoleId", e.target.value)} required>

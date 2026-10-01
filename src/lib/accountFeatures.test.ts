@@ -107,9 +107,10 @@ describe("company plan and free trial", () => {
 
 describe("candidate profile", () => {
   it("lists only the names of changed fields", () => {
-    const before = { name: "A", phone: "0300", city: "Lahore", regionId: "r1", experienceYears: 2, jobRoleId: "j1", minimumSalary: 50000 };
+    const before = { name: "A", phone: "0300", city: "Lahore", regionId: "r1", experienceYears: 2, jobRoleId: "j1", minimumSalary: 50000, gender: null };
     expect(changedProfileFields(before, before)).toEqual([]);
     expect(changedProfileFields(before, { ...before, phone: "0311", minimumSalary: 70000 })).toEqual(["phone", "minimum salary"]);
+    expect(changedProfileFields(before, { ...before, gender: "FEMALE" })).toEqual(["gender"]);
   });
 
   it("uses the same rules as signup", () => {

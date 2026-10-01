@@ -118,7 +118,7 @@ export default function GenerateForm({
       )}
 
       <form onSubmit={run} className="card flex flex-col gap-5">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="g-test" className="label">Test</label>
             <select id="g-test" className="input" value={testType} onChange={(e) => setTestType(e.target.value as TestOption)} disabled={running}>

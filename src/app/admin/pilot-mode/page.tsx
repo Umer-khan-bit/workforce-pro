@@ -11,8 +11,9 @@ export default async function PilotModePage() {
     <div>
       <h1 className="text-2xl font-semibold text-zinc-900">Pilot mode</h1>
       <p className="mt-1 text-zinc-600">
-        Restrict the platform to one company or team while you test it. The setting is saved here;
-        enforcing it across signup and search is part of the security pass.
+        Restrict the platform to one company while you test it. While it is on, recruiters and company admins of every
+        other company cannot log in (an open session ends at the next click), no new company can sign up, and other
+        companies&apos; API keys and webhooks stop working. Candidates and platform admins are not affected.
       </p>
       <PilotForm
         initialEnabled={pilot?.enabled ?? false}

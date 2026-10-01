@@ -48,7 +48,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
       <h1 className="text-2xl font-semibold text-zinc-900">Payments</h1>
       <p className="mt-1 text-zinc-600">Every subscription and course payment. In demo mode they come from the simulated gateway and no real money moves.</p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="payment-stats">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="payment-stats">
         <Stat label="Subscriptions collected" value={money(sum("SUBSCRIPTION"))} />
         <Stat label="Courses collected" value={money(sum("COURSE"))} />
         <Stat label="Paid" value={count("SUCCESS")} />

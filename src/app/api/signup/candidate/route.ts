@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, email, password, phone, cityId, regionId, experienceYears, jobRoleId, minimumSalary } =
+  const { name, email, password, phone, cityId, regionId, experienceYears, jobRoleId, minimumSalary, gender } =
     parsed.data;
 
   const [region, jobRole, city, policy] = await Promise.all([
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
           jobRoleId,
           experienceYears,
           minimumSalary,
+          gender: gender ?? null,
           consentGiven: true,
           consentAt: new Date(),
           privacyPolicyVersion: policy.version,

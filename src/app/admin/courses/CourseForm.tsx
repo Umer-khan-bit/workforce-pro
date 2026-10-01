@@ -57,7 +57,7 @@ export default function CourseForm({ roles, courseId, initial, currencyCode }: {
         <label htmlFor="c-desc" className="label">Description</label>
         <textarea id="c-desc" className="input" rows={3} maxLength={2000} value={v.description} onChange={(e) => set("description", e.target.value)} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="c-role" className="label">Job role</label>
           <select id="c-role" className="input" value={v.jobRoleId} onChange={(e) => set("jobRoleId", e.target.value)}>

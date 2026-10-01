@@ -41,7 +41,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       </section>
 
       <h2 className="mt-8 text-lg font-semibold text-zinc-900">Plans</h2>
-      <div className="mt-3 grid gap-5 lg:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-5 lg:grid-cols-2">
         {plans.map((p) => {
           const values = p.features as Record<string, FeatureValue>;
           const quote = quoteChange({ access, plan: p, periodDays: billing.periodDays, prorate: billing.prorate === "yes" });

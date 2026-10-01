@@ -4,6 +4,7 @@ import { seedDemoData } from "./seedDemo";
 import { seedDemoResults } from "./seedDemoResults";
 import { seedDemoCourses } from "./seedDemoCourses";
 import { seedDemoHiring } from "./seedDemoHiring";
+import { generateFairnessReport, monthOf, previousMonth } from "../src/lib/learning/fairness";
 import { importIpipItems } from "../src/lib/questionBank/ipipImport";
 import { seedConfig } from "./seedConfig";
 
@@ -136,6 +137,10 @@ async function main() {
   console.log(`Demo training: ${courses.courses} courses added`);
   const hiring = await seedDemoHiring(prisma);
   console.log(`Demo hiring: ${hiring.openings} job openings, ${hiring.shortlists} shortlisted candidates, ${hiring.requests} contact requests, ${hiring.payments} payments`);
+  // Fairness reports for last month and this month, so the screen has something to show.
+  const now = new Date();
+  for (const month of [previousMonth(now), monthOf(now)]) await generateFairnessReport(prisma, { month, notifyAdmins: false });
+  console.log("Demo fairness reports ready");
   // Never print the password. Demo accounts share SEED_DEMO_PASSWORD (default in DAY1_STATUS.md).
   console.log("Demo logins (shared demo password, see SEED_DEMO_PASSWORD):");
   for (const login of demo.logins) {

@@ -20,7 +20,7 @@ export default async function RecruiterDashboard() {
 
   // Candidates are only counted when their minimum salary fits what the company is offering (the highest top
   // salary among its open job openings), like everywhere else a recruiter sees candidates.
-  const { offerMax } = companyId ? await resolveOffer(prisma, companyId, {}) : { offerMax: null };
+  const { offerMax } = companyId ? await resolveOffer(prisma, companyId, { recruiterId: session!.user.id }) : { offerMax: null };
 
   const [company, access, fitting, openings, inPipeline, waiting, hiring, cities] = await Promise.all([
     companyId ? prisma.company.findUnique({ where: { id: companyId } }) : null,
@@ -40,7 +40,7 @@ export default async function RecruiterDashboard() {
 
       {access && <PlanCallout access={access} href="/company-admin/subscription" />}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Company" value={company?.name ?? "-"} hint={access?.plan ? `${access.plan.name} plan` : "No plan"} />
         <Stat
           label="Candidates matching your offers"

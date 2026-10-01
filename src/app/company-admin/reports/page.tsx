@@ -51,7 +51,7 @@ export default async function CompanyReportsPage({ searchParams }: { searchParam
       <p className="mt-1 text-zinc-600">How your company is hiring: every recruiter, every job opening.</p>
       <PeriodPicker base="/company-admin/reports" days={days} />
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Shortlisted" value={hiring.total} hint={`Last ${days} days`} />
         <Stat label="Hires" value={hiring.timeToHire.hires} hint={hiring.timeToHire.averageDays !== null ? `${hiring.timeToHire.averageDays} days on average` : "None yet in this period"} />
         <Stat label="Open job openings" value={openOpenings} hint={ent.openingLimit === null ? "No plan limit" : `Plan allows ${ent.openingLimit}`} />

@@ -32,7 +32,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
       <p className="mt-1 text-zinc-600">The whole platform: candidates, hiring and revenue.</p>
       <PeriodPicker base="/admin/reports" days={days} />
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Candidates" value={candidates} hint="Deleted accounts are not counted" />
         <Stat label="Companies" value={companies} />
         <Stat label="Hires" value={hiring.timeToHire.hires} hint={hiring.timeToHire.averageDays !== null ? `${hiring.timeToHire.averageDays} days to hire on average` : `Last ${days} days`} />

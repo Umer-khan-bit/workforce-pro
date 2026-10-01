@@ -73,7 +73,7 @@ export default function TestSettingsForm({
           rule is not used.
         </p>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {FIELDS.map((f) => (
           <div key={f.key}>
             <label htmlFor={`${testType}-${f.key}`} className="label">{f.label}</label>

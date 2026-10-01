@@ -4,6 +4,7 @@ import { isTopPerformer } from "@/lib/results/topPerformer";
 import { recruiterVisibleWhere } from "./candidateAccess";
 import { getEntitlements, planBlockMessage } from "./entitlements";
 import { markContacted } from "./shortlist";
+import { emitWebhook } from "@/lib/ats/webhooks";
 
 export class ContactError extends Error {
   constructor(
@@ -84,7 +85,7 @@ export async function respondToContactRequest(
 ) {
   const request = await db.contactRequest.findFirst({
     where: { id: args.requestId, candidateProfile: { userId: args.candidateUserId } },
-    include: { candidateProfile: { select: { user: { select: { name: true } } } } },
+    include: { candidateProfile: { select: { user: { select: { name: true } } } }, jobOpening: { select: { id: true, companyId: true } } },
   });
   if (!request) throw new ContactError(404, "NOT_FOUND", "Request not found.");
   if (request.status !== "SENT") throw new ContactError(409, "ALREADY_ANSWERED", "You have already answered this request.");
@@ -97,6 +98,7 @@ export async function respondToContactRequest(
   await db.auditLog.create({
     data: { actorId: args.candidateUserId, action: args.accept ? "CONTACT_REQUEST_ACCEPTED" : "CONTACT_REQUEST_DECLINED", targetType: "ContactRequest", targetId: request.id },
   });
+  await emitWebhook(db, request.jobOpening.companyId, "contact_request.answered", { reference: request.id, answer: args.accept ? "ACCEPTED" : "DECLINED", candidate: { id: request.candidateProfileId }, jobOpening: { id: request.jobOpening.id } });
   await notifyUser(db, {
     userId: request.recruiterId,
     templateKey: args.accept ? "CONTACT_REQUEST_ACCEPTED_IN_APP" : "CONTACT_REQUEST_DECLINED_IN_APP",

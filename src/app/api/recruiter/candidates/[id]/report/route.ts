@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const url = new URL(request.url);
   const offerParam = Number(url.searchParams.get("offer"));
-  const { offerMax } = await resolveOffer(prisma, staff.companyId, { openingId: url.searchParams.get("opening"), offer: Number.isFinite(offerParam) ? offerParam : null });
+  const { offerMax } = await resolveOffer(prisma, staff.companyId, { recruiterId: staff.userId, openingId: url.searchParams.get("opening"), offer: Number.isFinite(offerParam) ? offerParam : null });
   if (offerMax === null) return NextResponse.json({ error: "Enter the salary you can offer first.", code: "NO_OFFER" }, { status: 400 });
 
   const entitlements = await getEntitlements(staff.companyId);

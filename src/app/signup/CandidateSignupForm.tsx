@@ -39,6 +39,7 @@ export default function CandidateSignupForm({
       experienceYears: form.get("experienceYears"),
       jobRoleId: form.get("jobRoleId"),
       minimumSalary: form.get("minimumSalary"),
+      gender: form.get("gender"),
       consentGiven,
     };
 
@@ -100,6 +101,16 @@ export default function CandidateSignupForm({
       <Field label="Years of experience" name="experienceYears" type="number" min={0} max={60} required />
       <SelectField label="Job role" name="jobRoleId" required options={jobRoles} />
       <Field label="Minimum expected salary" name="minimumSalary" type="number" min={0} required />
+      <div>
+        <label htmlFor="gender" className="label">Gender (optional)</label>
+        <select id="gender" name="gender" defaultValue="" className="input">
+          <option value="">Prefer not to say</option>
+          <option value="FEMALE">Female</option>
+          <option value="MALE">Male</option>
+          <option value="OTHER">Other</option>
+        </select>
+        <p className="mt-1 text-xs text-zinc-500">Optional. Used only to check that the tests are fair to everyone. It is never shown to recruiters or companies.</p>
+      </div>
 
       <label className="flex items-start gap-2 text-sm text-zinc-700">
         <input
