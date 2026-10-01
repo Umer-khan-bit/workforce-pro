@@ -69,6 +69,10 @@ export async function translateIpipBatch(
       inputTokens: 0,
       outputTokens: 0,
       costEstimate: 0,
+      received: 0,
+      attempts: 0,
+      shortfall: 0,
+      shortfallNote: null,
       remaining: 0,
     };
   }
@@ -94,35 +98,69 @@ export async function translateIpipBatch(
   try {
     const client = deps.client ?? getClaudeClient();
 
-    const trans = buildTranslationPrompt(
-      prompts,
-      target.name,
-      originals.map((o, i) => ({ index: i, text: o.content }))
-    );
-    const transReply = await askClaudeJson(client, {
-      model: ai.model,
-      system: trans.system,
-      user: trans.user,
-      schema: TRANSLATION_JSON_SCHEMA,
-      maxTokens: ai.maxOutputTokens,
-      effort: ai.effort,
-    });
-    transUsage = transReply.usage;
-    const parsed = translationResultSchema.safeParse(transReply.data);
-    if (!parsed.success) throw new AiError("BAD_RESPONSE", "Claude's reply did not have the expected shape. Try again.");
+    // Translate, then check that every item came back. Items without a translation are asked for again,
+    // up to the number of retries in Settings; whatever is still missing is reported (and stays
+    // untranslated, so the next batch picks it up again).
+    type Original = (typeof originals)[number];
+    const translated = new Map<string, { translation: string; backTranslation: string }>();
+    let received = 0;
+    let attempts = 0;
+    let shortfallNote: string | null = null;
 
-    const byIndex = new Map(parsed.data.items.map((t) => [t.index, t]));
-    const droppedReasons: string[] = [];
-    const kept: { original: (typeof originals)[number]; translation: string; backTranslation: string }[] = [];
-    originals.forEach((original, i) => {
-      const t = byIndex.get(i);
-      const text = t?.translation.trim();
-      if (!text) {
-        droppedReasons.push("No translation returned for one item");
-        return;
+    for (let attempt = 0; attempt <= ai.shortfallRetries; attempt++) {
+      const pending = originals.filter((o) => !translated.has(o.id));
+      if (pending.length === 0) break;
+      attempts++;
+      try {
+        const trans = buildTranslationPrompt(
+          prompts,
+          target.name,
+          pending.map((o, i) => ({ index: i, text: o.content }))
+        );
+        const transReply = await askClaudeJson(client, {
+          model: ai.model,
+          system: trans.system,
+          user: trans.user,
+          schema: TRANSLATION_JSON_SCHEMA,
+          maxTokens: ai.maxOutputTokens,
+          effort: ai.effort,
+        });
+        transUsage = addUsage(transUsage, transReply.usage);
+        const parsed = translationResultSchema.safeParse(transReply.data);
+        if (!parsed.success) throw new AiError("BAD_RESPONSE", "Claude's reply did not have the expected shape. Try again.");
+        received += parsed.data.items.length;
+        for (const t of parsed.data.items) {
+          const original = pending[t.index];
+          const text = t.translation.trim();
+          if (original && text && !translated.has(original.id)) {
+            translated.set(original.id, { translation: text, backTranslation: t.backTranslation.trim() });
+          }
+        }
+      } catch (err) {
+        // Nothing back at all on the first request is an error; a failed retry just ends the retrying.
+        if (attempt === 0) throw err;
+        shortfallNote = `Asking again for the missing translations failed: ${toAiError(err).message}`;
+        break;
       }
-      kept.push({ original, translation: text, backTranslation: t?.backTranslation.trim() ?? "" });
-    });
+    }
+
+    const droppedReasons: string[] = [];
+    const kept: { original: Original; translation: string; backTranslation: string }[] = [];
+    for (const original of originals) {
+      const t = translated.get(original.id);
+      if (!t) {
+        droppedReasons.push("No translation returned for one item");
+        continue;
+      }
+      kept.push({ original, translation: t.translation, backTranslation: t.backTranslation });
+    }
+    const shortfall = originals.length - kept.length;
+    if (shortfall > 0) {
+      shortfallNote =
+        `Only ${kept.length} of the ${originals.length} items could be translated` +
+        (attempts > 1 ? ` after ${attempts} attempts` : "") +
+        `. ${shortfallNote ?? "The rest are picked up again next time."}`;
+    }
 
     // Second pass: check meaning, negation and tone against the back-translation.
     let verdictByIndex = new Map<number, { verdict: Verdict; notes: string }>();
@@ -192,6 +230,10 @@ export async function translateIpipBatch(
       verdicts,
       usage: addUsage(transUsage, reviewUsage),
       cost: cost(),
+      received,
+      attempts,
+      shortfall,
+      shortfallNote,
     });
     return { ...result, remaining: await prisma.question.count({ where }) };
   } catch (err) {

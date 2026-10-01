@@ -22,10 +22,12 @@ type BatchResponse = {
   costEstimate: number;
   inputTokens: number;
   outputTokens: number;
+  shortfall: number;
+  shortfallNote: string | null;
 };
 
-type Totals = { created: number; dropped: number; ok: number; needsFix: number; reject: number; cost: number; tokens: number; warnings: string[] };
-const EMPTY_TOTALS: Totals = { created: 0, dropped: 0, ok: 0, needsFix: 0, reject: 0, cost: 0, tokens: 0, warnings: [] };
+type Totals = { created: number; dropped: number; ok: number; needsFix: number; reject: number; cost: number; tokens: number; shortfall: number; warnings: string[] };
+const EMPTY_TOTALS: Totals = { created: 0, dropped: 0, ok: 0, needsFix: 0, reject: 0, cost: 0, tokens: 0, shortfall: 0, warnings: [] };
 
 const money = (d: number) => (d < 0.01 ? `$${d.toFixed(4)}` : `$${d.toFixed(2)}`);
 
@@ -95,7 +97,8 @@ export default function GenerateForm({
         reject: acc.reject + batch.verdicts.REJECT,
         cost: acc.cost + batch.costEstimate,
         tokens: acc.tokens + batch.inputTokens + batch.outputTokens,
-        warnings: batch.reviewWarning ? [...acc.warnings, batch.reviewWarning] : acc.warnings,
+        shortfall: acc.shortfall + batch.shortfall,
+        warnings: [...acc.warnings, ...(batch.reviewWarning ? [batch.reviewWarning] : []), ...(batch.shortfallNote ? [batch.shortfallNote] : [])],
       };
       setTotals(acc);
       remaining -= thisBatch;
@@ -179,9 +182,10 @@ export default function GenerateForm({
             <div className="h-full bg-brand-700 transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
           </div>
           <p className="mt-2 text-sm text-zinc-600">{progress.done} of {progress.total} requested</p>
-          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
             <div><dt className="text-zinc-500">Saved as pending</dt><dd className="text-lg font-semibold">{totals.created}</dd></div>
             <div><dt className="text-zinc-500">Left out</dt><dd className="text-lg font-semibold">{totals.dropped}</dd></div>
+            <div><dt className="text-zinc-500">Short of the number asked for</dt><dd className={`text-lg font-semibold ${totals.shortfall > 0 ? "text-amber-700" : ""}`} data-testid="shortfall">{totals.shortfall}</dd></div>
             <div><dt className="text-zinc-500">Estimated cost</dt><dd className="text-lg font-semibold">{money(totals.cost)}</dd></div>
             <div><dt className="text-zinc-500">Tokens used</dt><dd className="text-lg font-semibold">{totals.tokens.toLocaleString()}</dd></div>
           </dl>
@@ -190,7 +194,12 @@ export default function GenerateForm({
             <span className="text-amber-700">{totals.needsFix} need fixing</span>,{" "}
             <span className="text-red-700">{totals.reject} reject</span>
           </p>
-          {totals.warnings.map((w, i) => <p key={i} className="mt-2 text-sm text-amber-800">{w}</p>)}
+          {totals.warnings.map((w, i) => <p key={i} role="status" className="mt-2 text-sm text-amber-800">{w}</p>)}
+          {finished && totals.shortfall > 0 && (
+            <p className="mt-2 text-sm font-medium text-amber-900">
+              {totals.created} of {total} questions were saved. Run the generator again for the other {totals.shortfall}.
+            </p>
+          )}
         </section>
       )}
 

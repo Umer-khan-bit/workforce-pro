@@ -43,6 +43,14 @@ export type BatchResult = {
   inputTokens: number;
   outputTokens: number;
   costEstimate: number;
+  /** How many items Claude sent back in total, across all attempts (before any were dropped). */
+  received: number;
+  /** How many times Claude was asked (1 = no retry needed). */
+  attempts: number;
+  /** How many fewer questions were saved than were asked for (0 = the full number). */
+  shortfall: number;
+  /** A plain-English line to show when `shortfall` is above 0. */
+  shortfallNote: string | null;
 };
 
 type Deps = { prisma: PrismaClient; client?: ClaudeClient };
@@ -118,63 +126,93 @@ export async function generateBatch(deps: Deps, actorId: string, params: Generat
     const seen = new Set(existingRows.map((q) => normalizeForDuplicate(q.content)));
     const existingForPrompt = existingRows.slice(0, EXISTING_IN_PROMPT).map((q) => q.content.slice(0, 140));
 
-    const gen = buildGenerationPrompt(prompts, ai, {
-      test: params.testType,
-      count: params.count,
-      languageName: language.name,
-      jobRoleName: jobRole?.name ?? null,
-      difficulty: params.difficulty,
-      focus: params.focus?.trim() ?? "",
-      existing: existingForPrompt,
-    });
-    const genReply = await askClaudeJson(client, {
-      model: ai.model,
-      system: gen.system,
-      user: gen.user,
-      schema: GENERATION_JSON_SCHEMA,
-      maxTokens: ai.maxOutputTokens,
-      effort: ai.effort,
-    });
-    genUsage = genReply.usage;
-
-    const parsedReply = generationResultSchema.safeParse(genReply.data);
-    if (!parsedReply.success) throw new AiError("BAD_RESPONSE", "Claude's reply did not have the expected shape. Try again.");
-
-    // Check every item with the same rules as a manually added question; drop the ones that fail.
+    // Ask for the questions, then check how many came back. If there are fewer than asked for (Claude
+    // returned too few, or some failed the checks or repeated an existing question) ask again for the
+    // missing ones, up to the number of retries in Settings, and report whatever is still short.
     type Kept = { input: QuestionInput; explanation: string; modelDifficulty: DifficultyValue };
     const kept: Kept[] = [];
     const droppedReasons: string[] = [];
-    for (const item of parsedReply.data.questions.slice(0, params.count)) {
-      if (!ALLOWED_KINDS[params.testType].includes(item.kind)) {
-        droppedReasons.push(`Unexpected format ${item.kind}`);
-        continue;
+    let received = 0;
+    let attempts = 0;
+    let shortfallNote: string | null = null;
+
+    for (let attempt = 0; attempt <= ai.shortfallRetries && kept.length < params.count; attempt++) {
+      const missing = params.count - kept.length;
+      attempts++;
+      try {
+        // Questions already accepted in this batch are listed too, so a retry does not repeat them.
+        const alreadyHave = [...kept.map((k) => k.input.content.slice(0, 140)), ...existingForPrompt].slice(0, EXISTING_IN_PROMPT);
+        const gen = buildGenerationPrompt(prompts, ai, {
+          test: params.testType,
+          count: missing,
+          languageName: language.name,
+          jobRoleName: jobRole?.name ?? null,
+          difficulty: params.difficulty,
+          focus: params.focus?.trim() ?? "",
+          existing: alreadyHave,
+        });
+        const genReply = await askClaudeJson(client, {
+          model: ai.model,
+          system: gen.system,
+          user: gen.user,
+          schema: GENERATION_JSON_SCHEMA,
+          maxTokens: ai.maxOutputTokens,
+          effort: ai.effort,
+        });
+        genUsage = addUsage(genUsage, genReply.usage);
+
+        const parsedReply = generationResultSchema.safeParse(genReply.data);
+        if (!parsedReply.success) throw new AiError("BAD_RESPONSE", "Claude's reply did not have the expected shape. Try again.");
+        received += parsedReply.data.questions.length;
+
+        // Check every item with the same rules as a manually added question; drop the ones that fail.
+        for (const item of parsedReply.data.questions.slice(0, missing)) {
+          if (!ALLOWED_KINDS[params.testType].includes(item.kind)) {
+            droppedReasons.push(`Unexpected format ${item.kind}`);
+            continue;
+          }
+          const type = KIND_TO_TYPE[item.kind];
+          const hasOptions = type === "MCQ" || type === "SITUATIONAL_JUDGEMENT";
+          const checked = questionInputSchema.safeParse({
+            testType: params.testType,
+            type,
+            content: item.content,
+            options: hasOptions ? item.options : undefined,
+            correctAnswer: hasOptions ? (item.correctAnswer ?? undefined) : undefined,
+            reverseKeyed: type === "LIKERT" ? item.reverseKeyed : false,
+            topic: item.topic,
+            explanation: item.explanation,
+            difficulty: params.difficulty,
+            jobRoleId: jobRole?.id,
+            languageId: language.id,
+          });
+          if (!checked.success) {
+            droppedReasons.push(checked.error.issues[0]?.message ?? "Invalid question");
+            continue;
+          }
+          const key = normalizeForDuplicate(checked.data.content);
+          if (seen.has(key)) {
+            droppedReasons.push("Repeats an existing question");
+            continue;
+          }
+          seen.add(key);
+          kept.push({ input: checked.data, explanation: item.explanation, modelDifficulty: item.difficulty });
+        }
+      } catch (err) {
+        // If the very first request fails nothing came back, which is an error. A failed retry is not:
+        // keep what we already have and report the shortfall.
+        if (attempt === 0) throw err;
+        shortfallNote = `Asking again for the missing questions failed: ${toAiError(err).message}`;
+        break;
       }
-      const type = KIND_TO_TYPE[item.kind];
-      const hasOptions = type === "MCQ" || type === "SITUATIONAL_JUDGEMENT";
-      const checked = questionInputSchema.safeParse({
-        testType: params.testType,
-        type,
-        content: item.content,
-        options: hasOptions ? item.options : undefined,
-        correctAnswer: hasOptions ? (item.correctAnswer ?? undefined) : undefined,
-        reverseKeyed: type === "LIKERT" ? item.reverseKeyed : false,
-        topic: item.topic,
-        explanation: item.explanation,
-        difficulty: params.difficulty,
-        jobRoleId: jobRole?.id,
-        languageId: language.id,
-      });
-      if (!checked.success) {
-        droppedReasons.push(checked.error.issues[0]?.message ?? "Invalid question");
-        continue;
-      }
-      const key = normalizeForDuplicate(checked.data.content);
-      if (seen.has(key)) {
-        droppedReasons.push("Repeats an existing question");
-        continue;
-      }
-      seen.add(key);
-      kept.push({ input: checked.data, explanation: item.explanation, modelDifficulty: item.difficulty });
+    }
+
+    const shortfall = Math.max(0, params.count - kept.length);
+    if (shortfall > 0) {
+      shortfallNote =
+        `Only ${kept.length} of the ${params.count} questions asked for could be saved` +
+        (attempts > 1 ? ` after ${attempts} attempts` : "") +
+        `. ${shortfallNote ?? "Run the generator again to get the rest."}`.replace(/\.$/, ".");
     }
 
     // Second pass: a separate call reviews what was kept.
@@ -254,6 +292,10 @@ export async function generateBatch(deps: Deps, actorId: string, params: Generat
       verdicts,
       usage: addUsage(genUsage, reviewUsage),
       cost: cost(),
+      received,
+      attempts,
+      shortfall,
+      shortfallNote,
     });
   } catch (err) {
     const aiError = toAiError(err);
@@ -276,6 +318,10 @@ type Finish = {
   verdicts: Record<Verdict, number>;
   usage: Usage;
   cost: number;
+  received?: number;
+  attempts?: number;
+  shortfall?: number;
+  shortfallNote?: string | null;
 };
 
 /** Stores the run's totals and writes the audit-log entry. Shared by generation and translation. */
@@ -306,6 +352,9 @@ export async function finishRun(prisma: PrismaClient, runId: string, actorId: st
         created: f.created,
         dropped: f.dropped,
         reviewed: f.reviewed,
+        received: f.received ?? f.created + f.dropped,
+        attempts: f.attempts ?? 1,
+        shortfall: f.shortfall ?? 0,
         inputTokens: f.usage.inputTokens,
         outputTokens: f.usage.outputTokens,
         estimatedCostUsd: f.cost,
@@ -324,6 +373,10 @@ export async function finishRun(prisma: PrismaClient, runId: string, actorId: st
     inputTokens: f.usage.inputTokens,
     outputTokens: f.usage.outputTokens,
     costEstimate: f.cost,
+    received: f.received ?? f.created + f.dropped,
+    attempts: f.attempts ?? 1,
+    shortfall: f.shortfall ?? 0,
+    shortfallNote: f.shortfallNote ?? null,
   };
 }
 

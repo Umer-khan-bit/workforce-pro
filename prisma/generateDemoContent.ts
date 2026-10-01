@@ -42,6 +42,7 @@ async function main() {
 
   let spent = 0;
   let created = 0;
+  let short = 0;
   console.log(`Generating ${steps.length} batches of up to ${batch} (limit ${formatCost(LIMIT)} estimated) in ${language.name}.`);
 
   for (const [i, step] of steps.entries()) {
@@ -55,7 +56,8 @@ async function main() {
         const r = await generateBatch({ prisma }, admin.id, { ...params, languageId: language.id, count: batch });
         spent += r.costEstimate;
         created += r.created;
-        console.log(`[${i + 1}/${steps.length}] ${label}: ${r.created} saved, ${r.dropped} left out, review ${r.verdicts.OK} ok / ${r.verdicts.NEEDS_FIX} fix / ${r.verdicts.REJECT} reject, ${formatCost(r.costEstimate)} (total ${formatCost(spent)})`);
+        short += r.shortfall;
+        console.log(`[${i + 1}/${steps.length}] ${label}: ${r.created} saved, ${r.dropped} left out${r.shortfall > 0 ? `, SHORT by ${r.shortfall} (${r.attempts} attempts)` : ""}, review ${r.verdicts.OK} ok / ${r.verdicts.NEEDS_FIX} fix / ${r.verdicts.REJECT} reject, ${formatCost(r.costEstimate)} (total ${formatCost(spent)})`);
         break;
       } catch (err) {
         const retryable = err instanceof AiError && (err.code === "RATE_LIMITED" || err.code === "OVERLOADED" || err.code === "NETWORK");
@@ -71,7 +73,7 @@ async function main() {
       }
     }
   }
-  console.log(`Done: ${created} questions saved as Pending, estimated cost ${formatCost(spent)}.`);
+  console.log(`Done: ${created} questions saved as Pending${short > 0 ? ` (${short} fewer than asked for: run it again to top up)` : ""}, estimated cost ${formatCost(spent)}.`);
 }
 
 main()

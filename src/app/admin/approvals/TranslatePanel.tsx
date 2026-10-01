@@ -21,6 +21,7 @@ export default function TranslatePanel({ languages, keyMissing }: { languages: O
     setStatus(null);
     let created = 0;
     let cost = 0;
+    let note = "";
     for (;;) {
       const res = await fetch("/api/admin/ai/translate-ipip", {
         method: "POST",
@@ -34,13 +35,14 @@ export default function TranslatePanel({ languages, keyMissing }: { languages: O
       }
       created += data.created;
       cost += data.costEstimate;
+      if (data.shortfallNote) note = ` ${data.shortfallNote}`;
       setStatus(`Translated ${created} so far, ${data.remaining} to go.`);
       // Stop when done, or when a batch produced nothing (so a stuck item cannot loop forever).
       if (data.remaining === 0 || data.created === 0) {
         setStatus(
           data.remaining === 0
-            ? `Done: ${created} translations are waiting for your review below (estimated cost $${cost.toFixed(4)}).`
-            : `Stopped: ${data.remaining} items could not be translated. Try again later.`
+            ? `Done: ${created} translations are waiting for your review below (estimated cost $${cost.toFixed(4)}).${note}`
+            : `Stopped: ${data.remaining} items could not be translated. Try again later.${note}`
         );
         break;
       }
