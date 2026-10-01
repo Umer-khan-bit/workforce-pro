@@ -1,6 +1,27 @@
-# Workforce Pro - status (Day 1, Day 2, the no-hardcoding fix, the account fixes and Day 3 part 1)
+# Workforce Pro - status (Day 1, Day 2, the no-hardcoding fix, the account fixes, Day 3 part 1 and the fix batch)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Fix batch: line endings, forced password change, question versioning, generator check (done)
+
+Five commits, each tested on its own.
+
+1. **Line endings** (`faa3c4e`). git was hiding that 62 working files were CRLF while the repository stores LF (this machine has `core.autocrlf=true`). Added `.gitattributes` (`* text=auto eol=lf`), converted the files to LF, stopped tracking the runtime file `.claude/scheduled_tasks.lock` (now in `.gitignore`). **Three** applied migrations (`no_hardcoding`, `auth_tokens_rate_limit`, `test_engine`) had been written and applied as CRLF, and Prisma hashes the raw bytes; once LF they would have shown as "modified after being applied". Their stored checksums were updated to the LF hash (metadata only, database not reset). `git diff` and `git status` are empty and `prisma migrate status` reports 10 migrations, none modified. A new test fails on any CR in a migration, any CRLF stored in the repository, and any applied migration whose checksum no longer matches its file. Rule added to CLAUDE.md: never edit an applied migration.
+2. **Forced password change** (`adf4656`). The browser could clear `mustChangePassword` by calling `session.update({ mustChangePassword: false })`. The flag is now read from the database on every request (together with the deactivation and password-reset checks) in the `jwt` callback in `auth.ts`; `auth.config.ts` ignores the update payload entirely and the change-password form sends nothing. Tests: unit tests (the old code fails them), wiring guards, and end-to-end tests that perform the attack in a browser and that honour a flag an admin sets while the user is signed in.
+3. **Question versioning** (`8c26bc5`). Once a question has any candidate response, its text, options, correct answer, format, test, topic, reverse-keying, language, job role and difficulty are frozen; only the explanation can change (API returns 409 `QUESTION_IN_USE`; the edit page explains and offers **Retire it and add a new version**). A database trigger refuses the same edits from any script (calibration, status, pretest flag and review notes still work). New `previousVersionId` link; adding a version creates a linked, approved question (with a **Start as pretest (unscored)** checkbox) and retires the old one in one step, with audit entries; list and edit pages show the version links.
+4. **AI generator count check** (`5a5408c`). Each batch now counts what came back. If fewer good questions than requested are saved it asks again for exactly the missing number (listing what it already has), up to **Extra tries when Claude returns too few** (Settings > Advanced > AI generation, default 2, 0 = off). Anything still short is reported on the Generate page, in the audit log and in `npm run content:demo`; a failed retry keeps what was saved. Translation batches get the same check. The IQ batch that returned 1 of 10 earlier is exactly the case now covered.
+5. **USER_GUIDE.md** (`bd1723d`) is committed.
+
+### Things to know
+- **Not changed, worth a follow-up:** the forced password change is enforced on pages (the proxy), but most API routes do not check `mustChangePassword`, so a user with a temporary password who calls an API directly is not stopped. Easy to add in one shared guard.
+- **Question versions and translations:** an Urdu translation is linked to the English original; if the English item is versioned, the translation still points to the retired original and needs its own new version.
+- **A test already under way** can finish a question that gets retired mid-test; its answer is stored against the old version.
+- **Dev server:** the database client was regenerated while your `npm run dev` was running; restart it to pick up the new `previousVersionId` field and the trigger-aware client.
+
+### Tests
+- **Vitest: 371 passing** (was 295), **Playwright: 43 passing** (was 39), `tsc` clean, `eslint` 0 errors.
+
+---
 
 ## Day 3, part 1: the test engine (done)
 
