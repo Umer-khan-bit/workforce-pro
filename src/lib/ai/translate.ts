@@ -16,12 +16,18 @@ type Deps = { prisma: PrismaClient; client?: ClaudeClient };
 
 export type TranslateResult = BatchResult & { remaining: number };
 
-/** The imported English personality items that still have no translation in the target language. */
-function untranslatedWhere(defaultLanguageId: string, targetLanguageId: string) {
+/**
+ * The live English personality items (imported ones, and new versions that replaced them) that still have
+ * no translation in the target language. Retired originals are skipped, so a question that got a new
+ * version is translated again from its new wording.
+ */
+export function untranslatedWhere(defaultLanguageId: string, targetLanguageId: string) {
   return {
-    source: "IMPORTED" as const,
+    source: { in: ["IMPORTED", "MANUAL"] as Array<"IMPORTED" | "MANUAL"> },
     testType: "PERSONALITY" as const,
     languageId: defaultLanguageId,
+    status: { notIn: ["RETIRED", "REJECTED"] as Array<"RETIRED" | "REJECTED"> },
+    translationOfId: null,
     translations: { none: { languageId: targetLanguageId } },
   };
 }

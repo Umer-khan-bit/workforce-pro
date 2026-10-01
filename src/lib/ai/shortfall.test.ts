@@ -48,7 +48,7 @@ function fakeDb(opts: { retries?: number; originals?: Array<Record<string, unkno
     },
     auditLog: { create: vi.fn().mockImplementation(async ({ data }) => { audits.push(data); return {}; }) },
     question: {
-      findMany: vi.fn().mockImplementation(async (args: { where?: { source?: string } }) => (args?.where?.source === "IMPORTED" ? (opts.originals ?? []) : [])),
+      findMany: vi.fn().mockImplementation(async (args: { where?: { source?: unknown } }) => ((args?.where?.source as { in?: string[] } | undefined)?.in?.includes("IMPORTED") ? (opts.originals ?? []) : [])),
       createMany: vi.fn().mockImplementation(async ({ data }) => { created.push(...data); return { count: data.length }; }),
       count: vi.fn().mockResolvedValue(opts.remaining ?? 0),
     },

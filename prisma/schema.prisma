@@ -453,45 +453,48 @@ model RegionLanguage {
 // ---------- Question bank & self-learning ----------
 
 model Question {
-  id                String         @id @default(cuid())
-  testType          TestType
-  type              QuestionType
-  content           String
-  options           Json?
-  correctAnswer     String?
-  reverseKeyed      Boolean        @default(false)
-  difficulty        Difficulty     @default(MEDIUM)
-  explanation       String?        @db.Text
-  reviewNotes       String?        @db.Text
-  reviewVerdict     ReviewVerdict?
-  rejectionReason   String?
-  source            QuestionSource @default(MANUAL)
-  aiRunId           String?
-  aiRun             AiRun?         @relation(fields: [aiRunId], references: [id])
-  translationOfId   String?
-  translationOf     Question?      @relation("QuestionTranslation", fields: [translationOfId], references: [id])
-  translations      Question[]     @relation("QuestionTranslation")
+  id                 String         @id @default(cuid())
+  testType           TestType
+  type               QuestionType
+  content            String
+  options            Json?
+  correctAnswer      String?
+  reverseKeyed       Boolean        @default(false)
+  difficulty         Difficulty     @default(MEDIUM)
+  explanation        String?        @db.Text
+  reviewNotes        String?        @db.Text
+  reviewVerdict      ReviewVerdict?
+  rejectionReason    String?
+  source             QuestionSource @default(MANUAL)
+  aiRunId            String?
+  aiRun              AiRun?         @relation(fields: [aiRunId], references: [id])
+  translationOfId    String?
+  translationOf      Question?      @relation("QuestionTranslation", fields: [translationOfId], references: [id])
+  translations       Question[]     @relation("QuestionTranslation")
   /// The earlier version this question replaces. Once a question has candidate responses its wording and
   /// answers are frozen; a change is made by retiring it and adding a new version that points back here.
-  previousVersionId String?
-  previousVersion   Question?      @relation("QuestionVersion", fields: [previousVersionId], references: [id])
-  nextVersions      Question[]     @relation("QuestionVersion")
-  topic             String?
-  jobRoleId         String?
-  jobRole           JobRole?       @relation(fields: [jobRoleId], references: [id])
-  regionId          String?
-  region            Region?        @relation(fields: [regionId], references: [id])
-  languageId        String?
-  language          Language?      @relation(fields: [languageId], references: [id])
-  aParam            Float
-  bParam            Float
-  status            QuestionStatus @default(DRAFT)
-  isPretest         Boolean        @default(false)
-  createdById       String?
-  approvedById      String?
-  approvedAt        DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  previousVersionId  String?
+  previousVersion    Question?      @relation("QuestionVersion", fields: [previousVersionId], references: [id])
+  nextVersions       Question[]     @relation("QuestionVersion")
+  /// Set on a translation when its English original was replaced by a new version: the wording may no
+  /// longer match, so it is listed in Approvals until a fresh translation is approved (or it is retired).
+  needsRetranslation Boolean        @default(false)
+  topic              String?
+  jobRoleId          String?
+  jobRole            JobRole?       @relation(fields: [jobRoleId], references: [id])
+  regionId           String?
+  region             Region?        @relation(fields: [regionId], references: [id])
+  languageId         String?
+  language           Language?      @relation(fields: [languageId], references: [id])
+  aParam             Float
+  bParam             Float
+  status             QuestionStatus @default(DRAFT)
+  isPretest          Boolean        @default(false)
+  createdById        String?
+  approvedById       String?
+  approvedAt         DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   itemStatistic ItemStatistic?
   responses     Response[]

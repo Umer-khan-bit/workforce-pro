@@ -7,6 +7,7 @@ import { questionInputSchema, toQuestionData } from "@/lib/questionBank/schema";
 import { getSetting } from "@/lib/settings";
 import { findMissingReference } from "@/lib/questionBank/references";
 import { protectedChanges } from "@/lib/questionBank/versioning";
+import { flagOutdatedTranslations } from "@/lib/questionBank/translations";
 
 const extrasSchema = z.object({ startAsPretest: z.boolean().default(false) });
 
@@ -59,13 +60,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       select: { id: true },
     });
     if (old.status !== "RETIRED") await tx.question.update({ where: { id: old.id }, data: { status: "RETIRED" } });
+    // Translations of the old wording now need a fresh translation of the new version (listed in Approvals).
+    const outdatedTranslations = await flagOutdatedTranslations(tx, old.id);
     await tx.auditLog.create({
       data: {
         actorId: guard.userId,
         action: "QUESTION_VERSIONED",
         targetType: "Question",
         targetId: question.id,
-        metadata: { previousVersionId: old.id, startAsPretest },
+        metadata: { previousVersionId: old.id, startAsPretest, translationsMarkedOutdated: outdatedTranslations },
       },
     });
     if (old.status !== "RETIRED") {

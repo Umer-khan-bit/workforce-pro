@@ -10,6 +10,7 @@ import {
 } from "@/lib/questionBank/schema";
 import ApprovalsTable, { type PendingRow } from "./ApprovalsTable";
 import TranslatePanel from "./TranslatePanel";
+import OutdatedTranslations, { type OutdatedRow } from "./OutdatedTranslations";
 
 const SOURCES = ["AI_GENERATED", "AI_TRANSLATED", "MANUAL", "IMPORTED"] as const;
 const SOURCE_LABEL = { AI_GENERATED: "AI-generated", AI_TRANSLATED: "AI-translated", MANUAL: "Manual", IMPORTED: "Imported" } as const;
@@ -35,7 +36,7 @@ export default async function ApprovalsPage({
     ...(q ? { OR: [{ content: { contains: q, mode: "insensitive" as const } }, { topic: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 
-  const [total, flagged, questions, languages] = await Promise.all([
+  const [total, flagged, questions, languages, outdated] = await Promise.all([
     prisma.question.count({ where }),
     prisma.question.count({ where: { status: "PENDING_APPROVAL", reviewVerdict: { in: ["NEEDS_FIX", "REJECT"] } } }),
     prisma.question.findMany({
@@ -46,7 +47,40 @@ export default async function ApprovalsPage({
       include: { jobRole: true, language: true, translationOf: { select: { content: true } } },
     }),
     prisma.language.findMany({ where: { isActive: true, isDefault: false }, orderBy: { name: "asc" } }),
+    // Translations whose English original has a newer version (see src/lib/questionBank/translations.ts).
+    prisma.question.findMany({
+      where: { needsRetranslation: true, status: { notIn: ["RETIRED", "REJECTED"] } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: 200,
+      include: {
+        language: true,
+        translationOf: {
+          select: {
+            content: true,
+            nextVersions: {
+              where: { status: { not: "REJECTED" } },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { content: true, translations: { select: { languageId: true, status: true } } },
+            },
+          },
+        },
+      },
+    }),
   ]);
+
+  const outdatedRows: OutdatedRow[] = outdated.map((t) => {
+    const next = t.translationOf?.nextVersions[0];
+    return {
+      id: t.id,
+      languageName: t.language?.name ?? "Unknown language",
+      rtl: t.language?.isRtl ?? false,
+      translation: t.content,
+      oldEnglish: t.translationOf?.content ?? "",
+      newEnglish: next?.content ?? null,
+      replacementWaiting: Boolean(next?.translations.some((x) => x.languageId === t.languageId && x.status === "PENDING_APPROVAL")),
+    };
+  });
 
   const translateOptions = await Promise.all(
     languages.map(async (l) => ({ id: l.id, name: l.name, untranslated: await countUntranslated(prisma, l.id) }))
@@ -96,6 +130,7 @@ export default async function ApprovalsPage({
       </div>
 
       <TranslatePanel languages={translateOptions} keyMissing={!process.env.ANTHROPIC_API_KEY?.trim()} />
+      <OutdatedTranslations rows={outdatedRows} />
 
       <form method="get" className="card mt-6 flex flex-wrap items-end gap-3">
         <div>

@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { retireReplacedTranslations } from "./translations";
 
 export type BulkApproveResult = {
   approved: number;
@@ -35,6 +36,8 @@ export async function bulkApprove(
       where: { id: { in: approvedIds }, status: "PENDING_APPROVAL" },
       data: { status: "APPROVED", approvedById: actorId, approvedAt: new Date(), rejectionReason: null, isPretest: asPretest },
     });
+    // A new translation of a new English version replaces the outdated translation of the older one.
+    await retireReplacedTranslations(prisma, approvedIds);
   }
   return {
     approved: approvedIds.length,

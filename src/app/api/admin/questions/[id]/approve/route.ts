@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/adminGuard";
 import { audit } from "@/lib/adminApi";
+import { retireReplacedTranslations } from "@/lib/questionBank/translations";
 
 const bodySchema = z.object({ asPretest: z.boolean().default(false) });
 
@@ -22,6 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     where: { id },
     data: { status: "APPROVED", approvedById: guard.userId, approvedAt: new Date(), rejectionReason: null, isPretest: asPretest },
   });
-  await audit(guard.userId, "QUESTION_APPROVED", "Question", id, { source: question.source, asPretest });
+  const replaced = await retireReplacedTranslations(prisma, [id]);
+  await audit(guard.userId, "QUESTION_APPROVED", "Question", id, { source: question.source, asPretest, ...(replaced > 0 ? { outdatedTranslationsRetired: replaced } : {}) });
   return NextResponse.json({ ok: true });
 }
