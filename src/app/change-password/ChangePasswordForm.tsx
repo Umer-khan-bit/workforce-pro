@@ -38,7 +38,9 @@ export default function ChangePasswordForm() {
       return;
     }
 
-    await update({ mustChangePassword: false });
+    // Just ask the server to refresh the session: it re-reads the flag from the database. Nothing the
+    // browser sends could clear it (and nothing is sent).
+    await update();
     setSubmitting(false);
     router.push("/");
     router.refresh();

@@ -5,32 +5,18 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { AUTH_ATTEMPT_LIMIT, AUTH_WINDOW_MS, isRateLimited } from "@/lib/rateLimit";
 import { authConfig } from "@/auth.config";
+import { syncTokenWithDatabase } from "@/lib/sessionToken";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   callbacks: {
     ...authConfig.callbacks,
-    // Runs whenever a session is read. Returning null ends the session, so a
-    // deactivated (or deleted) user is signed out on their very next request
-    // instead of keeping the JWT they already hold until it expires.
+    // Runs whenever a session is read. The database decides, on every request: a deactivated (or
+    // deleted) user is signed out at once, a password reset ends older sessions, and whether a password
+    // change is still required (mustChangePassword) always comes from the database, never the browser.
     async jwt(params) {
       const token = await authConfig.callbacks.jwt(params);
-      if (!token?.sub) return token;
-      const user = await prisma.user.findUnique({
-        where: { id: token.sub },
-        select: { isActive: true, passwordChangedAt: true },
-      });
-      if (!user?.isActive) return null;
-      // A password reset ends every session that was opened before it. Compared in whole seconds
-      // (the token's issue time has no milliseconds), so signing in right after a reset still works.
-      if (
-        user.passwordChangedAt &&
-        typeof token.iat === "number" &&
-        token.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)
-      ) {
-        return null;
-      }
-      return token;
+      return syncTokenWithDatabase(token, prisma);
     },
   },
   adapter: PrismaAdapter(prisma),

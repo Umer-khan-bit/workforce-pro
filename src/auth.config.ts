@@ -13,16 +13,14 @@ export const authConfig = {
   trustHost: true,
   providers: [],
   callbacks: {
-    jwt({ token, user, trigger, session }) {
+    // Copies the user's details into the token at sign-in (from authorize(), which read them from the
+    // database). Anything the browser sends later through session.update() is deliberately ignored:
+    // in particular mustChangePassword is re-read from the database on every request in auth.ts.
+    jwt({ token, user }) {
       if (user) {
         token.role = user.role;
         token.companyId = user.companyId;
         token.mustChangePassword = user.mustChangePassword;
-      }
-      if (trigger === "update" && session) {
-        token.mustChangePassword = Boolean(
-          (session as { mustChangePassword?: boolean }).mustChangePassword
-        );
       }
       return token;
     },
