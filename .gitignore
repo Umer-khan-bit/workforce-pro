@@ -48,3 +48,6 @@ next-env.d.ts
 
 # prisma
 /prisma/dev.db
+
+# Claude Code runtime lock (machine state, not project code)
+/.claude/scheduled_tasks.lock

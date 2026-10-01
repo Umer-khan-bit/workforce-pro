@@ -1,0 +1,3 @@
+# Keep every text file LF in the repository and in working copies, on every machine.
+# (Prisma hashes migration files byte for byte, so a stray CRLF makes an applied migration look modified.)
+* text=auto eol=lf

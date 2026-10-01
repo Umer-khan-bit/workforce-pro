@@ -171,6 +171,9 @@ email/notification templates, courses and lessons, homepage and privacy policy t
 - After each module: run tests, run the app, tell me exactly what to click to check it.
 - Explain errors and fixes in simple language. I am a product manager, not a developer.
 - Commit to Git after each working module with a clear message.
+- Line endings: every file is LF (`.gitattributes` enforces it). Write migration files with LF only: Prisma
+  hashes them byte for byte, so a stray CRLF makes an applied migration look modified. A test checks this.
+  Never edit a migration after it has been applied; add a new one.
 - If a requirement is unclear, ask me. Do not invent new features.
 - Keep the UI clean and professional: consistent colours, fonts and spacing across all screens.
 
