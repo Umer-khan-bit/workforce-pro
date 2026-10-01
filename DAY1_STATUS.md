@@ -1,6 +1,52 @@
-# Workforce Pro - status (Day 1 to Day 4, the fixes and the demo data)
+# Workforce Pro - status (Day 1 to Day 5, the fixes and the demo data)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 5: recruiter tools, billing, reports and notifications (done)
+
+Run the seed once (`npx prisma db seed`) to get the demo hiring data (already done on this laptop's database). Restart `npm run dev` after pulling this: there is a new migration.
+
+### What was built
+- **Recruiter candidate search.** Filters: job role, city, experience (from/up to), the weakest quartile accepted in IQ, EQ, Language and Job skill, and "Q1 in all tests". Sort: best overall, most experience, or by one test. Pages of results (size in Settings). The whole search sits in the address, so it can be bookmarked or shared.
+- **The offer.** Candidates are only shown when their minimum salary fits the offer: pick a job opening, or type "highest salary you can offer". With no offer nobody is shown. Recruiters never see anyone's minimum salary, phone or email.
+- **AI plain-language search.** "Accountants in Lahore with 3+ years and strong IQ" becomes filters, shown above the results as "AI understood: ...", with anything that could not be used listed. Needs the plan feature.
+- **Candidate detail report.** Quartile and percentile per test (always "based on N candidates"), CEFR, personality bars, shortlist and contact controls, and a **PDF** version. Every view is audit-logged.
+- **Shortlists.** Per job opening with a status pipeline (Shortlisted, Contacted, Interviewing, Offered, Hired, Rejected), a dated history, notes and removal. A contact request moves a shortlisted candidate to Contacted; a hire tells the company admins.
+- **Job openings.** Recruiters manage their own; company admins see and manage all in the company, with who created each. Plan limit shown and enforced.
+- **Contact requests.** Recruiter screen with Waiting / Accepted / Declined and dates; contact details appear only after the candidate accepts under **Recruiter requests** (built in Day 4).
+- **Plan features enforced everywhere** through one place (`entitlements.ts`, built on `hasFeature` / `featureLimit`): search, shortlist, contact and reports need "Access to all candidates"; Top Performers need "Exclusive access to Q1 scorers" (Basic companies see a count of how many they are missing, never who); AI search; shortlist and job-opening limits. A test fails if code ever compares a plan's name or code.
+- **Subscription checkout** with the simulated payment provider: start, upgrade, downgrade and renew, with credit for the unused part of the current plan, a clear order summary, **Pay** and **Simulate a failed payment**, a payment history, and plan-change notifications. The platform admin can also give a company a plan without payment.
+- **Platform admin:** **Companies** (list, a company's team, plan history and payments, give a plan), **Users** (filter, search, deactivate or activate, require a new password; a deactivated user is signed out at the next click; you cannot switch yourself off), **Payments** (ledger with totals and filters), **Reports**.
+- **Dashboards and reports with charts** for each role: candidates by city and by role, quartile distribution for each test, hiring funnel, time to hire (average and median), shortlisted and hired over time, revenue by month, new candidates and companies, companies by plan, openings by status, and recruiter activity. The period is selectable.
+- **Notifications for recruiters and company admins**: same screen as candidates, unread count in the sidebar. Recruiters: contact request answers. Company admins: new job openings, hires, plan changes, failed payments, plans about to end.
+- **Settings:** new Recruiter tools and Billing groups, a recruiter AI-search prompt, and four new message templates.
+
+### Tests
+- **Vitest: 646 passing** (was 521). **Playwright: 80 passing** (was 61). `tsc` clean, `eslint` 0 errors.
+- New coverage: search (rule, filters, sort, paging, plan hiding), shortlist and openings (limits, ownership, history), subscriptions (credit, upgrade, downgrade, renew, failure, trial, expiry warning), reports, AI search with a fake Claude (including an injected instruction), every new route, a scan for plan-name comparisons, a check that the demo hiring data obeys the rules, and end-to-end tests for search, plans, openings, shortlists, a contact request answered by a candidate, checkout, and every admin screen.
+- No test calls the real Claude API.
+
+### Decisions I made (change any of them)
+1. **Q1 exclusivity means Top Performers** (Q1 in every counted test). Basic plans do not see them anywhere (search, report, shortlist, contact) and only see how many match. Single-test Q1 scorers are visible to everyone.
+2. **The offer is the job opening's top salary**, or an amount typed in the search; without one nobody is shown. A candidate with no stated minimum fits every offer.
+3. **Shortlist limit counts the company's pipeline** (anyone not Hired or Rejected); job-opening limit counts OPEN openings company-wide.
+4. **Only recruiters shortlist.** Company admins can move, note and remove any shortlist entry in their company, and manage every opening.
+5. **Billing:** a plan lasts 30 days (setting); a change starts at once and replaces the old plan; unused paid time is credited (setting); a trial gives no credit; leftover credit is not refunded. No automatic renewal: the company admin renews at checkout, and is warned 7 days before the end (setting).
+6. **Candidate rankings in reports** count a candidate's latest result per test and leave out deleted accounts; recruiter reports use only candidates that fit their own offers.
+7. **Funnel** counts candidates who ever reached a stage; time to hire is shortlisting to the first "Hired", over hires in the selected period.
+8. **Search pool:** one search looks at up to 5,000 candidates before filtering by test results (setting), and says when it was cut.
+9. **Charts** are plain HTML/CSS (no chart library), each with a text table for screen readers.
+10. **Contact details** (email, phone) are shown to the recruiters of a company only after a candidate accepts that company's request.
+11. Not asked for, but needed: a "Give plan" action on the company page, and a "Require new password" action on users.
+
+### Not done / worth knowing
+- **No Git remote is configured, so nothing was pushed.** Add one (`git remote add origin <url>`) and I will push.
+- The monthly fairness report (module 12) is not built yet; it needs the Day 6 bias analysis.
+- ATS export, webhooks and API keys are Day 6; the `atsApiAccess` feature is already in the plans and in `entitlements.ts`.
+- Plans do not renew by themselves; with a real payment provider a renewal job would be added.
+- Emails go to the server console until SMTP is set up.
+
+---
 
 ## Day 3 part 2 and Day 4: results, salary guide, badge, training, notifications (done)
 

@@ -164,6 +164,41 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 - Contact requests: a recruiter sends one for an open job opening of their company; the candidate accepts or
   declines under "Recruiter requests"; the recruiter gets an in-app notification.
 
+## Recruiter tools, plans, billing and reports (decided)
+- Every recruiter search starts from the minimum-salary rule (`recruiterVisibleWhere`, see above) against the
+  **offer**: the top salary of a chosen job opening, an amount typed in the search, or by default the highest top
+  salary among the company's open openings. With no offer nobody is shown. Search (`src/lib/recruiter/search.ts`)
+  filters by role, city, experience and the weakest quartile accepted per test, "Q1 in all tests" means the
+  top-performer rule; sorting is best overall (mean percentile over the top-performer tests), experience, or one test.
+  The address holds the whole search; page size and pool size are Settings > Recruiter tools.
+- Plan features are read ONLY through `src/lib/recruiter/entitlements.ts` (built on `hasFeature` / `featureLimit`):
+  `allCandidates` = search, shortlist, contact and candidate reports; `q1Exclusive` = Top Performers (candidates who
+  meet the top-performer rule) are hidden from search, detail, shortlist and contact for plans without it (a count
+  of hidden ones is shown); `aiSearch`; `maxShortlists` (company-wide, entries in the pipeline that are not Hired or
+  Rejected); `maxJobOpenings` (company-wide, OPEN openings only); `atsApiAccess` (Day 6). No plan or an ended plan
+  means no features and a limit of 0. A test fails if any code compares a plan's name or code.
+- AI search sends only the request text and the lists of roles and cities to Claude. Its answer is validated
+  (`validateSearchReply`): roles and cities must exist, quartiles are clamped, anything else is dropped and shown to
+  the recruiter. Prompt in Settings > Advanced > AI prompts; the run is recorded without the request text.
+- Candidate detail report (page and PDF) goes through `getCandidateDetail`: plan, Top Performer access and the salary
+  rule are checked BEFORE the view is audit-logged; it never shows the minimum salary; phone and email appear only
+  after that company's request was accepted.
+- Shortlist = one entry per recruiter, candidate and job opening, with a dated status history (Shortlisted,
+  Contacted, Interviewing, Offered, Hired, Rejected). Sending a contact request moves a shortlisted candidate to
+  Contacted. A hire notifies the company admins. Recruiters change their own entries, company admins any in the company.
+- Job openings: recruiters manage their own, company admins every opening in the company. Openings and shortlists
+  have a plan limit that the server enforces.
+- Billing: `changePlan` (`src/lib/subscriptions.ts`) takes payment through the `PaymentProvider` (simulated in demo
+  mode) and starts the new plan immediately for one billing period (Settings > Billing). Unused paid time on the old
+  plan is credited against the new price when proration is on (a trial gives no credit). A failed payment is recorded
+  and changes nothing. A change that credit covers entirely is free and makes no Payment row. The platform admin can
+  also give a plan without payment. Company admins are warned before a plan ends (once per subscription).
+- Reports (`src/lib/reports`): funnel = how many shortlisted candidates ever reached each stage; time to hire = days
+  from shortlisting to the first Hired; charts are plain HTML/CSS (`src/components/charts`) with a table for screen
+  readers. Recruiter, company admin and platform admin each see their own scope. Deleted accounts are never counted.
+- Notifications exist for every role (sidebar count, same screen). Recruiters: contact request answers. Company
+  admins: new job openings, hires, plan changes, failed payments, plans about to end.
+
 ## Demo mode (DEMO_MODE=true)
 - Payments: full checkout flow with a simulated gateway (success/failure), no real money.
   Keep a `PaymentProvider` interface so PayFast/JazzCash can be plugged in later.
@@ -174,6 +209,9 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
   The demo results are summaries (sessions and scores, no answer rows, so no question gets locked), ranked
   across Q1-Q4 with the same code and settings the app uses; `candidate@demo.test` has Personality, IQ and EQ
   only, so Language and Job skill can still be taken live. 14 starter courses are added too.
+  Demo hiring (`prisma/seedDemoHiring.ts`): 9 job openings, about 70 shortlisted candidates moving through the
+  pipeline with dates over the last months, contact requests with answers, a payment history per company; it follows
+  the same rules as the app (salary fit, Top Performers only for plans with Q1 access, shortlist limits).
 
 ## No hardcoding
 Nothing business-related may be static or hardcoded. Every value an admin might want to change

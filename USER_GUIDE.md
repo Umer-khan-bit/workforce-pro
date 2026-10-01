@@ -1,6 +1,6 @@
 # Workforce Pro — User Guide (Guided Tour, Roman Urdu)
 
-> Yeh guide 2 Oct 2026 tak ke code ko dekh kar likhi gayi hai (Day 1 + Day 2 + Day 3 + Day 4 + account fixes mukammal).
+> Yeh guide 3 Oct 2026 tak ke code ko dekh kar likhi gayi hai (Day 1 se Day 5 tak + account fixes mukammal).
 > **✅ Working** = abhi chalta hai. **⏳ Coming soon** = abhi sirf placeholder page hai (heading ke saath "Placeholder" badge aur "Coming in a later build" list), jis Day mein banega woh likha hai.
 > Jahan build plan mein Day saaf nahi likha, wahan "andaza" likha hai.
 
@@ -129,9 +129,10 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 
 ---
 
-### 1.7 Companies ⏳ (Day 5 andaza — build plan mein din fix nahi)
-- **Kis liye:** Sab companies ki list, plan, recruiters, status; company ke andar drill down.
-- **Quick test:** Placeholder badge.
+### 1.7 Companies ✅
+- **Table:** Company, Plan (Trial/Active, kab tak), Recruiters, Job openings, Hires, Joined. Naam click = company page.
+- **Company page:** Plan, open openings, pipeline, hires; **Give a plan** (plan + din → bina payment foran lagu; pilot ya goodwill ke liye, audit log mein); **Team** (admin aur recruiters), **Plan history**, **Payments**.
+- **Quick test:** Kisi company par **Give plan** (Advanced, 45 din) → Plan history mein nayi row, company admin ko "is now on Advanced" notification.
 
 ### 1.8 Plans & subscriptions ✅
 - **Kis liye:** Plans banana, price rakhna, har plan mein kya milega.
@@ -143,9 +144,10 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Abhi ki values:** Basic PKR 15,000 (all candidates, 25 shortlists, 5 openings), Advanced PKR 40,000 (sab kuch, unlimited). **Prices placeholder hain.**
 - **Quick test:** Basic ka price 15000 → 18000 → Save → `companyadmin@demo.test` se login → Subscription & billing → Basic par 18,000 dikhe.
 
-### 1.9 Payments ⏳ (Day 5 — subscription checkout ke saath, demo gateway)
-- **Kis liye:** Payment ledger (subscription aur course), status, provider reference. Demo mode mein nakli gateway.
-- **Quick test:** Placeholder badge.
+### 1.9 Payments ✅
+- **Ledger:** har subscription aur course payment: tareekh, kis ne di (company ya candidate), kis ke liye, amount, status (Paid/Failed), provider (demo mein simulated), reference.
+- **Upar ke numbers:** Subscriptions collected, Courses collected, Paid, Failed. **Filters:** For (Subscriptions/Courses), Status.
+- **Quick test:** Company admin se checkout karwayen (success aur failure) → yahan dono rows.
 
 ### 1.10 Pilot mode ✅ (save hota hai, enforce Day 6 mein)
 - **Kis liye:** Platform ko sirf ek company tak mehdood karna.
@@ -184,11 +186,17 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 
 - **Quick test (sab se acha):** Cities mein "Sukkur", Region "Sindh", Active → Add → logout → `/signup` → Region Sindh chunein → City dropdown mein **Sukkur** nazar aaye. Active uncheck karein → gayab ho jaye.
 
-### 1.14 Users ⏳ (andaza Day 5–6)
-- **Kis liye:** Chaaron roles ke tamam accounts search, deactivate/reactivate.
+### 1.14 Users ✅
+- **Filters:** Role, Status, Search (naam, email ya company). 25 per page.
+- **Har row:** naam/email, role, company (link), status, "New password required", "Email not confirmed", joined.
+- **Actions:** **Deactivate / Activate** (deactivate hote hi us ka agla click login par bhej deta hai), **Require new password** (agle login par password badalna paray ga). Apna account deactivate nahi ho sakta; aakhri active platform admin bhi nahi. Delete ho chuke candidate accounts par koi action nahi.
+- **Quick test:** `recruiter.usman@demo.test` search karein → Deactivate → us ki window mein kisi page par click → login page; wapas Activate.
 
-### 1.15 Reports ⏳ (Day 5)
-- **Kis liye:** Platform metrics aur monthly fairness report, charts ke saath.
+### 1.15 Reports ✅
+- **Period:** Last 30/90/180/365 days.
+- **Numbers:** Candidates (delete shuda shamil nahi), Companies, Hires (aur average time to hire), Revenue.
+- **Charts:** hiring funnel, time to hire, shortlisted vs hired over time, revenue by month (subscriptions aur courses), companies by plan, new candidates, new companies, job openings by status, candidates by city, by job role, aur har test ka quartile distribution.
+- Monthly fairness report abhi nahi (Day 6 ke bias analysis ke baad).
 
 ### 1.16 Audit log ⏳ (andaza Day 6 — log abhi bhi database mein likha ja raha hai, sirf screen nahi)
 - **Kis liye:** Admin actions aur har recruiter ki candidate profile view ka searchable record.
@@ -261,20 +269,27 @@ Menu: Dashboard → Recruiters → Job openings → Subscription & billing → R
 - **Asar:** Naya recruiter jab pehli dafa login kare to use **Change password** page par zabardasti bheja jata hai. Deactivate karte hi uska session foran khatam — agla click login page. Dashboard ka "Active recruiters" aur admin dashboard ka "Recruiters" count badalta hai. Sirf apni company ke recruiters nazar aate hain.
 - **Quick test:** "Test Rec", `testrec@demo.test` → Add → temporary password copy → logout → us se login → Change password page aaye → naya password → `/recruiter` dashboard. Wapas company admin → Deactivate → recruiter wali window mein click → login page.
 
-### 2.3 Job openings ⏳ (Day 5)
-- **Kis liye:** Company ki saari job openings aur unka status; kisi bhi recruiter ki opening manage karna.
+### 2.3 Job openings ✅
+- **Company ki saari openings** (kis ne banai, status, shortlisted, requests); **New job opening** (role, title, city, lowest salary, **highest salary jo aap de sakte hain**, status); **Edit**, **Delete** (jis opening par shortlist ya request ho woh delete nahi hoti — Closed kar dein).
+- Upar likha hota hai plan ka limit ("2 of 5 open job openings used"). Limit sirf **Open** openings par lagta hai, poori company mein.
+- **Quick test:** Basic company (`admin.lahore@demo.test`) mein limit tak openings banayen → agli par error "Your plan allows 5 open job openings...".
 
-### 2.4 Subscription & billing ✅ (checkout Day 5)
-- **Kis liye:** Mojooda plan aur upgrade options.
+### 2.4 Subscription & billing ✅
 - **"Current plan" card:** plan ka naam, trial/end date.
-- **"Upgrade plan" cards:** har active plan — naam, price/month, description, features ("Access to all candidates", "Maximum shortlisted candidates: Up to 25" / "Unlimited"…) aur button **"Choose Basic/Advanced"** ya **"Your current plan"**. **Buttons abhi band (disabled)** hain — checkout Day 5 mein demo payment ke saath.
-- **Asar:** Sab kuch admin ke **Plans & subscriptions** se aata hai.
-- **Quick test:** Admin mein ek plan ka Active uncheck → yahan woh card gayab ho.
+- **Plans:** har active plan — naam, price (per 30 din), features, aur button: **Choose / Upgrade to / Switch to / Renew** (saath mein jo abhi dena hai, ya "free").
+- **Checkout:** order summary — plan price, **credit** (purane paid plan ka bacha hua waqt), **To pay now**, aur naya plan kab tak. Demo mein **Pay** ya **Simulate a failed payment** — koi asli paisa nahi. Fail hone par plan nahi badalta aur payment "Failed" likhi jati hai; dobara try kar sakte hain. Agar credit poori qeemat cover kar le (downgrade) to change free hai aur payment row nahi banti.
+- **Payments:** is company ki payment history. Plan badalne par admins ko notification; plan khatam hone se 7 din pehle warning.
+- **Asar:** Plans aur features sab admin ke **Plans & subscriptions** se.
+- **Quick test:** `admin.lahore@demo.test` → Advanced par **Upgrade to** → pehle failed payment, phir Pay → "Your plan has been updated"; recruiter ab Top Performers aur AI search dekh sakta hai.
 
-### 2.5 Reports ⏳ (Day 5) — recruiter activity, shortlist metrics, export.
+### 2.5 Reports ✅
+- Period chunen (30/90/180/365 din). Numbers: shortlisted, hires (average days), open openings (plan limit ke saath), shortlist places used.
+- Charts: hiring funnel (poori company), time to hire, shortlisted vs hired over time, openings by status, aur "Candidates that fit your company's offers" (city, role, quartiles).
+- **Recruiter activity** table: har recruiter ne kitne shortlist kiye, requests bhejin, hires, open openings.
+
 ### 2.6 ATS & webhooks ⏳ (Day 6) — ATS connection (demo mein mock ATS), webhook endpoints, signing secret, delivery log.
 ### 2.7 API keys ⏳ (Day 6) — labelled keys (sirf ek dafa dikhengi, hashed save), last used, revoke.
-### 2.8 Notifications ⏳ (andaza Day 4–5) — in-app + email alerts.
+### 2.8 Notifications ✅ — naya job opening, hire, plan change, failed payment, plan khatam hone wala; sidebar mein unread count, **Mark as read / Mark all as read**.
 
 ### 🧭 Company admin — flow story
 Company **Company sign-up** se aati hai aur foran trial plan par hoti hai. Admin dashboard par trial ke din dekhta hai, **Recruiters** mein apni team add karta hai aur temporary password share karta hai; koi chala jaye to Deactivate. **Subscription & billing** mein plans compare karta hai (Day 5 se pay karke upgrade). Day 5–6 ke baad company-wide job openings, reports, ATS/webhooks aur API keys yahin se chalayega.
@@ -287,19 +302,39 @@ Company **Company sign-up** se aati hai aur foran trial plan par hoti hai. Admin
 
 Menu: Dashboard → Candidate search → Job openings → Shortlists → Contact requests → Reports → ATS export → Notifications.
 
-### 3.1 Dashboard ✅
+### 3.1 Dashboard ✅ (ab charts ke saath: funnel, matching candidates by city)
 - **Stats:** **Company** (city), **Company plan**, **Candidates on the platform**. Neeche module cards.
 - Email confirm na ho to upar **"Please confirm your email address"** banner + **Send the link again**.
 - **Quick test:** Candidate count platform admin dashboard ke "Candidates" ke barabar ho.
 
-### 3.2 Candidate search ⏳ (Day 5)
-Job role, city, experience, salary, har test ka quartile, "Q1 in all tests" (sirf jis plan mein Q1 access ho), AI plain-language search (plan feature), sirf woh candidates jin ki minimum salary offer mein fit ho, candidate detail report (har view audit log). Deleted/anonymised candidates nazar nahi aayenge.
-### 3.3 Job openings ⏳ (Day 5) — opening banana; Open / Pause / Fill / Close. Limit plan se (Basic 5).
-### 3.4 Shortlists ⏳ (Day 5) — candidate add/remove, detail report. Limit plan se (Basic 25).
-### 3.5 Contact requests ⏳ (Day 5) — offer ke saath request (opening optional); offer candidate ki minimum salary se kam ho to **block**; Sent / Accepted / Declined tracking. Email confirm hona zaroori.
-### 3.6 Reports ⏳ (Day 5) — recruiter metrics, shortlist activity (charts).
+### 3.2 Candidate search ✅
+- **Offer:** upar **Job opening** chunen ya **Highest salary you can offer** likhen. Sirf woh candidates nazar aate hain jin ki minimum salary is offer mein fit ho (jin ne minimum nahi likhi woh har offer mein). Offer ke baghair koi candidate nahi. Candidate ki minimum salary, phone aur email aap ko kabhi nahi dikhte (accept ke baad contact details).
+- **Filters:** Job role, City, Experience (from/up to), har test (IQ, EQ, Language, Job skill) ka quartile (Q1 only / Q2 or better / Q3 or better), **Q1 in all tests (Top Performers)**. **Sort:** Best overall, Most experience, ya kisi ek test se. **Search / Clear**; neeche Previous/Next.
+- **Plan features:** "Access to all candidates" ke baghair search band (wajah likhi hoti hai). **Top Performers** sirf "Exclusive access to Q1 scorers" wale plan ko; Basic ko "1 Top Performer matches this search but is only open to plans with exclusive Q1 access". **AI search** sirf is feature wale plan ko.
+- **AI search:** likhen "accountants in Lahore with at least 3 years and strong IQ" → **Search with AI** → "AI understood: ..." (jo samajh na aaya woh bhi likha hota hai) → filters lag kar results.
+- **Har row:** naam (detail link), role, city, experience, chaaron quartiles, Overall (average percentile), **Shortlist** (opening chun kar).
+- **Candidate detail (naam par click):** har test ka quartile aur "Better than X% of N candidates", CEFR, personality bars, shortlist aur contact, **Download PDF report**. Har view audit log mein.
+- **Quick test:** `recruiter@demo.test` (Advanced) → Candidate search: offer likhen 90000 → Job role Accountant + Q1 only IQ → ek candidate kholen → Shortlist → Download PDF report.
+
+### 3.3 Job openings ✅
+- Aap ki apni openings: **New job opening**, **Edit**, **Delete**; status Open / Paused / Filled / Closed. Limit plan se (Open openings, company-wide). **Highest salary** hi woh offer hai jis se candidates dikhte hain.
+
+### 3.4 Shortlists ✅
+- Opening ke hisaab se candidates. Upar **pipeline summary** (Shortlisted, Contacted, Interviewing, Offered, Hired, Rejected). Har candidate par: stage dropdown (har badlao ki tareekh), **note**, **Dates** (poori history), **Remove**.
+- Contact request bhejte hi shortlisted candidate **Contacted** ho jata hai. **Hired** par company admin ko notification.
+- Limit: plan ka "Maximum shortlisted candidates" (Hired/Rejected ginay nahi jate); limit par error batata hai kya karna hai.
+- **Quick test:** Shortlists → ek candidate ko Contacted → Interviewing → Hired; **Dates** kholen.
+
+### 3.5 Contact requests ✅
+- Candidate detail se **Send contact request** (opening chun kar, message optional). **Server par** check hota hai: offer candidate ki minimum se kam ho to request nahi banti ("This candidate is not available"); Top Performer aur plan ke rules; email confirm.
+- **Contact requests page:** Waiting / Accepted / Declined, bhejne aur jawab ki tareekh; **accept ke baad** hi candidate ka email aur phone.
+- Candidate **Recruiter requests** mein Accept/Decline karta hai; aap ko notification.
+
+### 3.6 Reports ✅
+- Period chunen. Shortlisted, Hired, Requests sent (kitni accepted), Open openings; hiring funnel, time to hire, activity over time, aur "Candidates that fit your offers" (city, role, quartiles).
+
 ### 3.7 ATS export ⏳ (Day 6) — shortlisted candidates mock ATS mein push, CSV/Excel export (plan mein "ATS and API access" chahiye).
-### 3.8 Notifications ⏳ (andaza Day 4–5).
+### 3.8 Notifications ✅ — contact request accept/decline; sidebar mein unread count.
 
 ### 🧭 Recruiter — flow story
 Company admin recruiter banata hai → recruiter login karke password badalta hai → dashboard par company aur plan dekhta hai. Day 5 ke baad: **Candidate search** mein role/city/quartile se filter → acche candidates **Shortlist** → kisi **Job opening** ke liye offer ke saath **Contact request** → candidate accept kare to aage baat → Day 6 se **ATS export** se apne ATS mein bhej deta hai. Plan jitna bara, utne features (Q1 access, AI search, zyada shortlists).
