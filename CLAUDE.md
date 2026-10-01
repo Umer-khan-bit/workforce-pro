@@ -122,6 +122,48 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
   region, language). Flagged items go to admin review; they are never deleted automatically.
 - AI never makes hiring decisions. It only scores, ranks and recommends.
 
+## Results, salary guide, training and notifications (decided)
+- My results shows the candidate's latest result for each test (quartile, "better than X% of N candidates",
+  CEFR level, personality traits). AI feedback and improvement tips are written by Claude once per result and
+  saved (`AIFeedback.scoreId`), so a result is only ever sent once and a retake gets fresh feedback. Only the
+  test, result, job role, experience and per-topic accuracy are sent: never the name, email, phone, city or
+  salary. The prompt is in Settings > Advanced > AI prompts, the model and tip count in Settings > Advanced >
+  AI feedback. Candidates see "Feedback is not available right now" when AI is not set up (never `.env` details).
+- The PDF report (`/api/results/report`) is built from the same data, with whatever feedback exists (it writes
+  missing feedback first, best effort). Text the PDF fonts cannot draw (for example Urdu) becomes "?".
+- Salary guide (`src/lib/salary/guide.ts`): market line min / average / max for role, city and experience band
+  from the salary benchmarks (average of all cities when the city has no figure). The candidate's quartiles in
+  the counted tests give points (Q1..Q4 from Settings > Salary guide); the points, blended with "how much results
+  move the range", place the candidate on the market line; the suggestion is as wide as the settings say, kept
+  inside the market range. All numbers, the counted tests, rounding and the disclaimer are Settings.
+- Minimum salary threshold lives in ONE place: `src/lib/recruiter/candidateAccess.ts`. Any query that shows
+  candidates to a recruiter or company admin must start from `recruiterVisibleWhere(offerMax)` (not anonymised,
+  consent given, user active, minimum at or below the offer; no stated minimum fits any offer), read candidates
+  through `RECRUITER_CANDIDATE_SELECT` (never the minimum salary, phone or email), and every contact goes through
+  `createContactRequest` (`src/lib/recruiter/contactRequests.ts`), which enforces the rule on the server and
+  answers "not available" identically for a missing candidate and a too-high minimum, so a minimum cannot be
+  probed. The offer is the job opening's top salary. A recruiter sees only that the offer fits.
+  `viewCandidateAsRecruiter` writes the audit entry every recruiter profile view needs.
+- Top performer is checked after every stored result (`evaluateTopPerformer`, called from `finalizeSession` and
+  `regradePending`, outside the transaction). The rule is Settings > Top performer. The badge is awarded once and
+  stays; the recognition email and in-app notification come from message templates. Quartiles are fixed when a
+  result is stored (they are not recomputed as other candidates join).
+- Training: courses (free or paid, general or for one job role, optionally tied to a test) are managed by the
+  platform admin. Candidates only see general courses and those for their own job role. Paid courses go through
+  the `PaymentProvider` interface (`src/lib/payments/provider.ts`): the simulated gateway exists only in demo mode
+  and lets the person choose success or failure; a failed payment is recorded and enrols nobody. Lesson text is
+  visible only to enrolled candidates. Finishing a course for a test lets the candidate retake that test without
+  waiting (Settings > Training), but only if the course was finished after their last attempt.
+- Course recommendations: weak areas are results at or below a quartile in Settings > Training (never
+  Personality). Claude picks and explains courses (only ids it was given are accepted); if AI is unavailable
+  simple rules are used. Saved per candidate and refreshed when a newer result exists.
+- Notifications: `notifyUser` (`src/lib/notifications.ts`) sends from a message template: an IN_APP template
+  becomes a notification, an EMAIL template is emailed (console when SMTP is not set up) and a record is kept.
+  It never throws. Switched-off templates send nothing. Candidates have a notification centre with an unread
+  count; recruiters and company admins get theirs on Day 5.
+- Contact requests: a recruiter sends one for an open job opening of their company; the candidate accepts or
+  declines under "Recruiter requests"; the recruiter gets an in-app notification.
+
 ## Demo mode (DEMO_MODE=true)
 - Payments: full checkout flow with a simulated gateway (success/failure), no real money.
   Keep a `PaymentProvider` interface so PayFast/JazzCash can be plugged in later.
@@ -129,6 +171,9 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
 - Salary data: seeded sample benchmarks by role, city and experience. Keep it replaceable.
 - Seed data: 4 job roles (Accountant, Sales, Customer Service, IT Support), English + Urdu,
   60+ sample candidates with completed tests, 3 companies, recruiters on both plans.
+  The demo results are summaries (sessions and scores, no answer rows, so no question gets locked), ranked
+  across Q1-Q4 with the same code and settings the app uses; `candidate@demo.test` has Personality, IQ and EQ
+  only, so Language and Job skill can still be taken live. 14 starter courses are added too.
 
 ## No hardcoding
 Nothing business-related may be static or hardcoded. Every value an admin might want to change
@@ -161,6 +206,9 @@ email/notification templates, courses and lessons, homepage and privacy policy t
   stored. Links use `APP_BASE_URL` from the environment, never the request's Host header.
 - Email verification: unverified users can log in and see a banner, but must not take tests or contact
   candidates. Every such route must call `requireVerifiedEmail()` (`src/lib/emailVerification.ts`).
+- Forced password change: a signed-in user with `mustChangePassword` is refused on EVERY API route (403
+  `PASSWORD_CHANGE_REQUIRED`) except change-password and the Auth.js routes. This is one rule in the proxy
+  (`src/lib/passwordGate.ts`, matcher `/api/:path*`), so new routes are covered without calling anything.
 - Account deletion anonymises a candidate (personal data erased, test statistics kept, audit event kept).
   Candidate search, shortlists, cohorts and exports must skip profiles where `anonymisedAt` is set.
 

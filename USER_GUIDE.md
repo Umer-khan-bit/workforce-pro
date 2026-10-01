@@ -1,6 +1,6 @@
 # Workforce Pro — User Guide (Guided Tour, Roman Urdu)
 
-> Yeh guide 30 Sep 2026 tak ke code ko dekh kar likhi gayi hai (Day 1 + Day 2 + account fixes mukammal).
+> Yeh guide 2 Oct 2026 tak ke code ko dekh kar likhi gayi hai (Day 1 + Day 2 + Day 3 + Day 4 + account fixes mukammal).
 > **✅ Working** = abhi chalta hai. **⏳ Coming soon** = abhi sirf placeholder page hai (heading ke saath "Placeholder" badge aur "Coming in a later build" list), jis Day mein banega woh likha hai.
 > Jahan build plan mein Day saaf nahi likha, wahan "andaza" likha hai.
 
@@ -102,7 +102,8 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
   - **Reject** → "Reason (optional)" box → **Confirm reject / Cancel**. Sawal delete nahi hota, "Rejected" mark hota hai.
 - **Bulk:** **Select all on this page** · **Include questions flagged by the AI review** · **Approve selected (n)**. Flagged sawal tab tak chhod diye jate hain jab tak checkbox tick na ho (message batata hai kitne chhode).
 - **"Translate the personality items" panel:** **Translate into** (language chunein, e.g. Urdu) → **Translate N items**. 50 IPIP sawal Urdu mein bante hain (trait aur reverse-keying same), back-translation aur AI check notes ke saath, sab Pending. Kharcha ~10 cents. **Abhi tak chalaya nahi gaya.**
-- **Pehle se pade hue:** 5 AI IQ sawal (live test se) — approve/reject aap ko karna hai.
+- **"Translations that need updating" panel (peela):** Jab kisi English sawal ka **naya version** banta hai to uske Urdu translations yahan aa jate hain: translation, "English was" aur "English now". Woh tab tak chalte rehte hain jab tak naye wording ka translation approve na ho (phir purana khud retire ho jata hai). **Translate** panel naye English version ko dobara translate kar deta hai; ya yahan **Retire this translation** dabayen.
+- **Pehle se pade hue:** AI se bane Pending sawal (IQ, EQ, Language, Skill) — approve/reject aap ko karna hai.
 - **Quick test:** Ek sawal Reject karein reason "test" ke saath → Question bank mein Status filter "Rejected"/Any par woh reason ke saath nazar aaye; ek aur Approve → Question bank mein Approved.
 
 ---
@@ -154,8 +155,13 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 
 ---
 
-### 1.11 Courses ⏳ (Day 4 — training ke saath)
-- **Kis liye:** Free/paid courses banana, job roles se jorna. (Tables database mein hain, screen nahi.)
+### 1.11 Courses ✅
+- **Kis liye:** Training catalogue: free/paid courses aur unke lessons.
+- **Table:** Course, Price, Role, Helps with, Lessons, Learners, Status. Course ka naam click = edit page.
+- **Add a course:** Title, Description, **Job role** (General = sab ko dikhe), **Helps with test** (recommendations aur "training ke baad retake" ke liye), **Pricing** (Free/Paid + price), **Active** → **Create course**.
+- **Edit page:** details badal kar **Save course**; **Lessons**: **Add lesson** (title, text, minutes), **Up/Down** se order, **Edit**, **Delete** (jis lesson par candidates kaam shuru kar chuke hon woh delete nahi hota). **Delete course** do dafa poochta hai; jis course mein candidates hon woh delete nahi hota — **Active** hata kar chhupa dein.
+- 14 starter courses demo mein pehle se hain (har test ke liye, aur har role ke liye ek free + ek paid).
+- **Quick test:** Course banayen (Paid, 1500) → 2 lessons add karein → candidate se Training mein dikhe → Active hata dein → candidate ke catalogue se ghayab.
 
 ### 1.12 Salary benchmarks ✅
 - **Kis liye:** Salary guide ke peeche ka data.
@@ -200,7 +206,9 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 | **Accounts & trials** | Plan new companies start on (plans list ya "No plan"), Free trial length (days), Password reset link lasts (minutes), Email confirmation link lasts (hours) | Company signup ka trial; forgot-password aur verify-email links |
 | **Currency** | Currency code (PKR), Number format (en-PK) | Har jagah paise ka format (plans, salary) |
 | **Quartiles** | Q1 = top ...%, Q2, Q3, Minimum candidates in a job role (30) | Day 3 scoring |
-| **Top performer** | Quartile needed (1), Tests that must all reach it (IQ, EQ, Language, Skill ticked) | Day 4 badge + email |
+| **Top performer** | Quartile needed (1), Tests that must all reach it (IQ, EQ, Language, Skill ticked) | Badge + email + notification (har result ke baad check) |
+| **Salary guide** | Results kitna range hilate hain (%), Range ki chaurai (%), Q1–Q4 ke points, Kaun se tests ginay jayen, Round to, Disclaimer | Candidate ka Salary guide aur PDF report |
+| **Training** | Kitne courses recommend hon, Weak area kis quartile se, Course ke baad foran retake (Yes/No) | Training recommendations aur retake |
 | **Question pool targets** | Har test ka target number | Question bank ki laal/amber coverage |
 
 **Advanced tabs** (sirf jab pata ho kya kar rahe hain)
@@ -209,7 +217,8 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 | **Question defaults** | Discrimination (a), Easy/Medium/Hard difficulty (b) | Naye sawalon ki starting values (Day 3 adaptive test) |
 | **Self-learning** | Answers needed before recalibrating (200), Too easy / Too hard rate, Low discrimination, Possible bias gap | Day 6 item analysis |
 | **AI generation** | Writer model, Review model, Thinking effort, Max reply length, Questions per batch, Most questions in one run, EQ % situational, Language % writing, 4 prices (cost estimate ke liye) | Generate with AI page |
-| **AI prompts** | Shared system prompt, har test ka instruction, review/translation prompts (har box ke neeche allowed placeholders) | Claude ko kya kaha jata hai |
+| **AI feedback** | Model, Thinking effort, Max reply length, Improvement tips per test, Feedback length (words) | Candidate ke result ka feedback aur course recommendations |
+| **AI prompts** | Shared system prompt, har test ka instruction, review/translation prompts, **Candidate result feedback**, **Course recommendations** (har box ke neeche allowed placeholders) | Claude ko kya kaha jata hai |
 
 - **Quick test:** Branding → rang badal kar Save → kisi bhi page par refresh → buttons naye rang mein. Homepage → Headline badlen → logout → home page par naya headline.
 
@@ -310,12 +319,34 @@ Menu: Dashboard → Assessments → My results → Badges → Salary guide → T
 
 ### 4.2 Assessments ⏳ (Day 3)
 Personality (Big Five, 50 sawal), EQ, adaptive IQ, Language (region ke hisaab se, ek writing task CEFR A1–C2), Skill (apne job role ke sawal). 10–15 min, progress save, resume. Sawal sirf admin ke **Approved** bank se; rules admin ke **Test settings** se.
-### 4.3 My results ⏳ (Day 4) — har test ka score, percentile, quartile (Q1 = top 25%), AI feedback aur tips, report download.
-### 4.4 Badges ⏳ (Day 4) — IQ, EQ, Language, Skill chaaron mein Q1 = Top Performer badge + email (template admin se).
-### 4.5 Salary guide ⏳ (Day 4) — scores + experience + role + city se range (admin ke Salary benchmarks se).
-### 4.6 Training ⏳ (Day 4) — free/paid courses, progress, AI recommendations, training ke baad retake.
-### 4.7 Recruiter requests ⏳ (Day 5) — kaun contact karna chahta hai, **Accept / Decline**. Sirf woh offers aayenge jo aap ki minimum salary ke barabar ya zyada hon.
-### 4.8 Notifications ⏳ (andaza Day 4–5).
+### 4.3 My results ✅
+- **Har test ka card:** quartile (**Q1** = top 25%), "Better than 63% of 64 candidates (top 37%)" — hamesha likha hota hai kitne candidates par based hai (kam hon to warning), Language par **CEFR level**, Personality par 5 traits ki bars (Emotional Stability: high = calm; Personality ki ranking nahi hoti).
+- **Feedback and how to improve:** AI likhta hai (pehli dafa kholne par "Writing your feedback…"), phir save ho jata hai — dobara paise nahi lagte. AI ko sirf test, result, job role, experience aur topic-wise accuracy bheji jati hai — **naam, email, phone, city, salary kabhi nahi**. AI available na ho to "Feedback is not available right now" + **Try again**.
+- **Download PDF report** (upar) — saare results, traits, feedback, tips, badge, salary guide aur disclaimer ek PDF mein.
+- Neeche **Test summary** aur **Test details and retake** links.
+- **Quick test:** `candidate@demo.test` → My results → Personality, IQ, EQ ke cards (Language/Skill abhi liye nahi) → feedback aane tak intezar → **Download PDF report**.
+### 4.4 Badges ✅
+- **Top Performer:** IQ, EQ, Language aur Skill chaaron mein Q1 (admin Settings > Top performer se badal sakta hai). Har test ke saamne "Q1 - reached" / "Q3 - not there yet" / "Not taken yet" aur link.
+- Jis lamhe rule poora hota hai (har result save hone ke baad check): badge + **recognition email** + **in-app notification**. Badge ek dafa milta hai aur rehta hai.
+- **Demo mein:** 7 seeded candidates ke paas badge hai. Apna test: ek naya candidate signup karke (ya admin Settings mein rule dheela karke) dekhein.
+### 4.5 Salary guide ✅
+- **Suggested monthly range** (e.g. PKR 70,000 to PKR 90,000) + bar jo market low / average / high dikhati hai.
+- **Kaise bana:** aap ke role + city + experience band ka benchmark (city na ho to sab shehron ka average — likha hota hai), phir aap ke quartiles (Q1 = upar, Q4 = neeche) range ko upar/neeche khisakate hain. Sab numbers admin ki **Settings > Salary guide** se.
+- **Your minimum salary:** aap ki minimum range ke neeche / andar / upar — recruiters sirf woh offers dekh/bhej sakte hain jo aap ki minimum ke barabar ya zyada hon.
+- Profile adhoori ho to "Complete your profile" (job role, city, experience chahiye). Neeche disclaimer.
+### 4.6 Training ✅
+- **Recommended for you:** weak areas (Q3/Q4 wale tests) ke hisaab se AI courses chunta hai aur wajah likhta hai (AI na chale to simple rules). Naye result ke baad khud refresh hota hai; **Refresh** button bhi hai.
+- **My courses:** progress bar (% done), "Completed", aur "Retake your … test" link.
+- **All courses:** sirf General aur aap ke apne job role ke courses (aur jo aap ne abhi join nahi kiye).
+- **Course page:** free → **Join this course**; paid → **Buy for PKR …** → **Checkout**: order summary, **Pay** ya (demo mein) **Simulate a failed payment** — koi asli paisa nahi. Fail hone par course nahi milta aur dobara try kar sakte hain; payment ledger mein (Success/Failed) likha jata hai. Join ke baad lessons khulte hain: har lesson kholen, **Mark as done**; aakhri lesson par "You completed this course" + notification.
+- **Training ke baad retake:** jis test ke course ko aap ne **apne aakhri attempt ke baad** mukammal kiya, woh test intezar ke baghair dobara de sakte hain (admin Settings > Training se band bhi kar sakta hai).
+- **Quick test:** Training → koi free course Join → 2 lessons done → Notifications mein "You joined …" aur "You completed …"; phir paid course → Checkout → "Simulate a failed payment" (error) → **Pay** (lessons khul jayen).
+### 4.7 Recruiter requests ✅ (recruiter ki taraf ka screen Day 5)
+- Recruiter ki request yahan aati hai: company, role/city, message, **Waiting for you**. **Accept** / **Decline** (ek hi dafa). Aap ka phone/email accept se pehle private rehta hai, aur aap ki minimum salary recruiter ko kabhi nahi dikhti.
+- **Salary rule server par:** recruiter ki opening ki top salary aap ki minimum se kam ho to request ban hi nahi sakti (wohi jawab jo "candidate nahi mila" ka hota hai, taake koi minimum andaza na laga sake).
+### 4.8 Notifications ✅
+- Sidebar mein unread count. List: title, text, waqt, **Open** (related page), **Mark as read**, **Mark all as read**. Email wali notifications alag record hoti hain, list mein nahi.
+- Kab aati hain: Top Performer badge, course join/complete, course recommendation, recruiter request, test reminder (demo mein 2 Ayesha ke liye).
 
 ### 4.9 Profile & privacy ✅
 **"Your details"**
@@ -333,7 +364,7 @@ Personality (Big Five, 50 sawal), EQ, adaptive IQ, Language (region ke hisaab se
 - **Quick test:** City Lahore → Karachi (region Sindh) → Save → "Saved (city, region updated)" → Dashboard par Location Karachi. Delete ka test **naye test account** par karein, demo account par nahi.
 
 ### 🧭 Candidate — flow story
-Candidate home page se **Sign up** karta hai (role, city, minimum salary, consent) → khud login ho kar dashboard par aata hai → email ka link click karke confirm karta hai. Day 3 se **Assessments** deta hai → Day 4 se **My results** mein quartile aur AI feedback, **Salary guide**, **Training** aur Top Performer **Badge** → Day 5 se recruiters use dhoondte hain aur **Recruiter requests** mein offers aate hain jinhein woh accept/decline karta hai. Kabhi bhi **Profile & privacy** se details badal ya account delete kar sakta hai.
+Candidate home page se **Sign up** karta hai (role, city, minimum salary, consent) → khud login ho kar dashboard par aata hai → email ka link click karke confirm karta hai. **Assessments** deta hai → **My results** mein quartile aur AI feedback (PDF report bhi), **Salary guide**, **Training** aur Top Performer **Badge** → Day 5 se recruiters use dhoondte hain aur **Recruiter requests** mein offers aate hain jinhein woh accept/decline karta hai. Kabhi bhi **Profile & privacy** se details badal ya account delete kar sakta hai.
 
 ---
 

@@ -1,6 +1,58 @@
-# Workforce Pro - status (Day 1, Day 2, the no-hardcoding fix, the account fixes, Day 3 part 1 and the fix batch)
+# Workforce Pro - status (Day 1 to Day 4, the fixes and the demo data)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 3 part 2 and Day 4: results, salary guide, badge, training, notifications (done)
+
+Two fixes first, then the build. Run the seed once (`npx prisma db seed`) to get the demo results and courses (already done on this laptop's database).
+
+### The two fixes
+1. **Every API route now blocks users who must change their password.** One rule in the proxy (`/api/:path*`, `src/lib/passwordGate.ts`): a signed-in user with a temporary password gets 403 `PASSWORD_CHANGE_REQUIRED`, except on change-password and the Auth.js sign-in/sign-out/session routes (and the emailed-link routes under `/api/auth`). Routes added later are covered automatically. Tests: unit tests, a test that walks every route file, and an end-to-end test that calls APIs as such a user.
+2. **A new version of an English question marks its translations as needing a new translation.** They appear in Approvals in a yellow panel (translation, "English was", "English now"). They stay in use until the replacement is approved (then the old one retires itself), or you retire one by hand. The **Translate** button now also picks up the new English version.
+
+### What was built
+- **Demo results (Day 3 part 2).** 64 demo candidates have completed sessions and scores (307 tests): IQ, EQ, Language and Job skill ranked with the app's own code and your quartile settings, about 60 in each of Q1 to Q4 per test; Personality has traits only. 7 candidates are Top Performers (badge and in-app notification). Language results have a CEFR level and a graded writing sample. `candidate@demo.test` has Personality, IQ and EQ only, so she can still take Language and Job skill live. These are summaries: no answer rows, so no question gets locked.
+- **My results.** Quartile, "better than X% of N candidates", CEFR, personality bars, AI feedback and tips per test (written by Claude on first view, then saved), links to the summary and retake. **Download PDF report** (scores, traits, feedback, tips, badge, salary guide, disclaimer).
+- **Salary guide.** Market range for role, city and experience band from the benchmarks (average of all cities if the city has no figure), moved up or down by the candidate's quartiles; compares the candidate's own minimum. Every number is in Settings > Salary guide.
+- **Minimum salary rule, in one place** (`src/lib/recruiter/candidateAccess.ts`). Recruiters only see and contact candidates whose minimum is at or below the offer (the job opening's top salary); no stated minimum fits any offer; deleted, non-consenting and inactive candidates are never shown; recruiters never read the minimum, phone or email. A test fails if recruiter-facing code reads candidates any other way. The recruiter dashboard count now follows the rule (it used to count everyone, including deleted accounts).
+- **Contact requests.** A recruiter (or company admin) can send a request for an open job opening of their company (API; the screen comes with Day 5). The server enforces the salary rule and email confirmation; the answer is identical for a missing candidate and a too-high minimum. The candidate sees it under **Recruiter requests**, accepts or declines once, and the recruiter gets an in-app notification.
+- **Top performer.** Checked after every stored result, using Settings > Top performer. Badge once (kept), recognition email and in-app notification from the message templates. **Badges** page shows progress per test.
+- **Training.** Admin: **Courses** (create, edit, price, role, test, active; lessons with text, minutes, order; guarded deletes). Candidate: **Training** with recommendations, My courses, All courses; join a free course, or buy a paid one through the `PaymentProvider` interface (demo: simulated gateway with Pay and Simulate a failed payment; failures are recorded and enrol nobody); lessons with progress; completion notification; retake without waiting after finishing a course for that test (Settings > Training).
+- **Recommendations.** Weak areas = Q3 or Q4 (Settings). Claude picks and explains courses (only ids it was given are accepted); simple rules if AI is unavailable. Refreshes by itself when a newer result exists.
+- **Notifications (candidates).** In-app centre with unread count in the sidebar, mark one or all as read; emails go through SMTP or are written to the server console. Two new templates: course joined, course completed.
+- **Settings.** New groups: Salary guide, Training (normal tabs), AI feedback (Advanced); two new prompts (result feedback, course recommendations) under AI prompts.
+- **Dashboard.** The candidate dashboard shows the latest results, Top Performer badge and unread count.
+
+### Tests
+- **Vitest: 521 passing** (was 371). **Playwright: 61 passing** (was 43). `tsc` clean, `eslint` 0 errors.
+- Real Claude calls were exercised once by the navigation test (it opens My results as the demo candidate): 3 feedback texts and 1 course recommendation, about 2 cents. Nothing else in the tests calls the API (a fake Claude is used).
+- Hardened two end-to-end tests that were flaky under load (a 60-second token lifetime; the demo admin's login limit of 5 per 15 minutes).
+
+### Decisions I made (change any of them)
+1. **Password gate in the proxy**, not per route; exempt: change-password and `/api/auth/*`.
+2. **Outdated translations stay live** until the replacement is approved, so Urdu candidates never lose a personality item in between.
+3. **Demo results are summaries** (no answer rows) because answered questions are frozen and the bank has few approved questions.
+4. **Ranks are fixed when a result is stored.** Candidates who join later do not change older quartiles.
+5. **Feedback is written on first view and saved**; a retake gets new feedback. About 0.5 cent each. Candidates see "not available right now" if AI is down, never setup details.
+6. **PDF** uses the `pdf-lib` package (added to the project). The standard PDF fonts cannot draw Urdu script, so non-Latin text shows as "?".
+7. **Salary formula defaults:** results move the range 60%; the suggestion is half as wide as the market range; Q1/Q2/Q3/Q4 = 100/66/33/0 points; rounded to 1,000; tests counted = IQ, EQ, Language, Job skill.
+8. **Offer = the job opening's top salary**; a candidate with no stated minimum is visible to every offer.
+9. **Top performer badge is kept** even if a retake is worse.
+10. **Weak area = Q3 or worse**, up to 3 recommendations; free courses are preferred when two help equally.
+11. **Courses are visible to a candidate only if general or for their own job role**; lesson text only after joining.
+12. **Paying needs a confirmed email**; the simulated gateway only works in demo mode.
+13. **Payment rows** now also store the course and the payer (two new columns), so failed payments are on record.
+14. **Candidate notifications only** for now; recruiters and company admins get their centre on Day 5.
+15. **Small extras beyond the list**, needed to make "contacted" real and testable: the contact-request API, the candidate Recruiter requests page, and the recruiter dashboard count.
+
+### Not done / worth knowing
+- **No Git remote is configured, so nothing was pushed.** Add one (`git remote add origin <url>`) and I will push.
+- Emails are written to the server console until `SMTP_*` is set in `.env`.
+- The recruiter screens for contact requests (and search, shortlists) come with Day 5.
+- Test reminders have a template and two demo notifications, but nothing sends them on a schedule yet.
+- Restart `npm run dev` on 7310 after pulling this (new database tables and the new client).
+
+---
 
 ## Fix batch: line endings, forced password change, question versioning, generator check (done)
 
