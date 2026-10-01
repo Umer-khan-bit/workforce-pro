@@ -9,7 +9,7 @@ import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 
 export type ShellNavGroup = {
   label?: string;
-  items: { href: string; label: string }[];
+  items: { href: string; label: string; /** A small count shown beside the label, for example unread notifications. */ count?: number }[];
 };
 
 export default function AppShell({
@@ -125,6 +125,11 @@ export default function AppShell({
                       }`}
                     >
                       {item.label}
+                      {item.count ? (
+                        <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-brand-800" aria-label={`${item.count} unread`}>
+                          {item.count > 99 ? "99+" : item.count}
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
                 ))}

@@ -19,6 +19,8 @@ import {
 import { buildFixedForm } from "./fixedForm";
 import { estimateAbility, type ScoredAnswer } from "./irt";
 import { rankAgainstCohort } from "./ranking";
+import { evaluateTopPerformer } from "@/lib/results/topPerformer";
+import { trainingUnlocksRetake } from "@/lib/training/retake";
 import { newSeed, seededRandom, shuffle } from "./rng";
 import {
   CEFR_LEVELS,
@@ -124,7 +126,7 @@ export async function getOverview(deps: Deps, userId: string): Promise<{ verifie
     });
     if (last?.completedAt) {
       const retakeAt = new Date(last.completedAt.getTime() + config.retakeWaitingDays * DAY_MS);
-      const canRetake = retakeAt.getTime() <= now.getTime();
+      const canRetake = retakeAt.getTime() <= now.getTime() || (await trainingUnlocksRetake(prisma, candidate.profileId, testType, last.completedAt));
       const unavailable = canRetake ? await checkPool(prisma, testType, language, candidate.jobRoleId, config.minItems) : null;
       cards.push({
         testType,
@@ -175,7 +177,7 @@ export async function startOrResume(deps: Deps, userId: string, testType: TestTy
   });
   if (last?.completedAt) {
     const retakeAt = new Date(last.completedAt.getTime() + config.retakeWaitingDays * DAY_MS);
-    if (retakeAt.getTime() > now.getTime()) {
+    if (retakeAt.getTime() > now.getTime() && !(await trainingUnlocksRetake(prisma, candidate.profileId, testType, last.completedAt))) {
       throw new TestError(409, "RETAKE_LATER", `You can take this test again on ${retakeAt.toISOString().slice(0, 10)}.`, { retakeAt: retakeAt.toISOString() });
     }
   }
@@ -559,6 +561,7 @@ async function tryGrade(deps: Deps, userId: string, sessionId: string, promptQue
 export async function finalizeSession(deps: Deps, sessionId: string, reason: "COMPLETE" | "TIMEOUT"): Promise<void> {
   const { prisma } = deps;
   const now = clock(deps);
+  let rankedProfileId: string | null = null;
 
   await prisma.$transaction(
     async (tx) => {
@@ -661,6 +664,7 @@ export async function finalizeSession(deps: Deps, sessionId: string, reason: "CO
         where: { id: sessionId },
         data: { ...closed, status: "COMPLETED", theta: theta ?? session.theta, standardError, itemsAdministered: scoredResponses.length },
       });
+      if (!provisional) rankedProfileId = session.candidateProfile.id;
       await tx.auditLog.create({
         data: {
           actorId: session.candidateProfile.userId,
@@ -674,6 +678,9 @@ export async function finalizeSession(deps: Deps, sessionId: string, reason: "CO
     },
     { timeout: 20_000 }
   );
+
+  // After the result is saved (never inside the transaction, because it may send email): the top-performer badge.
+  if (rankedProfileId) await evaluateTopPerformer(prisma, rankedProfileId);
 }
 
 /**
@@ -714,6 +721,7 @@ export async function regradePending(deps: Deps, userId: string, sessionId: stri
       details: { ...details, writing: { submitted: true, graded: true, cefr: essay.cefrLevel, criteria: essay.rubricScore } } as Prisma.InputJsonValue,
     },
   });
+  await evaluateTopPerformer(prisma, score.candidateProfileId);
   return true;
 }
 

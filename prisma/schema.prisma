@@ -62,6 +62,8 @@ enum AiRunKind {
   GENERATE
   TRANSLATE
   GRADE
+  FEEDBACK
+  RECOMMEND
 }
 
 enum AiRunStatus {
@@ -156,6 +158,8 @@ enum NotificationType {
   TEST_REMINDER
   SUBSCRIPTION_EXPIRING
   TRAINING_RECOMMENDATION
+  TRAINING_UPDATE
+  CONTACT_REQUEST
   GENERAL
 }
 
@@ -284,14 +288,15 @@ model CandidateProfile {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  testSessions    TestSession[]
-  scores          Score[]
-  aiFeedback      AIFeedback[]
-  badges          Badge[]
-  enrollments     Enrollment[]
-  shortlistedIn   Shortlist[]
-  contactRequests ContactRequest[]
-  atsExports      AtsExport[]
+  testSessions          TestSession[]
+  scores                Score[]
+  aiFeedback            AIFeedback[]
+  badges                Badge[]
+  enrollments           Enrollment[]
+  shortlistedIn         Shortlist[]
+  contactRequests       ContactRequest[]
+  atsExports            AtsExport[]
+  courseRecommendations CourseRecommendation[]
 
   @@index([regionId])
   @@index([jobRoleId])
@@ -365,6 +370,10 @@ model Payment {
   subscription      Subscription?  @relation(fields: [subscriptionId], references: [id])
   enrollmentId      String?
   enrollment        Enrollment?    @relation(fields: [enrollmentId], references: [id])
+  /// For a COURSE payment: what was bought and who paid (set even when the payment failed).
+  courseId          String?
+  course            Course?        @relation(fields: [courseId], references: [id])
+  userId            String?
   amount            Int
   currency          String
   status            PaymentStatus  @default(PENDING)
@@ -374,6 +383,7 @@ model Payment {
 
   @@index([subscriptionId])
   @@index([enrollmentId])
+  @@index([courseId])
 }
 
 // ---------- Reference data ----------
@@ -652,6 +662,8 @@ model Score {
   provisional        Boolean          @default(false)
   computedAt         DateTime         @default(now())
 
+  aiFeedback AIFeedback?
+
   @@index([candidateProfileId, testType])
 }
 
@@ -660,8 +672,12 @@ model AIFeedback {
   candidateProfileId String
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   testType           TestType
+  /// The result this feedback is about; a retake gets its own feedback.
+  scoreId            String?          @unique
+  score              Score?           @relation(fields: [scoreId], references: [id], onDelete: SetNull)
   feedbackText       String
   improvementTips    Json?
+  model              String?
   generatedAt        DateTime         @default(now())
 
   @@index([candidateProfileId, testType])
@@ -675,6 +691,7 @@ model Badge {
   awardedAt          DateTime         @default(now())
   notifiedAt         DateTime?
 
+  @@unique([candidateProfileId, type])
   @@index([candidateProfileId])
 }
 
@@ -698,28 +715,34 @@ model SalaryBenchmark {
 // ---------- Training ----------
 
 model Course {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
-  isFree      Boolean  @default(true)
-  price       Int      @default(0)
+  isFree      Boolean   @default(true)
+  price       Int       @default(0)
   jobRoleId   String?
-  jobRole     JobRole? @relation(fields: [jobRoleId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  jobRole     JobRole?  @relation(fields: [jobRoleId], references: [id])
+  /// The assessment this course helps with (null = general). Used for recommendations and for retaking after training.
+  testType    TestType?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  lessons     CourseLesson[]
-  enrollments Enrollment[]
+  lessons         CourseLesson[]
+  enrollments     Enrollment[]
+  payments        Payment[]
+  recommendations CourseRecommendation[]
 }
 
 model CourseLesson {
-  id        String   @id @default(cuid())
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
-  title     String
-  content   String?
-  order     Int
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  courseId        String
+  course          Course   @relation(fields: [courseId], references: [id])
+  title           String
+  content         String?
+  order           Int
+  durationMinutes Int?
+  createdAt       DateTime @default(now())
 
   lessonProgress LessonProgress[]
 
@@ -752,6 +775,22 @@ model LessonProgress {
   completedAt  DateTime?
 
   @@unique([enrollmentId, lessonId])
+}
+
+/// A course suggested to a candidate from their weak areas (by AI, or by simple rules when AI is unavailable).
+model CourseRecommendation {
+  id                 String           @id @default(cuid())
+  candidateProfileId String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  courseId           String
+  course             Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  reason             String
+  /// AI or RULES
+  source             String
+  createdAt          DateTime         @default(now())
+
+  @@unique([candidateProfileId, courseId])
+  @@index([candidateProfileId])
 }
 
 // ---------- Recruiter tools & job openings ----------
@@ -941,11 +980,13 @@ model Notification {
   channel   NotificationChannel @default(IN_APP)
   title     String
   message   String
+  /// Page to open when the notification is clicked (a path inside the app).
+  link      String?
   sentAt    DateTime?
   readAt    DateTime?
   createdAt DateTime            @default(now())
 
-  @@index([userId])
+  @@index([userId, readAt])
 }
 
 model AuditLog {

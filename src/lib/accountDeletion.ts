@@ -7,8 +7,9 @@ import { hashPassword } from "@/lib/password";
  * stays (anonymised) so test statistics and the audit trail remain intact.
  *
  * Erased: name, email (replaced by an unusable address), password, phone, city, minimum salary,
- * notifications, AI feedback, badges, written essay text, shortlist entries, contact requests and
+ * notifications, AI feedback, course recommendations, badges, written essay text, shortlist entries, contact requests and
  * ATS exports about the candidate, sign-in links and sessions.
+ * Kept: payment records (a financial record, with no personal details) and course progress.
  * Kept for calibration: test sessions, answers and scores, plus region, job role and years of
  * experience (needed to check questions for bias). The audit log keeps the event.
  */
@@ -44,6 +45,7 @@ export async function anonymiseCandidate(prisma: PrismaClient, userId: string): 
     await tx.notification.deleteMany({ where: { userId } });
 
     await tx.aIFeedback.deleteMany({ where: { candidateProfileId: profileId } });
+    await tx.courseRecommendation.deleteMany({ where: { candidateProfileId: profileId } });
     await tx.badge.deleteMany({ where: { candidateProfileId: profileId } });
     await tx.shortlistStatusHistory.deleteMany({ where: { shortlist: { candidateProfileId: profileId } } });
     await tx.shortlist.deleteMany({ where: { candidateProfileId: profileId } });

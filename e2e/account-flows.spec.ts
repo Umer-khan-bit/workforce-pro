@@ -57,7 +57,7 @@ test("forgot password: request a link, reset once, old password and old sessions
   await expect(page.getByRole("status")).toContainText("If an account exists");
 
   // The link itself only goes by email (here: the server console), so make a token the same way the app does.
-  const token = await createAuthToken(prisma, user.id, "PASSWORD_RESET", 60_000);
+  const token = await createAuthToken(prisma, user.id, "PASSWORD_RESET", 10 * 60_000);
   await page.goto(`/reset-password?token=${token}`);
   await page.getByLabel("New password", { exact: true }).fill("new-password-22");
   await page.getByLabel("Repeat the new password").fill("different-22");
@@ -105,7 +105,7 @@ test("email confirmation: banner for unverified users, resend, confirm once, ban
     expect(user.emailVerified).toBeNull();
     expect(await prisma.authToken.count({ where: { userId: user.id, kind: "EMAIL_VERIFICATION", usedAt: null } })).toBe(1);
 
-    const token = await createAuthToken(prisma, user.id, "EMAIL_VERIFICATION", 60_000);
+    const token = await createAuthToken(prisma, user.id, "EMAIL_VERIFICATION", 10 * 60_000);
     await page.goto(`/verify-email?token=${token}`);
     await expect(page.getByText("Your email address is confirmed.")).toBeVisible();
     expect((await prisma.user.findUniqueOrThrow({ where: { email } })).emailVerified).not.toBeNull();

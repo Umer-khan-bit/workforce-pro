@@ -145,6 +145,15 @@ export async function createKit(prisma: PrismaClient, tag = "kit") {
     const profileIds = profiles.map((p) => p.id);
     const sessions = await prisma.testSession.findMany({ where: { candidateProfileId: { in: profileIds } }, select: { id: true } });
     const sessionIds = sessions.map((s) => s.id);
+    // Things the app creates after a result (feedback, badges, notifications, course progress).
+    await prisma.aIFeedback.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+    await prisma.badge.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+    await prisma.courseRecommendation.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+    await prisma.lessonProgress.deleteMany({ where: { enrollment: { candidateProfileId: { in: profileIds } } } });
+    await prisma.payment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { enrollment: { candidateProfileId: { in: profileIds } } }] } });
+    await prisma.enrollment.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+    await prisma.contactRequest.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+    await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.writingAssessment.deleteMany({ where: { sessionId: { in: sessionIds } } });
     await prisma.response.deleteMany({ where: { sessionId: { in: sessionIds } } });
     await prisma.score.deleteMany({ where: { sessionId: { in: sessionIds } } });

@@ -11,6 +11,10 @@ const DEMO_LOGINS: Record<Role, string> = {
   PLATFORM_ADMIN: "demo.admin@demo.test",
 };
 
+// A sidebar link can carry a small unread count after its label ("Notifications 2 unread").
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const linkNamed = (label: string) => new RegExp(`^${escapeRegExp(label)}( \\d+\\+?( unread)?)?$`);
+
 for (const role of Object.keys(DEMO_LOGINS) as Role[]) {
   test(`${role}: every navigation item can be clicked through`, async ({ page }) => {
     const nav = ROLE_NAV[role];
@@ -21,9 +25,9 @@ for (const role of Object.keys(DEMO_LOGINS) as Role[]) {
     const sidebar = page.getByRole("navigation", { name: `${nav.roleLabel} navigation` });
 
     for (const item of allNavItems(role)) {
-      await sidebar.getByRole("link", { name: item.label, exact: true }).click();
+      await sidebar.getByRole("link", { name: linkNamed(item.label) }).click();
       await expect(page).toHaveURL(new RegExp(`${navHref(role, item)}$`));
-      await expect(sidebar.getByRole("link", { name: item.label, exact: true })).toHaveAttribute(
+      await expect(sidebar.getByRole("link", { name: linkNamed(item.label) })).toHaveAttribute(
         "aria-current",
         "page"
       );

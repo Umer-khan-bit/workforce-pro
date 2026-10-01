@@ -36,6 +36,23 @@ export async function deleteTestData(emails: string[], companyName?: string) {
     select: { id: true },
   });
   const ids = users.map((u) => u.id);
+  // Notifications, badges and course records hold references to the user or profile.
+  const profiles = await prisma.candidateProfile.findMany({ where: { userId: { in: ids } }, select: { id: true } });
+  const profileIds = profiles.map((p) => p.id);
+  const sessions = await prisma.testSession.findMany({ where: { candidateProfileId: { in: profileIds } }, select: { id: true } });
+  const sessionIds = sessions.map((x) => x.id);
+  await prisma.aIFeedback.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+  await prisma.writingAssessment.deleteMany({ where: { sessionId: { in: sessionIds } } });
+  await prisma.response.deleteMany({ where: { sessionId: { in: sessionIds } } });
+  await prisma.score.deleteMany({ where: { sessionId: { in: sessionIds } } });
+  await prisma.testSession.deleteMany({ where: { id: { in: sessionIds } } });
+  await prisma.badge.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+  await prisma.courseRecommendation.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+  await prisma.lessonProgress.deleteMany({ where: { enrollment: { candidateProfileId: { in: profileIds } } } });
+  await prisma.payment.deleteMany({ where: { OR: [{ userId: { in: ids } }, { enrollment: { candidateProfileId: { in: profileIds } } }] } });
+  await prisma.enrollment.deleteMany({ where: { candidateProfileId: { in: profileIds } } });
+  await prisma.contactRequest.deleteMany({ where: { OR: [{ candidateProfileId: { in: profileIds } }, { recruiterId: { in: ids } }] } });
+  await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
   await prisma.auditLog.deleteMany({
     where: { OR: [{ actorId: { in: ids } }, { targetType: "User", targetId: { in: ids } }] },
   });
