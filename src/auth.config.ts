@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import type { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getAllowedRoles } from "@/lib/authz";
+import { PASSWORD_CHANGE_REQUIRED_BODY, isApiPath, passwordChangeBlocksApi } from "@/lib/passwordGate";
 
 /**
  * Edge-safe config shared between middleware and the full auth.ts.
@@ -33,6 +34,15 @@ export const authConfig = {
     },
     authorized({ auth, request }) {
       const pathname = request.nextUrl.pathname;
+
+      // Every API route: a user who must change their password gets a 403 (except the change-password and
+      // sign-out routes). Each route still does its own role and ownership checks after this.
+      if (isApiPath(pathname)) {
+        if (passwordChangeBlocksApi(pathname, auth?.user?.mustChangePassword)) {
+          return NextResponse.json(PASSWORD_CHANGE_REQUIRED_BODY, { status: 403 });
+        }
+        return true;
+      }
 
       if (pathname === "/change-password") {
         return Boolean(auth?.user);

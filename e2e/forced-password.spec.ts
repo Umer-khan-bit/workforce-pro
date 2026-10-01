@@ -70,3 +70,47 @@ test("a forced change is also enforced when the database flag is set while the u
     await deleteTestData([email]);
   }
 });
+
+// The same rule for API routes: one shared guard in the proxy, so a temporary-password user cannot use the
+// APIs directly (for example to start a test) while skipping the change-password screen.
+test("API routes refuse a user who must change their password, except change-password and sign-out", async ({ page }) => {
+  const email = uniqueEmail("forced3");
+  const temp = "temporary-pass-3";
+  await prisma.user.create({
+    data: { email, name: "Forced Api", password: await bcrypt.hash(temp, 10), role: "CANDIDATE", mustChangePassword: true, emailVerified: new Date(), candidateProfile: { create: { consentGiven: true } } },
+  });
+  try {
+    await logInAs(page, email, temp);
+    await expect(page).toHaveURL(/\/change-password$/);
+
+    const call = (method: string, url: string, body?: unknown) =>
+      page.evaluate(
+        async ([m, u, b]) => {
+          const res = await fetch(u as string, { method: m as string, headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : undefined });
+          const json = await res.json().catch(() => null);
+          return { status: res.status, code: json?.code ?? null };
+        },
+        [method, url, body] as const
+      );
+
+    for (const [method, url] of [
+      ["POST", "/api/tests/IQ/start"],
+      ["GET", "/api/tests/sessions/none"],
+      ["PATCH", "/api/account/profile"],
+      ["DELETE", "/api/account"],
+      ["POST", "/api/account/resend-verification"],
+      ["GET", "/api/admin/questions"],
+    ] as const) {
+      const r = await call(method, url, method === "GET" ? undefined : {});
+      expect(r, `${method} ${url}`).toEqual({ status: 403, code: "PASSWORD_CHANGE_REQUIRED" });
+    }
+
+    // The exempt routes still answer: change-password (a wrong current password is a normal 4xx, not the gate) and the session route.
+    const wrong = await call("POST", "/api/account/change-password", { currentPassword: "nope", newPassword: "another-pass-123", confirmPassword: "another-pass-123" });
+    expect(wrong.code).not.toBe("PASSWORD_CHANGE_REQUIRED");
+    expect(wrong.status).not.toBe(403);
+    expect((await call("GET", "/api/auth/session")).status).toBe(200);
+  } finally {
+    await deleteTestData([email]);
+  }
+});

@@ -11,5 +11,7 @@ export const config = {
     "/company-admin/:path*",
     "/admin/:path*",
     "/change-password",
+    // All API routes, so the forced password change cannot be bypassed by calling an API directly.
+    "/api/:path*",
   ],
 };
