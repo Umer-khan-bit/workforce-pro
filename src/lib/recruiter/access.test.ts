@@ -36,6 +36,7 @@ describe.skipIf(!dbUp)("who a recruiter can see and contact (real database)", ()
   let kit: Kit;
   let companyId: string;
   let otherCompanyId: string;
+  let planId: string;
   let recruiterId: string;
   let outsiderId: string;
   let openingId: string; // offer: up to 80,000
@@ -49,6 +50,10 @@ describe.skipIf(!dbUp)("who a recruiter can see and contact (real database)", ()
     const other = await prisma.company.create({ data: { name: `Other Co ${kit.run}` } });
     companyId = company.id;
     otherCompanyId = other.id;
+    // Both companies have a plan with every feature switched on; the plan rules are tested in shortlist.test.ts.
+    const plan = await prisma.plan.create({ data: { code: `plan-${kit.run}`, name: `Plan ${kit.run}`, priceMonthly: 1, features: { allCandidates: true, q1Exclusive: true, aiSearch: true, atsApiAccess: true, maxShortlists: null, maxJobOpenings: null } } });
+    planId = plan.id;
+    for (const c of [company, other]) await prisma.subscription.create({ data: { companyId: c.id, planId: plan.id, status: "ACTIVE", startDate: new Date(), endDate: new Date(Date.now() + 30 * 86_400_000) } });
     const mk = async (name: string, role: "RECRUITER" | "COMPANY_ADMIN", cid: string, verified = true) => {
       const email = `${name}-${kit.run}@example.test`;
       emails.push(email);
@@ -73,7 +78,9 @@ describe.skipIf(!dbUp)("who a recruiter can see and contact (real database)", ()
     await prisma.auditLog.deleteMany({ where: { actorId: { in: ids } } });
     await prisma.rateLimitHit.deleteMany({ where: { key: { in: ids.map((i) => `contact:${i}`) } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
+    await prisma.subscription.deleteMany({ where: { companyId: { in: [companyId, otherCompanyId] } } });
     await prisma.company.deleteMany({ where: { id: { in: [companyId, otherCompanyId] } } });
+    await prisma.plan.delete({ where: { id: planId } });
   }, 60_000);
 
   async function candidate(name: string, minimumSalary: number | null, over: { consent?: boolean; anonymised?: boolean; active?: boolean } = {}) {

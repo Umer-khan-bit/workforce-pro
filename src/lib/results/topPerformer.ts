@@ -73,3 +73,9 @@ export async function evaluateTopPerformer(db: Db, candidateProfileId: string): 
     return { awarded: false };
   }
 }
+
+/** True when the candidate currently meets the top-performer rule (not the same as holding the badge: the badge is kept for life). */
+export async function isTopPerformer(db: Pick<PrismaClient, "score" | "siteSetting">, candidateProfileId: string): Promise<boolean> {
+  const [rule, quartiles] = await Promise.all([readSetting(db, "topPerformer"), currentQuartiles(db, candidateProfileId)]);
+  return meetsTopPerformerRule(quartiles, rule);
+}

@@ -64,6 +64,7 @@ enum AiRunKind {
   GRADE
   FEEDBACK
   RECOMMEND
+  SEARCH
 }
 
 enum AiRunStatus {
@@ -319,6 +320,7 @@ model Company {
   apiKeys          ApiKey[]
   webhookEndpoints WebhookEndpoint[]
   pilotConfig      PilotConfig?
+  payments         Payment[]
 }
 
 model Plan {
@@ -334,6 +336,7 @@ model Plan {
   createdAt    DateTime @default(now())
 
   subscriptions Subscription[]
+  payments      Payment[]
 }
 
 /// What a plan can switch on or off. Code checks read these keys, never the plan name.
@@ -374,6 +377,11 @@ model Payment {
   courseId          String?
   course            Course?        @relation(fields: [courseId], references: [id])
   userId            String?
+  /// For a SUBSCRIPTION payment: which company paid for which plan (set even when the payment failed).
+  companyId         String?
+  company           Company?       @relation(fields: [companyId], references: [id])
+  planId            String?
+  plan              Plan?          @relation(fields: [planId], references: [id])
   amount            Int
   currency          String
   status            PaymentStatus  @default(PENDING)
@@ -384,6 +392,7 @@ model Payment {
   @@index([subscriptionId])
   @@index([enrollmentId])
   @@index([courseId])
+  @@index([companyId])
 }
 
 // ---------- Reference data ----------
@@ -801,6 +810,8 @@ model JobOpening {
   company        Company          @relation(fields: [companyId], references: [id])
   jobRoleId      String
   jobRole        JobRole          @relation(fields: [jobRoleId], references: [id])
+  /// A short name for the opening, for example "Senior accountant". Optional.
+  title          String?
   city           String?
   salaryRangeMin Int
   salaryRangeMax Int

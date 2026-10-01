@@ -151,7 +151,7 @@ test("a new company starts on the default plan's free trial and sees the upgrade
     await expect(page).toHaveURL(/\/company-admin\/subscription$/);
     await expect(page.getByRole("heading", { name: "Subscription & billing" })).toBeVisible();
     await expect(page.getByRole("region", { name: company.subscriptions[0].plan.name })).toContainText("Your trial");
-    await expect(page.getByRole("heading", { name: "Upgrade plan" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Plans", exact: true })).toBeVisible();
     await expect(page.getByText("Access to all candidates").first()).toBeVisible();
   } finally {
     await deleteTestData([email], companyName);

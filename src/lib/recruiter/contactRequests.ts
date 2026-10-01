@@ -1,6 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 import { notifyUser } from "@/lib/notifications";
+import { isTopPerformer } from "@/lib/results/topPerformer";
 import { recruiterVisibleWhere } from "./candidateAccess";
+import { getEntitlements, planBlockMessage } from "./entitlements";
+import { markContacted } from "./shortlist";
 
 export class ContactError extends Error {
   constructor(
@@ -13,7 +16,7 @@ export class ContactError extends Error {
   }
 }
 
-type Db = Pick<PrismaClient, "user" | "jobOpening" | "candidateProfile" | "contactRequest" | "auditLog" | "notification" | "messageTemplate" | "siteSetting">;
+type Db = PrismaClient;
 
 /**
  * A recruiter asks to contact a candidate about one of their company's open job openings.
@@ -33,6 +36,10 @@ export async function createContactRequest(
     throw new ContactError(403, "FORBIDDEN", "Only recruiters can contact candidates.");
   }
 
+  // The plan decides whether this company can reach candidates at all.
+  const entitlements = await getEntitlements(recruiter.companyId);
+  if (!entitlements.canSearch) throw new ContactError(403, "PLAN_FEATURE_REQUIRED", planBlockMessage(entitlements, "contacting candidates"));
+
   const opening = await db.jobOpening.findFirst({ where: { id: args.jobOpeningId, companyId: recruiter.companyId } });
   if (!opening) throw new ContactError(404, "OPENING_NOT_FOUND", "That job opening was not found in your company.");
   if (opening.status !== "OPEN") throw new ContactError(409, "OPENING_CLOSED", "That job opening is not open.");
@@ -42,7 +49,10 @@ export async function createContactRequest(
     where: { AND: [{ id: args.candidateProfileId }, recruiterVisibleWhere(opening.salaryRangeMax)] },
     select: { id: true, userId: true, user: { select: { name: true } } },
   });
-  if (!candidate) throw new ContactError(404, "CANDIDATE_NOT_AVAILABLE", "This candidate is not available for this job opening.");
+  // Top Performers are only open to plans with exclusive Q1 access; the answer is the same as for a missing candidate.
+  if (!candidate || (!entitlements.canSeeTopPerformers && (await isTopPerformer(db, candidate.id)))) {
+    throw new ContactError(404, "CANDIDATE_NOT_AVAILABLE", "This candidate is not available for this job opening.");
+  }
 
   const existing = await db.contactRequest.findFirst({ where: { candidateProfileId: candidate.id, jobOpeningId: opening.id } });
   if (existing) {
@@ -52,6 +62,7 @@ export async function createContactRequest(
   const request = await db.contactRequest.create({
     data: { recruiterId: recruiter.id, candidateProfileId: candidate.id, jobOpeningId: opening.id, message: args.message?.trim() || null },
   });
+  await markContacted(db, { candidateProfileId: candidate.id, jobOpeningId: opening.id, actorId: recruiter.id });
   await db.auditLog.create({
     data: { actorId: recruiter.id, action: "CONTACT_REQUEST_SENT", targetType: "CandidateProfile", targetId: candidate.id, metadata: { jobOpeningId: opening.id, requestId: request.id } },
   });

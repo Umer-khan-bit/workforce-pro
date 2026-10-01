@@ -88,6 +88,7 @@ test("deactivated recruiter can no longer log in", async ({ page, request }) => 
   await expect(page.getByText("Deactivated")).toBeVisible();
 
   await page.getByRole("button", { name: "Log out" }).click();
+  await expect(page).toHaveURL(/\/$/); // signed out and back on the home page before going on
   await page.goto("/login");
   await page.getByLabel("Email").fill(recruiterEmail);
   await page.getByLabel("Password").fill(tempPassword);

@@ -7,7 +7,7 @@ import { globSync, readFileSync } from "node:fs";
  * without going through the shared rule in `candidateAccess.ts` / `contactRequests.ts`.
  */
 const RECRUITER_FACING = ["src/app/recruiter/**/*.{ts,tsx}", "src/app/company-admin/**/*.{ts,tsx}", "src/app/api/recruiter/**/*.{ts,tsx}", "src/app/api/recruiters/**/*.{ts,tsx}"];
-const SANCTIONED = ["recruiterVisibleWhere", "viewCandidateAsRecruiter", "createContactRequest"];
+const SANCTIONED = ["recruiterVisibleWhere", "viewCandidateAsRecruiter", "createContactRequest", "searchCandidates", "getCandidateDetail"];
 
 describe("recruiter-facing code reads candidates only through the salary rule", () => {
   const files = RECRUITER_FACING.flatMap((pattern) => globSync(pattern));
@@ -18,7 +18,8 @@ describe("recruiter-facing code reads candidates only through the salary rule", 
 
   it.each(files.map((f) => f.split("\\").join("/")))("%s", (file) => {
     const source = readFileSync(file, "utf8");
-    const readsCandidates = /candidateProfile|CandidateProfile/.test(source);
+    // Reading candidates means querying candidate profiles or selecting them through a relation (an id on its own is fine).
+    const readsCandidates = /candidateProfile(?!Id)|CandidateProfile(?!Id)/.test(source);
     if (!readsCandidates) return;
     expect(SANCTIONED.some((name) => source.includes(name)), `${file} reads candidate profiles without the shared minimum-salary rule`).toBe(true);
   });

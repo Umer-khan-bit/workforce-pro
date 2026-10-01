@@ -101,7 +101,7 @@ describe("settings screen", () => {
     const advanced = SETTING_GROUPS.filter((g) => g.advanced).map((g) => g.key).sort();
     expect(advanced).toEqual(["aiGeneration", "aiPrompts", "aiResults", "itemDefaults", "selfLearning", "testEngine"]);
     const general = SETTING_GROUPS.filter((g) => !g.advanced).map((g) => g.key);
-    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "testing", "currency", "quartiles", "topPerformer", "poolTargets", "salaryGuide", "training"]));
+    expect(general).toEqual(expect.arrayContaining(["branding", "homepage", "accounts", "testing", "currency", "quartiles", "topPerformer", "poolTargets", "salaryGuide", "training", "recruiterTools", "billing"]));
   });
 
   it("shows the allowed placeholders under each prompt", () => {

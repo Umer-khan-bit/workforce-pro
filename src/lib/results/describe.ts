@@ -16,7 +16,7 @@ export function resultLines(r: LatestResult, minCohortSize: number): string[] {
   if (r.quartile !== null && r.percentile !== null) {
     lines.push(`Quartile Q${r.quartile} (Q1 is the top quarter).`);
     if (r.cohort) {
-      const group = r.cohort.scope === "ROLE" ? "candidates in your job role" : "all candidates";
+      const group = r.cohort.scope === "ROLE" ? "candidates in your job role" : "candidates overall";
       lines.push(`Better than ${Math.round(r.percentile)}% of ${r.cohort.size} ${group} (top ${topShare(r.percentile)}%).`);
       if (r.cohort.size < minCohortSize) lines.push(`This is based on a small group (fewer than ${minCohortSize} candidates), so treat it as a rough guide.`);
     }

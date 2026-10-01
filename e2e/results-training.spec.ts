@@ -97,7 +97,7 @@ test("My results shows every score with its quartile, traits, saved feedback and
 
   const iq = page.getByTestId("result-IQ");
   await expect(iq.getByTestId("quartile-IQ")).toHaveText("Q1");
-  await expect(iq).toContainText("Better than 70% of 64 all candidates");
+  await expect(iq).toContainText("Better than 70% of 64 candidates overall");
   await expect(iq.getByTestId("feedback")).toContainText("Saved feedback for IQ.");
   await expect(iq.getByTestId("feedback")).toContainText("First tip for IQ.");
 
@@ -333,7 +333,7 @@ test("the recruiter dashboard counts only candidates whose minimum fits the comp
   await logInAs(page, email, PASSWORD);
   await expect(page).toHaveURL(/\/recruiter$/);
   // No open job opening, so there is no offer to match candidates against.
-  await expect(page.getByText("Create a job opening to see candidates")).toBeVisible();
+  await expect(page.getByText("Create a job opening to see candidates", { exact: true })).toBeVisible();
 
   const offer = 30_000; // below nearly every demo candidate's minimum
   const opening = await prisma.jobOpening.create({ data: { companyId: company.id, jobRoleId: accountant.id, salaryRangeMin: 20_000, salaryRangeMax: offer, createdById: recruiter.id } });

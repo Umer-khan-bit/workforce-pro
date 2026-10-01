@@ -22,15 +22,15 @@ export default async function RoleLayout({
       ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { emailVerified: true, email: true } })
       : null;
 
-  // Candidates have an in-app notification centre; show how many are unread beside it.
-  const unread = role === "CANDIDATE" && session?.user.id ? await unreadCount(prisma, session.user.id) : 0;
+  // Everyone has an in-app notification centre; show how many are unread beside it.
+  const unread = session?.user.id ? await unreadCount(prisma, session.user.id) : 0;
 
   const groups = nav.groups.map((g) => ({
     label: g.label,
     items: g.items.map((item) => ({
       href: navHref(role, item),
       label: item.label,
-      count: role === "CANDIDATE" && item.slug === "notifications" ? unread : undefined,
+      count: item.slug === "notifications" ? unread : undefined,
     })),
   }));
 

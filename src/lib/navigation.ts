@@ -38,10 +38,8 @@ const notifications: NavItem = {
   slug: "notifications",
   label: "Notifications",
   description: "In-app and email alerts.",
-  planned: [
-    "In-app notification centre with read/unread state",
-    "Email delivery for the same alerts",
-  ],
+  planned: [],
+  live: true,
 };
 
 // Every module below must appear in CLAUDE.md ("Modules" and "User roles").
@@ -114,47 +112,36 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "candidates",
             label: "Candidate search",
             description: "Search, filter and rank assessed candidates.",
-            planned: [
-              "Sort and filter by job role, city, experience, salary and quartile per test",
-              '"Q1 in all tests" filter (available when the company plan includes exclusive Q1 access)',
-              "Plain-language AI search",
-              "Only candidates whose minimum salary fits your offer",
-              "Candidate detail report (every profile view is audit-logged)",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "job-openings",
             label: "Job openings",
             description: "Roles you are hiring for.",
-            planned: [
-              "Create and manage job openings",
-              "Open, pause, fill or close an opening",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "shortlists",
             label: "Shortlists",
             description: "Candidates you have shortlisted.",
-            planned: [
-              "Add and remove candidates from your shortlist",
-              "Open a shortlisted candidate's detail report",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "contact-requests",
             label: "Contact requests",
             description: "Reach out to candidates and track replies.",
-            planned: [
-              "Send a contact request with your offer, optionally for a job opening",
-              "Blocked unless the offer meets the candidate's minimum salary",
-              "Track sent, accepted and declined",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "reports",
             label: "Reports",
             description: "Recruiter metrics.",
-            planned: ["Recruiter dashboard metrics", "Shortlist activity over time"],
+            planned: [],
+            live: true,
           },
           {
             slug: "ats-export",
@@ -190,10 +177,8 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "job-openings",
             label: "Job openings",
             description: "All openings across your company.",
-            planned: [
-              "Company-wide view of openings and their status",
-              "Manage openings created by any recruiter",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "subscription",
@@ -206,7 +191,8 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "reports",
             label: "Reports",
             description: "Company hiring reports.",
-            planned: ["Recruiter activity and shortlist metrics for your company", "Export reports"],
+            planned: [],
+            live: true,
           },
           {
             slug: "integrations",
@@ -289,10 +275,8 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "companies",
             label: "Companies",
             description: "Every company on the platform.",
-            planned: [
-              "Company list with plan, recruiters and status",
-              "Drill into a company's users and activity",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "plans",
@@ -305,10 +289,8 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "payments",
             label: "Payments",
             description: "Subscription and course payments.",
-            planned: [
-              "Payment ledger with status and provider reference",
-              "Demo-mode payments only until a real gateway is connected",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "pilot-mode",
@@ -347,16 +329,15 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             slug: "users",
             label: "Users",
             description: "All accounts across the four roles.",
-            planned: [
-              "Search users by role, company or email",
-              "Deactivate or reactivate accounts",
-            ],
+            planned: [],
+            live: true,
           },
           {
             slug: "reports",
             label: "Reports",
             description: "Platform metrics and fairness.",
-            planned: ["Platform metrics", "Monthly fairness report"],
+            planned: [],
+            live: true,
           },
           {
             slug: "audit-log",
