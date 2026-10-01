@@ -155,6 +155,8 @@ export default async function QuestionBankPage({
                       {QUESTION_TYPE_LABELS[q.type]}
                       {q.topic ? ` · ${q.topic}` : ""}
                       {q.reverseKeyed ? " · reverse-keyed" : ""}
+                      {q.previousVersionId ? " · new version of an earlier question" : ""}
+                      {q._count.nextVersions > 0 ? " · replaced by a newer version" : ""}
                     </p>
                   </td>
                   <td className="px-4 py-3">{TEST_TYPE_LABELS[q.testType]}</td>

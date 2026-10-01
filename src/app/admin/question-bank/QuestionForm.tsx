@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ALLOWED_QUESTION_TYPES,
@@ -52,6 +53,8 @@ export default function QuestionForm({
   languages,
   returnTo = "/admin/question-bank",
   reviewNotes,
+  answeredCount = 0,
+  versionOf,
 }: {
   questionId?: string;
   initial?: QuestionFormValues;
@@ -59,12 +62,18 @@ export default function QuestionForm({
   languages: Option[];
   returnTo?: string;
   reviewNotes?: string | null;
+  /** How many candidate answers this question has. Above 0 the question is frozen (only the explanation can change). */
+  answeredCount?: number;
+  /** Set when this form adds a new version of an existing question (which is retired when it is saved). */
+  versionOf?: { id: string; label: string };
 }) {
   const router = useRouter();
   const [v, setV] = useState(initial);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [startAsPretest, setStartAsPretest] = useState(false);
+  const locked = Boolean(questionId) && answeredCount > 0;
 
   const hasOptions = v.type === "MCQ" || v.type === "SITUATIONAL_JUDGEMENT";
   const rtl = languages.find((l) => l.id === v.languageId)?.rtl ?? false;
@@ -102,10 +111,15 @@ export default function QuestionForm({
       languageId: v.languageId,
     };
 
-    const res = await fetch(questionId ? `/api/admin/questions/${questionId}` : "/api/admin/questions", {
+    const url = versionOf
+      ? `/api/admin/questions/${versionOf.id}/new-version`
+      : questionId
+        ? `/api/admin/questions/${questionId}`
+        : "/api/admin/questions";
+    const res = await fetch(url, {
       method: questionId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(versionOf ? { ...payload, startAsPretest } : payload),
     });
     const data = await res.json().catch(() => null);
     setSubmitting(false);
@@ -124,12 +138,37 @@ export default function QuestionForm({
 
   return (
     <form onSubmit={handleSubmit} className="card mt-6 flex max-w-3xl flex-col gap-5">
+      {locked && (
+        <div role="note" data-testid="locked-note" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">
+            Candidates have answered this question ({answeredCount} answer{answeredCount === 1 ? "" : "s"})
+          </p>
+          <p className="mt-1">
+            So that past results stay valid, its wording, answers and settings are frozen. Retire it and add a new
+            version instead. You can still edit the explanation below.
+          </p>
+          <Link href={`/admin/question-bank/new?from=${questionId}`} className="btn-primary mt-3">
+            Retire it and add a new version
+          </Link>
+        </div>
+      )}
+      {versionOf && (
+        <div role="note" data-testid="version-note" className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+          <p className="font-medium">New version of an existing question</p>
+          <p className="mt-1 text-zinc-700">&ldquo;{versionOf.label}&rdquo;</p>
+          <p className="mt-1">
+            Change what needs changing. When you save, the old question is retired (it stays in the bank for the
+            answers already given) and the new one takes its place, linked to it.
+          </p>
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="testType" className="label">Test</label>
           <select
             id="testType"
             className="input"
+            disabled={locked}
             value={v.testType}
             onChange={(e) => changeTestType(e.target.value as TestTypeValue)}
           >
@@ -143,6 +182,7 @@ export default function QuestionForm({
           <select
             id="type"
             className="input"
+            disabled={locked}
             value={v.type}
             onChange={(e) => set("type", e.target.value as QuestionTypeValue)}
           >
@@ -162,6 +202,7 @@ export default function QuestionForm({
           id="content"
           dir={rtl ? "rtl" : "ltr"}
           className="input min-h-24"
+          disabled={locked}
           value={v.content}
           onChange={(e) => set("content", e.target.value)}
           required
@@ -180,6 +221,7 @@ export default function QuestionForm({
                   name="correctAnswer"
                   aria-label={`Option ${key} is correct`}
                   checked={v.correctAnswer === key}
+                  disabled={locked}
                   onChange={() => set("correctAnswer", key)}
                   className="size-5 accent-brand-700"
                 />
@@ -188,6 +230,7 @@ export default function QuestionForm({
                   dir={rtl ? "rtl" : "ltr"}
                   className="input mt-0"
                   aria-label={`Option ${key} text`}
+                  disabled={locked}
                   value={v.options[key] ?? ""}
                   onChange={(e) => set("options", { ...v.options, [key]: e.target.value })}
                 />
@@ -206,6 +249,7 @@ export default function QuestionForm({
             <select
               id="jobRoleId"
               className="input"
+              disabled={locked}
               value={v.jobRoleId}
               onChange={(e) => set("jobRoleId", e.target.value)}
             >
@@ -224,6 +268,7 @@ export default function QuestionForm({
           <select
             id="languageId"
             className="input"
+            disabled={locked}
             value={v.languageId}
             onChange={(e) => set("languageId", e.target.value)}
           >
@@ -240,6 +285,7 @@ export default function QuestionForm({
             <select
               id="difficulty"
               className="input"
+              disabled={locked}
               value={v.difficulty}
               onChange={(e) => set("difficulty", e.target.value as DifficultyValue)}
             >
@@ -256,6 +302,7 @@ export default function QuestionForm({
           <input
             id="topic"
             className="input"
+            disabled={locked}
             value={v.topic}
             onChange={(e) => set("topic", e.target.value)}
           />
@@ -285,6 +332,7 @@ export default function QuestionForm({
           <input
             type="checkbox"
             checked={v.reverseKeyed}
+            disabled={locked}
             onChange={(e) => set("reverseKeyed", e.target.checked)}
             className="size-5 accent-brand-700"
           />
@@ -292,17 +340,44 @@ export default function QuestionForm({
         </label>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {versionOf && (
+        <label className="flex min-h-11 items-start gap-3 text-sm text-zinc-700">
+          <input
+            type="checkbox"
+            checked={startAsPretest}
+            onChange={(e) => setStartAsPretest(e.target.checked)}
+            className="mt-0.5 size-5 accent-brand-700"
+          />
+          <span>
+            Start as pretest (unscored)
+            <span className="block text-xs text-zinc-500">
+              Candidates will see it, but it will not count towards scores until its difficulty has been measured.
+            </span>
+          </span>
+        </label>
+      )}
+
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={submitting} className="btn-primary">
-          {submitting ? "Saving..." : questionId ? "Save changes" : "Add question"}
+          {submitting
+            ? "Saving..."
+            : versionOf
+              ? "Save new version and retire the old one"
+              : locked
+                ? "Save explanation"
+                : questionId
+                  ? "Save changes"
+                  : "Add question"}
         </button>
         <button type="button" className="btn-secondary" onClick={() => router.push(returnTo)}>
           Cancel
         </button>
         {!questionId && (
-          <p className="text-xs text-zinc-500">New questions are approved straight away and record you as the approver.</p>
+          <p className="text-xs text-zinc-500">
+            {versionOf ? "The new version" : "New questions are"} approved straight away and record you as the approver.
+          </p>
         )}
       </div>
     </form>

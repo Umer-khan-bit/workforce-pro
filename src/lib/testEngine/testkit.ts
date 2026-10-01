@@ -149,8 +149,11 @@ export async function createKit(prisma: PrismaClient, tag = "kit") {
     await prisma.response.deleteMany({ where: { sessionId: { in: sessionIds } } });
     await prisma.score.deleteMany({ where: { sessionId: { in: sessionIds } } });
     await prisma.testSession.deleteMany({ where: { id: { in: sessionIds } } });
-    await prisma.itemStatistic.deleteMany({ where: { questionId: { in: questionIds } } });
-    await prisma.question.deleteMany({ where: { id: { in: questionIds } } });
+    // Also remove questions that tests created through the app (for example new versions of a question).
+    const extra = await prisma.question.findMany({ where: { languageId: language.id }, select: { id: true } });
+    const allQuestionIds = [...new Set([...questionIds, ...extra.map((q) => q.id)])];
+    await prisma.itemStatistic.deleteMany({ where: { questionId: { in: allQuestionIds } } });
+    await prisma.question.deleteMany({ where: { id: { in: allQuestionIds } } });
     await prisma.aiRun.deleteMany({ where: { actorId: { in: userIds } } });
     await prisma.auditLog.deleteMany({ where: { actorId: { in: userIds } } });
     await prisma.authToken.deleteMany({ where: { userId: { in: userIds } } });

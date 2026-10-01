@@ -46,6 +46,8 @@ export async function listQuestions(prisma: PrismaClient, filters: ListFilters) 
         status: true,
         reverseKeyed: true,
         isPretest: true,
+        previousVersionId: true,
+        _count: { select: { nextVersions: true } },
         jobRole: { select: { name: true } },
         language: { select: { name: true, isRtl: true } },
         itemStatistic: { select: { flagged: true } },

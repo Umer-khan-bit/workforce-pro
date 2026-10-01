@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { OPTION_KEYS } from "@/lib/questionBank/schema";
-import QuestionForm, { EMPTY_FORM, type QuestionFormValues } from "../../QuestionForm";
+import QuestionForm from "../../QuestionForm";
+import { questionToFormValues } from "../../formValues";
 
 export default async function EditQuestionPage({
   params,
@@ -13,32 +13,21 @@ export default async function EditQuestionPage({
 }) {
   const { id } = await params;
   const fromApprovals = (await searchParams).from === "approvals";
-  const [question, jobRoles, languages] = await Promise.all([
-    prisma.question.findUnique({ where: { id } }),
+  const [question, jobRoles, languages, answeredCount] = await Promise.all([
+    prisma.question.findUnique({
+      where: { id },
+      include: {
+        previousVersion: { select: { id: true, content: true } },
+        nextVersions: { select: { id: true, content: true } },
+      },
+    }),
     prisma.jobRole.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.language.findMany({ orderBy: { name: "asc" } }),
+    prisma.response.count({ where: { questionId: id } }),
   ]);
   if (!question) notFound();
 
-  const stored = Array.isArray(question.options)
-    ? (question.options as Array<{ key: string; text: string }>)
-    : [];
-  const options = { ...EMPTY_FORM.options };
-  for (const key of OPTION_KEYS) options[key] = stored.find((o) => o.key === key)?.text ?? "";
-
-  const initial: QuestionFormValues = {
-    testType: question.testType,
-    type: question.type,
-    content: question.content,
-    options,
-    correctAnswer: question.correctAnswer ?? "",
-    reverseKeyed: question.reverseKeyed,
-    topic: question.topic ?? "",
-    explanation: question.explanation ?? "",
-    difficulty: question.difficulty,
-    jobRoleId: question.jobRoleId ?? "",
-    languageId: question.languageId ?? "",
-  };
+  const snippet = (text: string) => (text.length > 90 ? `${text.slice(0, 90)}...` : text);
 
   return (
     <div>
@@ -46,13 +35,38 @@ export default async function EditQuestionPage({
         &larr; {fromApprovals ? "Approvals" : "Question bank"}
       </Link>
       <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Edit question</h1>
+
+      {(question.previousVersion || question.nextVersions.length > 0) && (
+        <ul className="mt-2 flex flex-col gap-1 text-sm text-zinc-700" data-testid="version-links">
+          {question.previousVersion && (
+            <li>
+              This is a newer version of{" "}
+              <Link href={`/admin/question-bank/${question.previousVersion.id}/edit`} className="text-brand-700 underline">
+                &ldquo;{snippet(question.previousVersion.content)}&rdquo;
+              </Link>
+              .
+            </li>
+          )}
+          {question.nextVersions.map((next) => (
+            <li key={next.id}>
+              Replaced by a newer version:{" "}
+              <Link href={`/admin/question-bank/${next.id}/edit`} className="text-brand-700 underline">
+                &ldquo;{snippet(next.content)}&rdquo;
+              </Link>
+              .
+            </li>
+          ))}
+        </ul>
+      )}
+
       <QuestionForm
         questionId={question.id}
-        initial={initial}
+        initial={questionToFormValues(question)}
         jobRoles={jobRoles.map((r) => ({ id: r.id, name: r.name }))}
         languages={languages.map((l) => ({ id: l.id, name: l.name, rtl: l.isRtl }))}
         returnTo={fromApprovals ? "/admin/approvals" : "/admin/question-bank"}
         reviewNotes={question.reviewNotes}
+        answeredCount={answeredCount}
       />
     </div>
   );
