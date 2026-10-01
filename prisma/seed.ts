@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { seedDemoData } from "./seedDemo";
 import { seedDemoResults } from "./seedDemoResults";
 import { seedDemoCourses } from "./seedDemoCourses";
+import { seedDemoHiring } from "./seedDemoHiring";
 import { importIpipItems } from "../src/lib/questionBank/ipipImport";
 import { seedConfig } from "./seedConfig";
 
@@ -133,6 +134,8 @@ async function main() {
   );
   const courses = await seedDemoCourses(prisma);
   console.log(`Demo training: ${courses.courses} courses added`);
+  const hiring = await seedDemoHiring(prisma);
+  console.log(`Demo hiring: ${hiring.openings} job openings, ${hiring.shortlists} shortlisted candidates, ${hiring.requests} contact requests, ${hiring.payments} payments`);
   // Never print the password. Demo accounts share SEED_DEMO_PASSWORD (default in DAY1_STATUS.md).
   console.log("Demo logins (shared demo password, see SEED_DEMO_PASSWORD):");
   for (const login of demo.logins) {
