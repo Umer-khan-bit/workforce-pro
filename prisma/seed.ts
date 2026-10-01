@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { seedDemoData } from "./seedDemo";
+import { seedDemoResults } from "./seedDemoResults";
+import { seedDemoCourses } from "./seedDemoCourses";
 import { importIpipItems } from "../src/lib/questionBank/ipipImport";
 import { seedConfig } from "./seedConfig";
 
@@ -123,6 +125,14 @@ async function main() {
     `Demo data ready: ${demo.plans} plans, ${demo.companies} companies, ` +
       `${demo.recruiters} recruiters, ${demo.candidates} candidates`
   );
+  const results = await seedDemoResults(prisma);
+  console.log(
+    `Demo results: ${results.candidatesSeeded} candidates, ${results.sessions} completed tests, ` +
+      `${results.badges} Top Performer badges (ranked results Q1 ${results.quartileCounts[1] ?? 0}, Q2 ${results.quartileCounts[2] ?? 0}, ` +
+      `Q3 ${results.quartileCounts[3] ?? 0}, Q4 ${results.quartileCounts[4] ?? 0})`
+  );
+  const courses = await seedDemoCourses(prisma);
+  console.log(`Demo training: ${courses.courses} courses added`);
   // Never print the password. Demo accounts share SEED_DEMO_PASSWORD (default in DAY1_STATUS.md).
   console.log("Demo logins (shared demo password, see SEED_DEMO_PASSWORD):");
   for (const login of demo.logins) {
