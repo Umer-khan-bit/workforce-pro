@@ -9,6 +9,7 @@ import { RANKED_TESTS, searchCandidates, SORTS, type SearchSort } from "@/lib/re
 import { buildSearchQuery, parseSearchQuery, TEST_PARAMS } from "@/lib/recruiter/searchParams";
 import { TEST_TITLES } from "@/lib/testEngine/labels";
 import AiSearchBox from "./AiSearchBox";
+import { aiSearchExample } from "@/lib/recruiter/aiSearchExample";
 import ShortlistControl from "./ShortlistControl";
 
 const SORT_LABELS: Record<SearchSort, string> = { overall: "Best overall", experience: "Most experience", iq: "IQ", eq: "EQ", language: "Language", skill: "Job skill" };
@@ -57,7 +58,7 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
         <p role="alert" className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="plan-blocked">{planBlockMessage(ent, "candidate search")}</p>
       ) : (
         <div className="mt-5 flex flex-col gap-5">
-          <AiSearchBox offer={query.offer ?? offerMax} opening={openingId} enabled={ent.canUseAiSearch} blockedMessage={planBlockMessage(ent, "AI search")} />
+          <AiSearchBox example={aiSearchExample(roles[0]?.name, cities[0]?.name)} offer={query.offer ?? offerMax} opening={openingId} enabled={ent.canUseAiSearch} blockedMessage={planBlockMessage(ent, "AI search")} />
           {aiNote && <p role="status" className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900" data-testid="ai-understood"><strong>AI understood:</strong> {aiNote}</p>}
 
           <form method="get" className="card grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Filters">

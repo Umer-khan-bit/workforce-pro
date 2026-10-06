@@ -8,7 +8,7 @@ import type { SearchFilters, SearchSort } from "@/lib/recruiter/searchTypes";
 type Reply = { filters: SearchFilters; sort: SearchSort | null; summary: string; notes: string[] };
 
 /** Describe who you need in plain words; Claude turns it into filters, which are shown and then applied. */
-export default function AiSearchBox({ offer, opening, enabled, blockedMessage }: { offer: number | null; opening: string | null; enabled: boolean; blockedMessage: string }) {
+export default function AiSearchBox({ example, offer, opening, enabled, blockedMessage }: { example: string; offer: number | null; opening: string | null; enabled: boolean; blockedMessage: string }) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,7 +39,7 @@ export default function AiSearchBox({ offer, opening, enabled, blockedMessage }:
   return (
     <form onSubmit={run} className="card" aria-labelledby="ai-search-h" data-testid="ai-search">
       <h2 id="ai-search-h" className="font-semibold text-zinc-900">AI search</h2>
-      <p className="mt-0.5 text-sm text-zinc-600">Describe who you need, for example: <em>accountants in Lahore with at least 3 years of experience and strong IQ</em>.</p>
+      <p className="mt-0.5 text-sm text-zinc-600">Describe who you need, for example: <em>{example}</em>.</p>
       {enabled ? (
         <div className="mt-3 flex flex-wrap gap-3">
           <label htmlFor="ai-q" className="sr-only">Describe the candidates you need</label>
