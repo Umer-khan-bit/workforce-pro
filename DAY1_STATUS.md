@@ -2,6 +2,55 @@
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
 
+## Fix batch before client testing (done)
+
+Run `npm install` after pulling (no new migration, no new seed needed). The tests now cap their database connections (see 2), so they can run next to the app.
+
+### 1. No-hardcoding fixes
+- **Fairness flag limit.** The 0.8 is now Settings > Advanced > Self-learning > "Fairness flag below this impact ratio" (starting value 0.8, with a help line). The Fairness report page says which limit the report used ("Groups were flagged below an impact ratio of 0.8"); reports made before this change say the limit was not recorded.
+- **Webhook test message** uses the platform name from Settings > Branding.
+- **AI search example** is built from the first active job role and city in the database, with a general sentence if there are none.
+- **Gender options** are kept in code on purpose; `CLAUDE.md` now has a "Kept in code on purpose" list with the reason for each item.
+- **New scan.** I scanned `src/` for business values written in code. Fixed: the report period buttons (30, 90, 180, 365) are now Settings > Recruiter tools > "Report period buttons (days)"; the "Give a plan" form starts with the subscription period from Settings > Billing instead of a fixed 30 days; the wording "Q1 is the top quarter" and "each test takes 10 to 15 minutes" is gone (both depend on Settings: the quartile cut-offs and each test's own time limit). Kept in code, each with its reason in `CLAUDE.md`: security limits, the test names and Q1 to Q4, maths constants, technical timing and safety caps, date format, admin list page sizes, the wording of the example sentence. The scan is part of `src/lib/security.test.ts` and fails if a brand name, a currency code, a city, a region, or a job role, language or plan name written as a text value appears in `src/` outside tests, the seed data, the settings starting values and the message template starting text. I checked that it catches a violation.
+
+### 2. The flaky test: real cause and fix
+- **Cause 1 (the one behind the clean-up time-outs):** too many database connections. Each test file has its own database client and every client opens up to 33 connections on this 16-core laptop; PostgreSQL allows 100. A full test run alone reached about 54, and with the app running next to it the limit was passed, giving "FATAL: sorry, too many clients already" in whichever test was running. To prove it I held 48 connections open on purpose and ran the suite: 3 tests failed with exactly that error. Fix: `vitest.setup.ts` gives every test client a small pool (3 connections, and patience when it has to wait) and at most 8 test files run at the same time. The same experiment (48 connections held) now passes, and a full run peaks at about 19 connections instead of 54.
+- **Cause 2 (the `seedDemoResults.test.ts` failure):** it read every course in the database while another test file was creating a course whose lessons were not saved yet. It now looks only at the starter courses.
+- **Proof:** five full runs in a row, all green (748 tests each, about 25 seconds), and afterwards the database had no `@example.test` accounts and no "Test role/region/language" rows. The same run is at 753 tests after item 3.
+- The earlier database pollution (the test accounts and test roles) came from these failed runs; it was cleaned on 6 Oct.
+
+### 3. A question retired while a candidate is answering it
+Decision (your preference, in simple words): the candidate is never interrupted. They finish the question on screen, but their answer is **not scored** and **does not count in the question's statistics** (the row is kept and marked as not scored). The test then needs one more scored answer, so an adaptive test (IQ, Language, Job skill) simply picks another question, and a fixed test (Personality, EQ) adds one more approved question on the same topic (for Personality, the same trait) if there is one. A question retired before it is shown is never shown. If the Language writing task is retired while the candidate is writing, they can still submit, but the text is neither stored nor sent to Claude, and the Language score uses the multiple-choice part alone. Why: scoring someone on a question we have decided is wrong would be unfair, interrupting them would be confusing, and keeping the test length keeps results comparable. Five new tests in `retiredDuringTest.db.test.ts` (four of them fail without the change).
+
+### 4. Load check (`npm run load:check`)
+It uses only port 7330 (it starts the test server if it is not running and stops it afterwards; it needs `npm run build` first). It creates 100 temporary candidates and 20 temporary recruiters in their own isolated world (own language, region, job role and questions, so no demo question is answered or locked), logs everyone in through the real login, then all candidates take the IQ test while all recruiters search the demo candidates, and finally removes everything it created. `CHECK_THINK_MS` sets how long each person thinks between actions (default 0.4 seconds, about 50 times faster than a real person, which makes the default a stress test).
+
+What the check found and what I fixed:
+1. **Database connections doubled.** The app server used about 67 connections (the page code and the API code each opened their own pool), so one server plus a test run came close to the limit of 100. `src/lib/prisma.ts` now keeps one client per server in production too. The server now uses about 25 to 30.
+2. **A lock held too long.** Every answer increases the answer counter of its question, and the row stayed locked until the rest of the work for that answer was done. When many candidates are served the same popular questions, they queued behind each other. The counter is now the last step of the answer, so the lock is held for a moment. The slowest answers in the stress run fell from about 4.3 seconds to about 2.5 seconds.
+
+Results on this laptop (other programs were also running, so treat them as rough):
+
+| Request | Stress run (50x human speed), average / slowest | Near real pace (8 s per question), average / slowest |
+|---|---|---|
+| Login (120) | 2.5 s / 2.7 s | 2.4 s / 2.6 s |
+| Start a test (100) | 3.1 s / 3.4 s | 2.5 s / 3.1 s |
+| Open the test (100) | 1.6 s / 1.7 s | 1.2 s / 1.4 s |
+| Answer a question (about 2,100) | 0.85 s / 2.6 s | **0.14 s / 1.6 s** (95 percent under 0.22 s) |
+| Recruiter search (120 to 160) | 2.0 s / 2.9 s | **0.34 s / 2.3 s** |
+| Errors | **0** | **0** |
+| Tests finished | 100 of 100 | 100 of 100 |
+| Database connections, busiest moment | 30 of 100 | 31 of 100 |
+
+For comparison, one person alone gets an answer in 0.06 s, a search in 0.1 s, and a login in 0.24 s. In simple words:
+- **No errors, and every test finished.** At a realistic pace, answering and searching are fast (a typical answer takes about 0.14 s).
+- **What is still over 1 second is a burst at the start:** 100 people logging in and starting a test in the same second. The server is one process, and a login is CPU-heavy (the password library is pure JavaScript, about 0.1 s of work each), so 100 simultaneous logins take about 2.5 s. This is the design (one server process, bcryptjs), so I left it. Options for later, if real traffic needs them: a native password library, or more than one server process behind the reverse proxy (then keep the connection limit in mind: see the new line about `connection_limit` in `GO_LIVE_CHECKLIST.md`).
+- **Scale note (not measured):** each answer counts all sessions of that test type, and the recruiter search reads up to 5,000 candidates before filtering (Settings > Recruiter tools). Both are fine at demo size; check them again with real volumes.
+
+### 5. Documents
+- `USER_GUIDE.md`: stale lines and Day numbers removed, the duplicate 1.17 and 1.18 fixed (the platform admin sections are now 1.1 to 1.21 in the same order as the menu), every settings tab listed in the order of the screen, the dashboards described as they are now.
+- New `TESTING_CHECKLIST.md` (Roman Urdu): reset commands, demo accounts, every role and menu item in menu order with steps, expected result, Pass/Fail boxes and Notes, public pages, and one end-to-end story from admin setup to payment.
+
 ## Day 7: polish, privacy policy 1.2, demo data on every screen, demo script, go-live checklist (done)
 
 Run `npx prisma db seed` once after pulling (it publishes privacy policy 1.2 and fills the demo gaps below; already done on this laptop). There is no new migration. Dependencies changed: `npm install`.
