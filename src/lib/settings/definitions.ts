@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/questionBank/schema";
 import { unknownPlaceholders } from "@/lib/messageTemplates";
+import { validPeriodChoices } from "@/lib/reports/periods";
 
 /**
  * Every admin-editable business setting. The database (SiteSetting) holds the live values;
@@ -286,6 +287,8 @@ export const recruiterToolsSchema = z.object({
   searchPoolLimit: z.coerce.number().int().min(100).max(20000),
   /** Days shown by default in dashboards and reports. */
   reportDefaultDays: z.coerce.number().int().min(7).max(730),
+  /** The period buttons on report pages, in days, written as a comma separated list. */
+  reportPeriodChoices: z.string().trim().refine(validPeriodChoices, "Write one to eight whole numbers of days (1 to 730), separated by commas"),
 });
 
 export const billingSchema = z.object({
@@ -425,7 +428,7 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
   },
   training: { maxRecommendations: 3, weakFromQuartile: 3, skipWaitAfterCourse: "yes" },
   aiResults: { model: "claude-sonnet-5-5", effort: "low", maxOutputTokens: 2000, tipCount: 3, maxWords: 120 },
-  recruiterTools: { pageSize: 20, searchPoolLimit: 5000, reportDefaultDays: 90 },
+  recruiterTools: { pageSize: 20, searchPoolLimit: 5000, reportDefaultDays: 90, reportPeriodChoices: "30, 90, 180, 365" },
   billing: { periodDays: 30, prorate: "yes", expiryWarningDays: 7 },
   scheduledJobs: { enabled: "yes", recalibrationEveryDays: 7, reminderAfterDays: 3, reminderRepeatDays: 7, fairnessReportDay: 2 },
   integrations: { webhookTimeoutSeconds: 5, webhookMaxAttempts: 5, webhookRetryMinutes: 10, apiRequestsPerMinute: 120, maxApiKeys: 10 },
@@ -615,6 +618,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { name: "pageSize", label: "Candidates per page", type: "number", help: "How many candidates a recruiter sees on one page of search results." },
       { name: "searchPoolLimit", label: "Search pool size", type: "number", help: "The most candidates one search looks at before the test-result filters are applied; raise it for a very large candidate base." },
       { name: "reportDefaultDays", label: "Default report period (days)", type: "number", help: "The number of days shown by default in dashboards and reports." },
+      { name: "reportPeriodChoices", label: "Report period buttons (days)", type: "text", help: "The period choices shown on report pages, as day numbers separated by commas, for example 30, 90, 180, 365." },
     ],
   },
   {

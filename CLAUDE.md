@@ -256,6 +256,26 @@ These look like fixed lists but are part of how the system works, so they stay i
   fairness maths (the DIF check and the fairness report compare female with male; the others are too small to compare on their
   own). An admin editing this list would silently change what the fairness checks mean and could break comparisons between
   months. The wording on screen is plain labels only.
+- **Security limits.** Login, signup, password-reset, email-verification, AI and download rate limits and their windows, bcrypt
+  rounds, single-use token rules. CLAUDE.md says security rules stay in code, and a wrong value set by mistake in a screen would
+  weaken protection.
+- **The five tests themselves** (Personality, IQ, EQ, Language, Job skill) and their names, and **Q1 to Q4** as four groups. They are
+  the product's structure; what an admin can change is how each test behaves (Settings > Tests) and where the quartile cut-offs are
+  (Settings > Quartiles). Wording on screen says "highest group", never "top 25%", because that number is a Setting.
+- **Maths constants** of the adaptive engine and the recalibration: the ability grid, the allowed range of difficulty and
+  discrimination, the Likert scale 1 to 5, the midpoint of the salary line.
+- **Technical timing and safety caps**: the server's small grace time on answers (3 seconds, 20 seconds for a written answer), how long a
+  scheduled job may run before it counts as stuck (30 minutes), the 23-hour guard that stops a daily job running twice, and the largest
+  batch sizes of one request (200 shortlist entries per ATS push, 500 openings in the API, 2000 questions looked at when avoiding
+  duplicates, 40 shown to Claude).
+- **Display formats**: how dates are written (day, short month, year) and how a report chart groups time (by month when the period is over 120
+  days, otherwise by week). They change how things look, not what they mean.
+- **List page sizes in admin screens** (audit log, payments, users, item analysis, notifications). The recruiter search page size is a Setting.
+- **The wording of the example in the AI search box** ("with at least 3 years of experience and strong IQ"); the role and the city in it come from the database.
+
+Scan: `src/lib/security.test.ts` ("no business value is written into the code") fails when a brand name, currency code, city,
+region, or a job role, language or plan name written as a text value appears in `src/` outside tests, the seed data
+(`seedData.ts`), the settings starting values (`settings/definitions.ts`) and the message template starting text.
 
 ## Security and privacy (bank-grade, non-negotiable)
 - Never log passwords, tokens, CNIC, salaries or test answers.

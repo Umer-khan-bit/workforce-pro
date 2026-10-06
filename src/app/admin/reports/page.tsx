@@ -3,6 +3,7 @@ import { getCurrency, getSetting } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import Stat from "@/components/Stat";
 import { BarList, ColumnChart } from "@/components/charts/charts";
+import { parsePeriodChoices } from "@/lib/reports/periods";
 import { CandidateSection, HiringSection, PeriodPicker, readDays } from "@/components/reports/Panels";
 import { REAL_CANDIDATES } from "@/lib/reports/candidates";
 import { hiringReport } from "@/lib/reports/hiring";
@@ -30,7 +31,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
     <div>
       <h1 className="text-2xl font-semibold text-zinc-900">Reports</h1>
       <p className="mt-1 text-zinc-600">The whole platform: candidates, hiring and revenue.</p>
-      <PeriodPicker base="/admin/reports" days={days} />
+      <PeriodPicker base="/admin/reports" days={days} choices={parsePeriodChoices(tools.reportPeriodChoices)} />
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Candidates" value={candidates} hint="Deleted accounts are not counted" />

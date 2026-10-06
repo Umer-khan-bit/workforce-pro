@@ -6,8 +6,6 @@ import { STATUS_LABELS } from "@/lib/recruiter/shortlist";
 
 type HiringData = Awaited<ReturnType<typeof hiringReport>>;
 
-export const PERIODS = [30, 90, 180, 365];
-
 /** Reads ?days= from the address and keeps it to a sensible range (falls back to the setting). */
 export function readDays(raw: string | string[] | undefined, fallback: number): number {
   const s = Array.isArray(raw) ? raw[0] : raw;
@@ -16,8 +14,8 @@ export function readDays(raw: string | string[] | undefined, fallback: number): 
 }
 
 /** Links to switch the period of a report. */
-export function PeriodPicker({ base, days }: { base: string; days: number }) {
-  const options = [...new Set([...PERIODS, days])].sort((a, b) => a - b);
+export function PeriodPicker({ base, days, choices }: { base: string; days: number; choices: number[] }) {
+  const options = [...new Set([...choices, days])].sort((a, b) => a - b);
   return (
     <nav aria-label="Report period" className="mt-4 flex flex-wrap items-center gap-2 text-sm">
       <span className="text-zinc-600">Period:</span>

@@ -200,7 +200,7 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
                   {result.page < result.pages ? <Link href={href(result.page + 1)} className="btn-secondary">Next</Link> : <span />}
                 </nav>
               )}
-              <p className="mt-3 text-xs text-zinc-500">Quartile Q1 is the top quarter. Overall is the average percentile across the tests that count for Top Performers. Names are shown; phone, email and salary expectations stay private until a candidate accepts your request.</p>
+              <p className="mt-3 text-xs text-zinc-500">Quartile Q1 is the highest group and Q4 the lowest. Overall is the average percentile across the tests that count for Top Performers. Names are shown; phone, email and salary expectations stay private until a candidate accepts your request.</p>
             </section>
           )}
         </div>

@@ -4,6 +4,7 @@ import { getSetting } from "@/lib/settings";
 import { daysAgo } from "@/lib/dates";
 import Stat from "@/components/Stat";
 import { BarList } from "@/components/charts/charts";
+import { parsePeriodChoices } from "@/lib/reports/periods";
 import { CandidateSection, HiringSection, PeriodPicker, readDays } from "@/components/reports/Panels";
 import { recruiterVisibleWhere } from "@/lib/recruiter/candidateAccess";
 import { getEntitlements } from "@/lib/recruiter/entitlements";
@@ -49,7 +50,7 @@ export default async function CompanyReportsPage({ searchParams }: { searchParam
     <div>
       <h1 className="text-2xl font-semibold text-zinc-900">Reports</h1>
       <p className="mt-1 text-zinc-600">How your company is hiring: every recruiter, every job opening.</p>
-      <PeriodPicker base="/company-admin/reports" days={days} />
+      <PeriodPicker base="/company-admin/reports" days={days} choices={parsePeriodChoices(tools.reportPeriodChoices)} />
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Shortlisted" value={hiring.total} hint={`Last ${days} days`} />

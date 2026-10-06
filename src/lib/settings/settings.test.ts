@@ -14,6 +14,7 @@ import {
   itemDefaultsSchema,
   quartilesSchema,
   selfLearningSchema,
+  recruiterToolsSchema,
   topPerformerSchema,
 } from "./definitions";
 import { readSetting, seedSettings } from "./store";
@@ -53,6 +54,10 @@ describe("settings definitions", () => {
     expect(itemDefaultsSchema.safeParse({ discrimination: 1, difficultyEasy: 1, difficultyMedium: 0, difficultyHard: 1 }).success).toBe(false);
     const sl = DEFAULT_SETTINGS.selfLearning;
     expect(selfLearningSchema.safeParse({ ...sl, tooHardCorrectRate: 0.95 }).success).toBe(false);
+    const rt = DEFAULT_SETTINGS.recruiterTools;
+    expect(recruiterToolsSchema.safeParse(rt).success).toBe(true);
+    expect(recruiterToolsSchema.safeParse({ ...rt, reportPeriodChoices: "30, banana" }).success).toBe(false);
+    expect(recruiterToolsSchema.safeParse({ ...rt, reportPeriodChoices: "7, 14, 60" }).success).toBe(true);
     expect(sl.fairnessImpactThreshold).toBe(0.8); // the starting value of the fairness flag limit
     expect(selfLearningSchema.safeParse({ ...sl, fairnessImpactThreshold: 1.5 }).success).toBe(false);
   });

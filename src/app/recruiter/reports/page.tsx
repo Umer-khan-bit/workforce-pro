@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { daysAgo } from "@/lib/dates";
 import Stat from "@/components/Stat";
+import { parsePeriodChoices } from "@/lib/reports/periods";
 import { CandidateSection, HiringSection, PeriodPicker, readDays } from "@/components/reports/Panels";
 import { recruiterVisibleWhere } from "@/lib/recruiter/candidateAccess";
 import { resolveOffer } from "@/lib/recruiter/guards";
@@ -30,7 +31,7 @@ export default async function RecruiterReportsPage({ searchParams }: { searchPar
     <div>
       <h1 className="text-2xl font-semibold text-zinc-900">Reports</h1>
       <p className="mt-1 text-zinc-600">Your hiring activity and the candidates that fit your offers.</p>
-      <PeriodPicker base="/recruiter/reports" days={days} />
+      <PeriodPicker base="/recruiter/reports" days={days} choices={parsePeriodChoices(tools.reportPeriodChoices)} />
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Shortlisted" value={hiring.total} hint={`Last ${days} days`} />

@@ -85,7 +85,7 @@ describe("the PDF report", () => {
     generatedOn: "1 October 2026",
     topPerformer: true,
     results: [
-      { title: "IQ test", lines: ["Quartile Q1 (Q1 is the top quarter)."], traits: null, feedback: "You reason well with numbers.", tips: ["Practise estimating.", "Time yourself."] },
+      { title: "IQ test", lines: ["Quartile Q1 (Q1 is the highest group, Q4 the lowest)."], traits: null, feedback: "You reason well with numbers.", tips: ["Practise estimating.", "Time yourself."] },
       { title: "Personality test", lines: ["Five traits."], traits: [{ trait: "Extraversion", score: 3.8 }, { trait: "Emotional Stability", score: 4.2 }], feedback: null, tips: [] },
     ],
     salary: { currency: "PKR", suggestedLine: "Suggested monthly range: PKR 70,000 to PKR 90,000", marketLine: "Market range ...", basis: "Based on your results." },

@@ -63,7 +63,7 @@ export default async function MyTestsPage() {
     <div>
       <h1 className="text-2xl font-semibold text-zinc-900">My tests</h1>
       <p className="mt-1 text-zinc-600">
-        Each test takes 10 to 15 minutes or so. Recruiters rank candidates by these results, so take them when you can give them your full attention.
+        Each test is timed; the number of questions and the time limit are shown on its card. Recruiters rank candidates by these results, so take them when you can give them your full attention.
         {overview.language && <> Your tests are in {overview.language}.</>}
       </p>
       {!overview.verified && (

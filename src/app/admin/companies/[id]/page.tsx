@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrency } from "@/lib/settings";
+import { getCurrency, getSetting } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import { getCompanyAccess } from "@/lib/companyPlan";
 import Stat from "@/components/Stat";
@@ -20,9 +20,10 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     },
   });
   if (!company) notFound();
-  const [plans, currency, openings, pipeline, hires] = await Promise.all([
+  const [plans, currency, billing, openings, pipeline, hires] = await Promise.all([
     prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     getCurrency(),
+    getSetting("billing"),
     prisma.jobOpening.count({ where: { companyId: id, status: "OPEN" } }),
     prisma.shortlist.count({ where: { recruiter: { companyId: id }, status: { notIn: ["HIRED", "REJECTED"] } } }),
     prisma.shortlistStatusHistory.count({ where: { status: "HIRED", shortlist: { recruiter: { companyId: id } } } }),
@@ -44,7 +45,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
 
       <h2 className="mt-8 text-lg font-semibold text-zinc-900">Give a plan</h2>
       <p className="mt-1 text-sm text-zinc-600">Replaces the current plan straight away, with no payment. Use it for pilots and goodwill extensions; it is recorded in the audit log.</p>
-      <div className="mt-3"><AssignPlanForm companyId={company.id} plans={plans.map((p) => ({ code: p.code, name: p.name }))} /></div>
+      <div className="mt-3"><AssignPlanForm companyId={company.id} plans={plans.map((p) => ({ code: p.code, name: p.name }))} defaultDays={billing.periodDays} /></div>
 
       <h2 className="mt-8 text-lg font-semibold text-zinc-900">Team</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-200 bg-white">

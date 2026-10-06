@@ -137,3 +137,35 @@ describe("browser protections", () => {
     expect(read("src/lib/password.ts")).toMatch(/bcrypt/);
   });
 });
+
+/**
+ * "No hardcoding": business values (brand, currency, cities, regions, job roles, languages, plan names) live in the database and
+ * are edited by the platform admin. Starting values are allowed only in the seed and settings-definition files, and in tests.
+ */
+describe("no business value is written into the code", () => {
+  const EXEMPT = /\.test\.tsx?$|\/testkit\.ts$|\/testWorld\.ts$|^src\/lib\/seedData\.ts$|^src\/lib\/settings\/definitions\.ts$|^src\/lib\/messageTemplates\.ts$/;
+  const sources = globSync("src/**/*.{ts,tsx}").map((p) => p.replace(/\\/g, "/")).filter((p) => !EXEMPT.test(p));
+  /** Source with comments removed (a comment may talk about Lahore; code must not). */
+  const code = (p: string) => read(p).replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+
+  const RULES: Array<{ what: string; pattern: RegExp }> = [
+    { what: "a brand name", pattern: /Workforce Pro|Smart Workforce|workforcepro/ },
+    { what: "a currency code or locale", pattern: /\b(PKR|USD|EUR|GBP|AED|SAR)\b|\ben-PK\b/ },
+    { what: "a city", pattern: /\b(Karachi|Lahore|Islamabad|Rawalpindi|Faisalabad|Multan|Gujranwala|Sialkot|Hyderabad|Sukkur|Peshawar|Mardan|Abbottabad|Quetta|Gilgit|Muzaffarabad)\b/ },
+    { what: "a region", pattern: /\b(Punjab|Sindh|Balochistan|Khyber|Azad Kashmir|Gilgit-Baltistan)\b/ },
+    { what: "a job role (as a text value)", pattern: /["'`](Accountant|Customer Service|IT Support|Sales)["'`]/ },
+    { what: "a language name (as a text value)", pattern: /["'`](English|Urdu)["'`]/ },
+    { what: "a plan name (as a text value)", pattern: /["'`](Basic|Advanced)["'`]/ },
+  ];
+
+  it("finds the source files", () => {
+    expect(sources.length).toBeGreaterThan(200);
+  });
+
+  for (const rule of RULES) {
+    it(`${rule.what} is not written in src/ (use the database and Settings)`, () => {
+      const hits = sources.flatMap((p) => code(p).split("\n").flatMap((line, i) => (rule.pattern.test(line) ? [`${p}:${i + 1}: ${line.trim().slice(0, 100)}`] : [])));
+      expect(hits).toEqual([]);
+    });
+  }
+});

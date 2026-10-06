@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /** Platform admin: give the company a plan for a number of days without a payment. */
-export default function AssignPlanForm({ companyId, plans }: { companyId: string; plans: { code: string; name: string }[] }) {
+export default function AssignPlanForm({ companyId, plans, defaultDays }: { companyId: string; plans: { code: string; name: string }[]; defaultDays: number }) {
   const router = useRouter();
   const [planCode, setPlanCode] = useState(plans[0]?.code ?? "");
-  const [days, setDays] = useState("30");
+  const [days, setDays] = useState(String(defaultDays));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
