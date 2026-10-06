@@ -1,8 +1,8 @@
 # Workforce Pro — User Guide (Guided Tour, Roman Urdu)
 
-> Yeh guide 6 Oct 2026 ko Day 7 par mukammal ki gayi hai: **Day 1 se Day 7 tak sab kuch bana hua aur chalta hai.** Koi placeholder page baqi nahi.
-> **✅ Working** = chalta hai. Jahan "Day N" likha hai woh sirf batata hai ke woh hissa kab bana.
-> Saath mein do aur files hain: **`DEMO_SCRIPT.md`** (client ko 15 minute mein demo kaise dikhana hai, simple English mein) aur **`GO_LIVE_CHECKLIST.md`** (demo se production tak kya karna hai).
+> Yeh guide 6 Oct 2026 ko mukammal ki gayi hai: **har screen bana hua aur chalta hai.** Koi placeholder page baqi nahi.
+> **✅ Working** = chalta hai.
+> Saath mein teen aur files hain: **`TESTING_CHECKLIST.md`** (har screen ko step-by-step check karne ki list, Pass/Fail ke saath), **`DEMO_SCRIPT.md`** (client ko 15 minute mein demo kaise dikhana hai, simple English mein) aur **`GO_LIVE_CHECKLIST.md`** (demo se production tak kya karna hai).
 
 ---
 
@@ -29,7 +29,7 @@ npm run dev                 # App → http://localhost:7310
 
 **Demo data (har account ka har page bhara hua hai)**
 - 64 demo candidates ke saath poore test results (Q1 se Q4 tak), 3 companies, 10 job openings, 70 se zyada shortlisted candidates jo pipeline mein mukhtalif stages par hain, contact requests aur unke jawab, har company ki payment history, 14 courses.
-- Day 7 mein jo cheezein bhari gayin: platform admin ke liye **Item analysis** (36 sawal, 3 flagged, 2 pretest ready) aur ek recalibration run; company admin ke liye **API key**, **webhook**, **delivery log** (ek failed delivery jaan boojh kar) aur **mock ATS** mein pushed candidates (Advanced wali dono companies ke liye); candidate ke liye ek **request jo jawab ka intezar kar rahi hai**.
+- Demo ke liye in screens ko khaas bhara gaya hai: platform admin ke liye **Item analysis** (36 sawal, 3 flagged, 2 pretest ready) aur ek recalibration run; company admin ke liye **API key**, **webhook**, **delivery log** (ek failed delivery jaan boojh kar) aur **mock ATS** mein pushed candidates (Advanced wali dono companies ke liye); candidate ke liye ek **request jo jawab ka intezar kar rahi hai**.
 - Jo sawal AI reviewer ne OK kiye (173) woh demo ke liye approve kar diye gaye hain, taake demo candidate Language aur Job skill test live de sake. Jo "Needs fixing" ya "Reject" the woh **Approvals** mein pade hain.
 - **Demo dobara chalana:** `npm run demo:reset` — Sana ki Faisal ke liye shortlist/request hata deta hai aur Ayesha ki request dobara bhej deta hai. Baqi kuch nahi chhoota.
 - **Poora demo data dobara banana:** `npx prisma db seed` (jo pehle se hai usay dobara nahi banata). Database delete na karein: us mein approved sawal hain jin ko banane mein paisa lagta hai.
@@ -55,7 +55,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 
 ### 1.1 Dashboard ✅
 - **Kis liye:** Platform ki sehat ek nazar mein.
-- **Kya hai:** 4 numbers — **Candidates**, **Companies**, **Recruiters**, **Active subscriptions**. Neeche har module ka card.
+- **Kya hai:** 5 numbers — **Candidates**, **Companies**, **Recruiters**, **Active subscriptions**, **Hires** (default period ke din), phir charts (candidates by city, IQ quartile distribution) aur neeche har module ka card.
 - **Data kahan se:** seedha database se ginti. Koi candidate signup kare to Candidates barhta hai; company signup kare to Companies aur Active subscriptions (trial) barhte hain.
 - **Quick test:** Numbers note karein → naye tab mein ek candidate signup karein → Dashboard refresh → **Candidates +1** hona chahiye (demo mein 65 → 66).
 
@@ -83,7 +83,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - Har test ke liye Approved / Pending / Retired / Flagged / Total. Doosri table test × job role × language.
 - **Laal** = ek bhi approved nahi, **Amber** = target se kam. Target **Settings → Question pool targets** se aata hai.
 
-- **Data kahan jata hai:** Sirf **Approved** sawal hi candidate ke test mein aate hain (Day 3 test engine). Retired kabhi nahi aate.
+- **Data kahan jata hai:** Sirf **Approved** sawal hi candidate ke test mein aate hain . Retired kabhi nahi aate.
 - **Quick test:** Import IPIP dabayen → Status filter "Approved", Test "Personality" → 50 sawal dikhne chahiye; Coverage mein Personality ka Approved = 50 (target 50, to amber nahi).
 
 #### 1.2a Add question / Edit question ✅
@@ -111,14 +111,14 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
   - **Edit** → form khulta hai, save ke baad wapas queue mein (pending).
   - **Reject** → "Reason (optional)" box → **Confirm reject / Cancel**. Sawal delete nahi hota, "Rejected" mark hota hai.
 - **Bulk:** **Select all on this page** · **Include questions flagged by the AI review** · **Approve selected (n)**. Flagged sawal tab tak chhod diye jate hain jab tak checkbox tick na ho (message batata hai kitne chhode).
-- **"Translate the personality items" panel:** **Translate into** (language chunein, e.g. Urdu) → **Translate N items**. 50 IPIP sawal Urdu mein bante hain (trait aur reverse-keying same), back-translation aur AI check notes ke saath, sab Pending. Kharcha ~10 cents. **Abhi tak chalaya nahi gaya.**
+- **"Translate the personality items" panel:** **Translate into** (language chunein, e.g. Urdu) → **Translate N items**. 50 IPIP sawal Urdu mein bante hain (trait aur reverse-keying same), back-translation aur AI check notes ke saath, sab Pending. Kharcha ~10 cents.
 - **"Translations that need updating" panel (peela):** Jab kisi English sawal ka **naya version** banta hai to uske Urdu translations yahan aa jate hain: translation, "English was" aur "English now". Woh tab tak chalte rehte hain jab tak naye wording ka translation approve na ho (phir purana khud retire ho jata hai). **Translate** panel naye English version ko dobara translate kar deta hai; ya yahan **Retire this translation** dabayen.
 - **Pehle se pade hue:** AI se bane Pending sawal (IQ, EQ, Language, Skill) — approve/reject aap ko karna hai.
 - **Quick test:** Ek sawal Reject karein reason "test" ke saath → Question bank mein Status filter "Rejected"/Any par woh reason ke saath nazar aaye; ek aur Approve → Question bank mein Approved.
 
 ---
 
-### 1.4 Item analysis ✅ (Day 6 — self-learning)
+### 1.4 Item analysis ✅
 - **Kis liye:** Jin sawalon ko dekhna zaroori hai (bohat aasan, bohat mushkil, kamzor ya biased) unki list. Koi sawal khud delete ya retire nahi hota: faisla aap ka.
 - **3 view:** **Needs review** (flagged) · **Pretest ready** (calibrate ho chuke pretest sawal) · **All with answers**.
 - **Table:** sawal, jawabon ki tadaad, **Correct** (kitne % ne sahi kiya), **Discrimination** (mazboot aur kamzor candidates ko alag karta hai ya nahi; limit se neeche laal), **Difficulty (b)**, **Bias gap** (gender / region / language), **Why** (flag ki wajah saaf lafzon mein).
@@ -127,7 +127,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Demo mein:** **Needs review** mein 3 flagged sawal hain (ek bohat aasan, ek jo mazboot aur kamzor candidates mein farq nahi karta, ek jis par gender bias ka shak hai) aur **Pretest ready** mein 2 sawal. Yeh demo ke khulasa numbers hain (jawab ki rows nahi), is liye asli Recalibration unhein nahi chheDti.
 - **Quick test:** Needs review → ek sawal par **Keep it** → list se hat jata hai. Pretest ready → **Make operational**.
 
-### 1.5 Recalibration ✅ (Day 6)
+### 1.5 Recalibration ✅
 - **Kis liye:** Candidates ke jawabon se har sawal ki difficulty dobara calculate karna (kam az kam 200 jawab, Setting) aur flag lagana.
 - **Kya karta hai:** naye difficulty/discrimination sawal par save hote hain (adaptive test unhe use karta hai); bias (gender, region, language) un candidates ke beech check hota hai jin ki salahiyat barabar ho.
 - **Recalibrate now** button + neeche **History** (kab, kis ne, kitne check, kitne naye flag, Completed/Failed). Khud bhi hafte mein ek dafa chalta hai (Scheduled jobs).
@@ -139,8 +139,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Kis liye:** Har test ke rules.
 - **5 cards** (Personality, EQ, IQ, Language, Skill), har card mein:
   **Minimum questions** · **Maximum questions** · **Stop when SE below** · **Time limit (minutes)** · **Days before retake** · **Unscored pretest questions** → **Save** ("Saved." message).
-- **Data kahan jata hai:** Day 3 ka test engine yahin se parhega — kitne sawal, kab rukna, kitna time, retake kab.
-- **Status:** Save ✅, asar Day 3 ke baad dikhega.
+- **Data kahan jata hai:** Test engine yahin se parhta hai — kitne sawal, kab rukna, kitna time, retake kab. Save karte hi agle test se lagu.
 - **Quick test:** IQ time limit 15 → 12 → Save → refresh → 12 hi rehna chahiye. Minimum > Maximum karke Save → error aana chahiye.
 
 ---
@@ -156,7 +155,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
   **Code** (e.g. `basic`) · **Name** · **Price per month (PKR)** · **Display order** · **Description** · **Features:** on/off checkboxes (Access to all candidates, Exclusive access to Q1 scorers, AI plain-language search, ATS and API access) aur limits (Maximum shortlisted candidates, Maximum open job openings — **Unlimited** checkbox ya number) · **Active (companies can subscribe to it)** → **Save**. **Delete plan → Confirm delete** (agar koi company use kar rahi ho to mana karega).
   Neeche khali (dashed) card = **naya plan add**.
 - **"Plan features" section:** har feature ka **naam** aur **Description** badal sakte hain → **Save**.
-- **Data kahan jata hai:** Company admin ka **Subscription & billing** page yahi plans, prices aur features dikhata hai. Settings → Accounts & trials ka dropdown bhi yahi plans dikhata hai. Day 5 se recruiter ki search/shortlist limits inhi features se chalengi.
+- **Data kahan jata hai:** Company admin ka **Subscription & billing** page yahi plans, prices aur features dikhata hai. Settings → Accounts & trials ka dropdown bhi yahi plans dikhata hai. Recruiter ki search, shortlist aur job opening limits inhi features se chalti hain.
 - **Abhi ki values:** Basic PKR 15,000 (all candidates, 25 shortlists, 5 openings), Advanced PKR 40,000 (sab kuch, unlimited). **Prices placeholder hain.**
 - **Quick test:** Basic ka price 15000 → 18000 → Save → `companyadmin@demo.test` se login → Subscription & billing → Basic par 18,000 dikhe.
 
@@ -165,7 +164,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Upar ke numbers:** Subscriptions collected, Courses collected, Paid, Failed. **Filters:** For (Subscriptions/Courses), Status.
 - **Quick test:** Company admin se checkout karwayen (success aur failure) → yahan dono rows.
 
-### 1.10 Pilot mode ✅ (Day 6 mein enforce)
+### 1.10 Pilot mode ✅
 - **Kis liye:** Platform ko sirf ek company tak mehdood karna.
 - **Fields:** **Pilot mode is on** checkbox · **Company allowed in during the pilot** dropdown → **Save**.
 - **Asar:** Pilot on ho to dusri companies ke recruiters aur company admins login nahi kar sakte (khuli session agle click par band, saaf paigham), nayi company signup nahi hoti, dusri companies ki API keys aur webhooks ruk jate hain. Candidates aur platform admins par asar nahi.
@@ -185,7 +184,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Kis liye:** Salary guide ke peeche ka data.
 - **Filters:** **Job role**, **City** → **Filter**, **Clear**.
 - **Table (har row editable):** **Job role** · **City** · **Experience** (band) · **Minimum** · **Average** · **Maximum** → **Save**, **Delete → Confirm**. Upar khali row = **naya benchmark add**.
-- **Data kahan jata hai:** Day 4 mein candidate ka **Salary guide** yahin se range dikhayega. City aur Experience ki list **Roles, regions & languages** se aati hai.
+- **Data kahan jata hai:** Candidate ka **Salary guide** yahin se range dikhata hai. City aur Experience ki list **Roles, regions & languages** se aati hai.
 - **Quick test:** Accountant + Lahore filter → ek row ka Average badlen → Save → refresh → naya number rahe. Min > Max karein → error.
 
 ### 1.13 Roles, regions & languages ✅
@@ -197,7 +196,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 | **Regions** | Name, Active | Signup ka "Region" dropdown; region = language test |
 | **Cities** | City, Region, Active | Candidate aur company signup ka "City" dropdown (region ke hisaab se filter) |
 | **Languages** | Name, Code, Active, Default, Right-to-left | Question bank / Generate ki language list; Urdu RTL dikhta hai; translation panel |
-| **Region languages** | Region, Language, Primary | Day 3 mein candidate ka language test is se decide hoga |
+| **Region languages** | Region, Language, Primary | Candidate ka language test is se decide hota hai |
 | **Experience bands** | Label, Min years, Max years (khali = 10+), Order | Salary benchmarks ka "Experience" |
 
 - **Quick test (sab se acha):** Cities mein "Sukkur", Region "Sindh", Active → Add → logout → `/signup` → Region Sindh chunein → City dropdown mein **Sukkur** nazar aaye. Active uncheck karein → gayab ho jaye.
@@ -209,70 +208,75 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Quick test:** `recruiter.usman@demo.test` search karein → Deactivate → us ki window mein kisi page par click → login page; wapas Activate.
 
 ### 1.15 Reports ✅
-- **Period:** Last 30/90/180/365 days.
+- **Period:** buttons (shuru mein Last 30/90/180/365 days; Settings → Recruiter tools → "Report period buttons" se badalte hain).
 - **Numbers:** Candidates (delete shuda shamil nahi), Companies, Hires (aur average time to hire), Revenue.
 - **Charts:** hiring funnel, time to hire, shortlisted vs hired over time, revenue by month (subscriptions aur courses), companies by plan, new candidates, new companies, job openings by status, candidates by city, by job role, aur har test ka quartile distribution.
-- Monthly fairness report ab alag screen par hai: **Fairness report** (1.17).
+- Monthly fairness report alag screen par hai: **Fairness report** (1.16).
 
-### 1.16 Audit log ✅ (Day 6)
-- **Kis liye:** Admin actions, har recruiter ki candidate profile view aur doosre ahem events ka record. Yahan koi entry edit ya delete nahi hoti.
-- **Filters:** **What happened** (action ki list, gintiyon ke saath) aur **Who** (naam ya email) → **Filter** / **Clear**. 50 entries har page par.
-- **Columns:** When, Who (aur role), What, About, Details (sirf ids aur field ke naam; password, salary ya jawab kabhi nahi).
-- **Quick test:** Recalibration par **Recalibrate now** → Audit log → What happened = "job run manually" → apni entry.
-
-### 1.17 Fairness report ✅ (Day 6)
+### 1.16 Fairness report ✅
 - **Kis liye:** Har mahine dekhna ke IQ, EQ, Language aur Job skill mein gender, region aur test language ke groups ka natija barabar hai ya nahi.
-- **Har group ke liye:** kitne log, mean percentile, top half (Q1+Q2) mein kitne %, aur **Impact** (group ka share ÷ behtareen group ka share). 0.8 se kam = peela highlight (four-fifths rule). 30 se kam logon ka group "Too few to report" (koi number nahi).
+- **Har group ke liye:** kitne log, mean percentile, top half (Q1+Q2) mein kitne %, aur **Impact** (group ka share ÷ behtareen group ka share). Impact "Settings → Self-learning → Fairness flag below this impact ratio" (shuru mein 0.8, four-fifths rule) se kam ho to peela highlight; report par likha hota hai ke kaun si hadd istemal hui. Chhote group (Settings mein "Answers a group needs", shuru mein 30) "Too few to report" (koi number nahi).
 - **Neeche:** wo sawal jin par bias ka shak hai (Item analysis ka link).
 - **Buttons:** mahina chunen → **Make or refresh this month's report**. Pichhle mahine ka report khud bhi banta hai (Settings → Scheduled jobs mein din), aur admins ko notification aati hai.
 - **Quick test:** Fairness report → mahina → button → 4 test sections (demo mein zyada tar groups chhote hote hain).
 
-### 1.18 Scheduled jobs ✅ (Day 6)
+### 1.17 Scheduled jobs ✅
 - **Kis liye:** Wo kaam jo platform khud karta hai: Recalibration, Fairness report, Test reminders, Plan expiry warnings, Webhook retries. Har job ke saath **Run now**, akhri run aur natija; neeche **Recent runs**.
 - **Khud chalne ka tareeqa:** `.env` mein `JOBS_AUTORUN="true"` (server har 5 minute dekhta hai) ya bahar ka scheduler `POST /api/jobs/run` (CRON_SECRET ke saath). Page par likha hota hai ke scheduler on hai ya nahi. Settings → **Scheduled jobs** mein master switch aur din.
 - **Test reminders:** verified candidates ko jo test abhi nahi diye (signup ke baad 3 din, phir har 7 din): app mein notification **aur** email. **Plan expiry:** plan khatam hone se 7 din pehle har company ke admins ko app + email.
 - **Quick test:** **Run now** (Webhook retries) → "Done." → status completed.
 
+### 1.18 Audit log ✅
+- **Kis liye:** Admin actions, har recruiter ki candidate profile view aur doosre ahem events ka record. Yahan koi entry edit ya delete nahi hoti.
+- **Filters:** **What happened** (action ki list, gintiyon ke saath) aur **Who** (naam ya email) → **Filter** / **Clear**. 50 entries har page par.
+- **Columns:** When, Who (aur role), What, About, Details (sirf ids aur field ke naam; password, salary ya jawab kabhi nahi).
+- **Quick test:** Recalibration par **Recalibrate now** → Audit log → What happened = "job run manually" → apni entry.
+
+
 ---
 
-### 1.17 Settings ✅
+### 1.19 Settings ✅
 - **Kis liye:** Platform-wide values; save karte hi foran lagu. Upar group buttons (tabs); neeche "Advanced settings" warning box ke andar technical tabs. Har field ke neeche ek line help. Har tab ka apna **Save** ("Saved.").
 
-**Normal tabs**
+**Normal tabs** (is tarteeb se, jaisi screen par hain)
 | Tab | Fields | Kahan asar |
 |---|---|---|
-| **Branding** | Platform name, Tagline, Brand colour (ek rang → saare shades khud; preview patti), Logo (PNG/JPEG/WebP/SVG ~150KB) | Har page ka header, browser tab, emails, buttons ka rang |
+| **Branding** | Platform name, Tagline, Brand colour (ek rang → saare shades khud; preview patti), Logo (PNG/JPEG/WebP/SVG ~150KB) | Har page ka header, browser tab, emails, PDF, webhook test message, buttons ka rang |
 | **Homepage** | Headline, Sub-heading, Log in button, Candidate sign-up button, Company sign-up button | Home page (/) |
 | **Accounts & trials** | Plan new companies start on (plans list ya "No plan"), Free trial length (days), Password reset link lasts (minutes), Email confirmation link lasts (hours) | Company signup ka trial; forgot-password aur verify-email links |
-| **Currency** | Currency code (PKR), Number format (en-PK) | Har jagah paise ka format (plans, salary) |
-| **Quartiles** | Q1 = top ...%, Q2, Q3, Minimum candidates in a job role (30) | Day 3 scoring |
-| **Top performer** | Quartile needed (1), Tests that must all reach it (IQ, EQ, Language, Skill ticked) | Badge + email + notification (har result ke baad check) |
-| **Salary guide** | Results kitna range hilate hain (%), Range ki chaurai (%), Q1–Q4 ke points, Kaun se tests ginay jayen, Round to, Disclaimer | Candidate ka Salary guide aur PDF report |
-| **Training** | Kitne courses recommend hon, Weak area kis quartile se, Course ke baad foran retake (Yes/No) | Training recommendations aur retake |
+| **Tests** | Instructions shown before every test, Writing task notice, Language: how much the writing counts (%), Writing: fewest / most words, Score for level A1 … C2 | Test shuru hone se pehle ka page, Language ka score aur writing task |
+| **Currency** | Currency code, Number format | Har jagah paise ka format (plans, salary, payments) |
+| **Quartiles** | Q1 / Q2 / Q3 = top ...%, Minimum candidates in a job role | Quartile ki hadd aur ranking ka group |
+| **Top Performer** | Quartile needed in each test, Tests that must all reach it | Badge + email + notification (har result ke baad check) |
+| **Salary guide** | Results kitna range hilate hain (%), Range ki chaurai (%), Q1–Q4 ke points, Tests that count, Round amounts to, Disclaimer | Candidate ka Salary guide aur PDF report |
+| **Training** | Courses to recommend, Weak area from quartile, Retake straight after a course | Training recommendations aur retake |
+| **Recruiter tools** | Candidates per page, Search pool size, Default report period (days), **Report period buttons (days)** (jaise `30, 90, 180, 365`) | Recruiter search, dashboards aur teeno Reports screens ke period buttons |
+| **Billing** | Subscription period (days), Credit the unused part of the old plan, Warn before a plan ends (days) | Checkout, plan badalna, plan khatam hone ki warning; admin ke "Give a plan" ka default din |
+| **ATS and API** | API keys per company, API requests per minute (per key), Webhook timeout, delivery attempts, minutes between retries | API keys, Webhooks |
 | **Question pool targets** | Har test ka target number | Question bank ki laal/amber coverage |
 
 **Advanced tabs** (sirf jab pata ho kya kar rahe hain)
 | Tab | Fields | Asar |
 |---|---|---|
-| **Question defaults** | Discrimination (a), Easy/Medium/Hard difficulty (b) | Naye sawalon ki starting values (Day 3 adaptive test) |
-| **Self-learning** | Answers needed before recalibrating (200), Too easy / Too hard rate, Low discrimination, Possible bias gap, Smallest group compared (30) | Item analysis, Recalibration, Fairness report |
-| **ATS and API** | Webhook timeout, attempts, minutes between tries, API requests per minute, keys per company | API keys, Webhooks |
-| **Scheduled jobs** | Run automatically, recalibration every N days, reminder after / repeat days, fairness report day | Scheduled jobs |
-| **AI generation** | Writer model, Review model, Thinking effort, Max reply length, Questions per batch, Most questions in one run, EQ % situational, Language % writing, 4 prices (cost estimate ke liye) | Generate with AI page |
+| **Scheduled jobs** | Run jobs automatically, Recalibrate every (days), First reminder after / repeat after (days), Fairness report day of the month | Scheduled jobs |
+| **Question defaults** | Discrimination (a), Easy/Medium/Hard difficulty (b) | Naye sawalon ki starting values |
+| **Test engine** | Pick from the best ... questions, Most often a question may be used, Tests before the exposure limit applies, Topic balance strength | Adaptive test sawal kaise chunta hai |
+| **Self-learning** | Answers needed before recalibrating (200), Too easy / Too hard correct rate, Low discrimination, Possible bias gap, Answers a group needs before it is compared (30), **Fairness flag below this impact ratio** (shuru mein 0.8) | Item analysis, Recalibration, Fairness report |
+| **AI generation** | Writer model, Review model, Thinking effort, Max reply length, Questions per batch, Extra tries, Most questions in one run, EQ % situational, Language % writing, 4 prices (cost estimate ke liye) | Generate with AI page |
 | **AI feedback** | Model, Thinking effort, Max reply length, Improvement tips per test, Feedback length (words) | Candidate ke result ka feedback aur course recommendations |
-| **AI prompts** | Shared system prompt, har test ka instruction, review/translation prompts, **Candidate result feedback**, **Course recommendations** (har box ke neeche allowed placeholders) | Claude ko kya kaha jata hai |
+| **AI prompts** | Shared system prompt, har test ka instruction, review/translation prompts, Candidate result feedback, Course recommendations, Recruiter AI search, Writing rubric, easy/medium/hard ki wazahat (har box ke neeche allowed placeholders) | Claude ko kya kaha jata hai |
 
 - **Quick test:** Branding → rang badal kar Save → kisi bhi page par refresh → buttons naye rang mein. Homepage → Headline badlen → logout → home page par naya headline.
 
-### 1.18 Privacy policy ✅
+### 1.20 Privacy policy ✅
 - **Kis liye:** Privacy policy ka naya version publish karna.
 - **Fields:** **Title** · **New version number** · **Policy text** (paragraph ke beech khali line) → **Publish**. Message: "Published. It is now the version candidates accept at signup."
 - **Neeche:** "Published versions" table — Version, Title, Published, Status (Current / Older).
 - **Asar:** `/privacy` page par naya text; candidate signup par consent is version ke saath record hota hai.
-- **Abhi ka version 1.2:** v1.1 mein likha hai ke likhe huay jawab ka text AI grade karta hai; v1.2 (Day 7) mein ek line aur: **gender optional hai, sirf fairness checks mein use hota hai, recruiter ko kabhi nahi dikhta aur score ya rank mein kabhi use nahi hota.**
+- **Abhi ka version 1.2:** v1.1 mein likha hai ke likhe huay jawab ka text AI grade karta hai; v1.2 mein ek line aur: **gender optional hai, sirf fairness checks mein use hota hai, recruiter ko kabhi nahi dikhta aur score ya rank mein kabhi use nahi hota.**
 - **Quick test:** Naya version 1.3 publish → `/privacy` kholen → "Version 1.3" aur naya text.
 
-### 1.19 Message templates ✅
+### 1.21 Message templates ✅
 - **Kis liye:** Emails aur in-app alerts ki wording.
 - **21 templates:** Password reset, Email confirmation, Top Performer (email + in-app), Recruiter request received (email + in-app), Request accepted / declined, Test reminder (in-app + email), Plan expiry, Fairness report ready, Webhook failing, aur company admins ke liye hire / plan change / failed payment waghera.
 - **Har card:** **Subject** · **Message** · allowed placeholders (e.g. `{{brandName}}`, `{{candidateName}}`) · **enabled** checkbox → **Save**. Ghalat placeholder par error.
@@ -280,7 +284,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Quick test:** Password reset ka Subject badlen → Save → logout → Forgot password → terminal mein email ka naya subject dikhe.
 
 ### 🧭 Platform admin — flow story
-Admin pehle **Roles, regions & languages** mein job roles, cities aur region→language map set karta hai, **Settings** mein brand, currency, trial aur quartile rules, **Plans** mein Basic/Advanced ki price aur features, aur **Privacy policy** publish karta hai. Phir **Question bank** mein IPIP import karta hai, **Generate with AI** se IQ/EQ/Language/Skill sawal banwata hai, **Approvals** mein check karke live karta hai, aur **Coverage** dekhta hai ke kahan kami hai. **Test settings** se time/stop rules, **Salary benchmarks** se salary data. Day 5–6 ke baad yeh Reports, Item analysis, Recalibration aur Audit log se platform ko monitor karega.
+Admin pehle **Roles, regions & languages** mein job roles, cities aur region→language map set karta hai, **Settings** mein brand, currency, trial aur quartile rules, **Plans** mein Basic/Advanced ki price aur features, aur **Privacy policy** publish karta hai. Phir **Question bank** mein IPIP import karta hai, **Generate with AI** se IQ/EQ/Language/Skill sawal banwata hai, **Approvals** mein check karke live karta hai, aur **Coverage** dekhta hai ke kahan kami hai. **Test settings** se time/stop rules, **Salary benchmarks** se salary data. Phir **Reports**, **Item analysis**, **Recalibration**, **Fairness report** aur **Audit log** se platform ko monitor karta hai, **Scheduled jobs** dekhta hai, aur zarurat ho to **Pilot mode** se platform ko ek company tak mehdood karta hai.
 
 ---
 
@@ -293,7 +297,7 @@ Menu: Dashboard → Recruiters → Job openings → Subscription & billing → R
 ### 2.1 Dashboard ✅
 - **Kis liye:** Company, plan aur team.
 - **Plan callout (upar):** trial ho to "Free trial of the Basic plan: X days left (ends …)"; plan khatam ho to "Your plan has ended…"; plan na ho to "Your company has no plan yet…" + **Upgrade plan** button (→ Subscription & billing).
-- **Stats:** **Company** (city ke saath), **Plan** (trial ho to din), **Active recruiters**. Neeche module cards.
+- **Stats:** **Company** (city ke saath), **Plan** (price ke saath, trial ho to din), **Active recruiters**, **Open job openings**, **Candidates in the pipeline**; neeche hiring funnel aur charts, phir module cards.
 - **Asar:** Plan ki info Platform admin ke Plans + Settings → Accounts & trials se aati hai.
 - **Quick test:** Nayi company signup karein → dashboard par "Free trial … 14 days left" dikhe.
 
@@ -322,7 +326,7 @@ Menu: Dashboard → Recruiters → Job openings → Subscription & billing → R
 - Charts: hiring funnel (poori company), time to hire, shortlisted vs hired over time, openings by status, aur "Candidates that fit your company's offers" (city, role, quartiles).
 - **Recruiter activity** table: har recruiter ne kitne shortlist kiye, requests bhejin, hires, open openings.
 
-### 2.6 ATS & webhooks ✅ (Day 6)
+### 2.6 ATS & webhooks ✅
 - **Kis liye:** Aap ka ATS (ya koi bhi system) events khud receive kare. Plan mein **ATS and API access** chahiye, warna saaf paigham.
 - **Webhook add:** **Address** (https, aur private network nahi; demo mein sirf `http://localhost:7310/api/mock-ats/receive` ka apna receiver) + events chunen (shortlisted, stage changed, hired, contact request answered, pushed to the ATS) → **Add webhook**. **Signing secret sirf ek dafa** dikhta hai (copy kar len).
 - **Har webhook par:** **Send test**, **Turn off/on**, **Delete**.
@@ -331,7 +335,7 @@ Menu: Dashboard → Recruiters → Job openings → Subscription & billing → R
 - **Signature check:** header `X-Workforce-Signature: sha256=...` = HMAC-SHA256(secret, `timestamp.body`); timestamp header `X-Workforce-Timestamp`.
 - **Quick test:** `admin.lahore@demo.test` nahi (Basic, plan block) — `companyadmin@demo.test` → ATS & webhooks → address `http://localhost:7310/api/mock-ats/receive`, event chun kar Add → **Send test** → log mein "webhook.test — Delivered (200)". `http://10.0.0.5/x` dalen → error "points inside a private network".
 
-### 2.7 API keys ✅ (Day 6)
+### 2.7 API keys ✅
 - **Kis liye:** Aap ka system REST API se shortlist aur job openings padhe/update kare.
 - **Create:** naam → **Create API key**; poori key (`wfp_...`) **sirf ek dafa** dikhti hai; list mein sirf shuru ke 8 harf, kab bani, last used. **Revoke** par key foran band.
 - **API (`Authorization: Bearer <key>`):** `GET /api/v1/shortlist`, `POST /api/v1/shortlist/{id}/status`, `GET /api/v1/job-openings`. Candidate ka minimum salary, phone, email kabhi nahi milta. Har key ki per-minute limit hai (Settings).
@@ -339,7 +343,7 @@ Menu: Dashboard → Recruiters → Job openings → Subscription & billing → R
 ### 2.8 Notifications ✅ — naya job opening, hire, plan change, failed payment, plan khatam hone wala; sidebar mein unread count, **Mark as read / Mark all as read**.
 
 ### 🧭 Company admin — flow story
-Company **Company sign-up** se aati hai aur foran trial plan par hoti hai. Admin dashboard par trial ke din dekhta hai, **Recruiters** mein apni team add karta hai aur temporary password share karta hai; koi chala jaye to Deactivate. **Subscription & billing** mein plans compare karta hai (Day 5 se pay karke upgrade). Day 5–6 ke baad company-wide job openings, reports, ATS/webhooks aur API keys yahin se chalayega.
+Company **Company sign-up** se aati hai aur foran trial plan par hoti hai. Admin dashboard par trial ke din dekhta hai, **Recruiters** mein apni team add karta hai aur temporary password share karta hai; koi chala jaye to Deactivate. **Subscription & billing** mein plans compare karta hai (pay karke upgrade). Company-wide **Job openings**, **Reports**, **ATS & webhooks** aur **API keys** bhi yahin se chalate hain.
 
 ---
 
@@ -349,8 +353,8 @@ Company **Company sign-up** se aati hai aur foran trial plan par hoti hai. Admin
 
 Menu: Dashboard → Candidate search → Job openings → Shortlists → Contact requests → Reports → ATS export → Notifications.
 
-### 3.1 Dashboard ✅ (ab charts ke saath: funnel, matching candidates by city)
-- **Stats:** **Company** (city), **Company plan**, **Candidates on the platform**. Neeche module cards.
+### 3.1 Dashboard ✅
+- **Stats:** **Company** aur plan, **Candidates matching your offers**, **In your pipeline**, **Requests waiting** (jin candidates ne abhi jawab nahi diya). Neeche **Hiring funnel**, **Time to hire**, shortlisted/hired over time, matching candidates by city, phir module cards.
 - Email confirm na ho to upar **"Please confirm your email address"** banner + **Send the link again**.
 - **Quick test:** Candidate count platform admin dashboard ke "Candidates" ke barabar ho.
 
@@ -380,7 +384,7 @@ Menu: Dashboard → Candidate search → Job openings → Shortlists → Contact
 ### 3.6 Reports ✅
 - Period chunen. Shortlisted, Hired, Requests sent (kitni accepted), Open openings; hiring funnel, time to hire, activity over time, aur "Candidates that fit your offers" (city, role, quartiles).
 
-### 3.7 ATS export ✅ (Day 6)
+### 3.7 ATS export ✅
 - **Kis liye:** Shortlisted candidates ko ATS mein bhejna aur file mein download karna. Plan mein **ATS and API access** chahiye.
 - **Push:** candidates tick karein (ya **Select all**) → **Push to ATS** → "Pushed N candidates to the ATS". Column **In the ATS** mein ATS id. Dobara push karne se duplicate nahi banta, entry update hoti hai. Demo mein ATS "mock ATS" hai (company admin ke ATS & webhooks page par nazar aata hai).
 - **Download CSV / Download Excel:** reference, naam, city, experience, job opening, stage, har test ka quartile/percentile, CEFR. Minimum salary, phone, email export nahi hote. Urdu naam theek aate hain.
@@ -388,7 +392,7 @@ Menu: Dashboard → Candidate search → Job openings → Shortlists → Contact
 ### 3.8 Notifications ✅ — contact request accept/decline; sidebar mein unread count.
 
 ### 🧭 Recruiter — flow story
-Company admin recruiter banata hai → recruiter login karke password badalta hai → dashboard par company aur plan dekhta hai. Day 5 ke baad: **Candidate search** mein role/city/quartile se filter → acche candidates **Shortlist** → kisi **Job opening** ke liye offer ke saath **Contact request** → candidate accept kare to aage baat → Day 6 se **ATS export** se apne ATS mein bhej deta hai. Plan jitna bara, utne features (Q1 access, AI search, zyada shortlists).
+Company admin recruiter banata hai → recruiter login karke password badalta hai → dashboard par company aur plan dekhta hai. Phir **Candidate search** mein role/city/quartile se filter → acche candidates **Shortlist** → kisi **Job opening** ke liye offer ke saath **Contact request** → candidate accept kare to aage baat → **ATS export** se apne ATS mein bhej deta hai. Plan jitna bara, utne features (Q1 access, AI search, zyada shortlists).
 
 ---
 
@@ -400,10 +404,10 @@ Menu: Dashboard → My tests → My results → Badges → Salary guide → Trai
 
 ### 4.1 Dashboard ✅
 - **"Welcome, Naam"** + stats: **Job role**, **Location** (city, region), **Experience**, **Minimum salary**. Neeche module cards.
-- Email confirm na ho to banner + **Send the link again** (15 min mein 3 dafa). Unconfirmed candidate test nahi de sakega (Day 3 se guard).
+- Email confirm na ho to banner + **Send the link again** (15 min mein 3 dafa). Unconfirmed candidate test nahi de sakta.
 - **Quick test:** Profile mein salary badlen → Dashboard par naya number.
 
-### 4.2 My tests ✅ (Day 3)
+### 4.2 My tests ✅
 - **Menu mein naam "My tests".** Paanch card: **Personality** (Big Five, 50 sawal, Emotional Stability = high matlab calm; koi ranking nahi), **IQ** (adaptive), **EQ**, **Language** (apni region ki zubaan; multiple choice + ek chhota **writing task** jis ko AI A1–C2 par grade karta hai; lafz ginne wala counter), **Job skill** (sirf aap ke job role ke sawal; adaptive).
 - **Har card:** Not started / In progress / Completed, kab hua, aur **Start**, **Take again** (retake ka intezar Test settings se; training course ke baad foran), **View summary**. Sawal kam hon to "Not available yet: there are not enough … questions."
 - **Test ke dauran:** timer server ki ghari par chalta hai (browser band karen to bhi chalta rehta hai), jawab save hote rehte hain, wapas aa kar jaari rakh sakte hain. Waqt khatam ho aur kafi jawab hon to test score ho jata hai, warna "expired" aur foran dobara de sakte hain. Aakhri minute par warning.
@@ -432,7 +436,7 @@ Menu: Dashboard → My tests → My results → Badges → Salary guide → Trai
 - **Course page:** free → **Join this course**; paid → **Buy for PKR …** → **Checkout**: order summary, **Pay** ya (demo mein) **Simulate a failed payment** — koi asli paisa nahi. Fail hone par course nahi milta aur dobara try kar sakte hain; payment ledger mein (Success/Failed) likha jata hai. Join ke baad lessons khulte hain: har lesson kholen, **Mark as done**; aakhri lesson par "You completed this course" + notification.
 - **Training ke baad retake:** jis test ke course ko aap ne **apne aakhri attempt ke baad** mukammal kiya, woh test intezar ke baghair dobara de sakte hain (admin Settings > Training se band bhi kar sakta hai).
 - **Quick test:** Training → koi free course Join → 2 lessons done → Notifications mein "You joined …" aur "You completed …"; phir paid course → Checkout → "Simulate a failed payment" (error) → **Pay** (lessons khul jayen).
-### 4.7 Recruiter requests ✅ (recruiter ki taraf ka screen Day 5)
+### 4.7 Recruiter requests ✅
 - **Demo mein:** `candidate@demo.test` ke paas Islamabad Business Services ki ek request **Waiting for you** hai (Zainab Hussain, Accounts officer) aur Karachi Tech Solutions ki ek **Accepted**. Dobara jawab ke liye `npm run demo:reset`.
 - Recruiter ki request yahan aati hai: company, role/city, message, **Waiting for you**. **Accept** / **Decline** (ek hi dafa). Aap ka phone/email accept se pehle private rehta hai, aur aap ki minimum salary recruiter ko kabhi nahi dikhti.
 - **Salary rule server par:** recruiter ki opening ki top salary aap ki minimum se kam ho to request ban hi nahi sakti (wohi jawab jo "candidate nahi mila" ka hota hai, taake koi minimum andaza na laga sake).
@@ -444,7 +448,7 @@ Menu: Dashboard → My tests → My results → Badges → Salary guide → Trai
 **"Your details"**
 - **Fields:** Full name · Phone · Region · City (region ke hisaab se filter) · Years of experience · Job role · **Minimum expected salary per month (PKR)** ("Recruiters can only contact you with an offer at or above this amount") → **Save changes**.
 - **Save par:** "Saved (name, phone updated)." ya "Nothing changed." Audit log mein sirf **field ke naam** jate hain, values nahi. Region/city/role ki lists admin ke **Roles, regions & languages** se.
-- **Asar:** Dashboard stats; Day 5 se recruiter search aur minimum-salary check.
+- **Asar:** Dashboard stats; recruiter search aur minimum-salary check.
 
 **"Your account"**
 - Email + **Confirmed / Not confirmed** badge · **Change your password** link (→ `/change-password`: Current password, New password, Confirm new password).
@@ -456,7 +460,7 @@ Menu: Dashboard → My tests → My results → Badges → Salary guide → Trai
 - **Quick test:** City Lahore → Karachi (region Sindh) → Save → "Saved (city, region updated)" → Dashboard par Location Karachi. Delete ka test **naye test account** par karein, demo account par nahi.
 
 ### 🧭 Candidate — flow story
-Candidate home page se **Sign up** karta hai (role, city, minimum salary, consent) → khud login ho kar dashboard par aata hai → email ka link click karke confirm karta hai. **My tests** mein tests deta hai → **My results** mein quartile aur AI feedback (PDF report bhi), **Salary guide**, **Training** aur Top Performer **Badge** → Day 5 se recruiters use dhoondte hain aur **Recruiter requests** mein offers aate hain jinhein woh accept/decline karta hai. Kabhi bhi **Profile & privacy** se details badal ya account delete kar sakta hai.
+Candidate home page se **Sign up** karta hai (role, city, minimum salary, consent) → khud login ho kar dashboard par aata hai → email ka link click karke confirm karta hai. **My tests** mein tests deta hai → **My results** mein quartile aur AI feedback (PDF report bhi), **Salary guide**, **Training** aur Top Performer **Badge** → recruiters use dhoondte hain aur **Recruiter requests** mein offers aate hain jinhein woh accept/decline karta hai. Kabhi bhi **Profile & privacy** se details badal ya account delete kar sakta hai.
 
 ---
 
@@ -501,20 +505,31 @@ Candidate home page se **Sign up** karta hai (role, city, minimum salary, consen
 
 # 🌐 END-TO-END KAHANI — sab roles ek saath
 
-**1. Admin setup (aaj bhi ho sakta hai ✅)**
+**1. Admin setup (✅)**
 Platform admin login karta hai. **Roles, regions & languages** mein "Accountant", "Sales" jaise roles, Sindh/Punjab regions, Karachi/Lahore cities aur "Punjab → Urdu" map set karta hai. **Settings** mein brand ka naam, rang, logo, PKR currency, 14 din trial. **Plans** mein Basic aur Advanced ki asli price aur features. **Privacy policy** v1 publish. **Question bank** mein IPIP import, **Generate with AI** se IQ/EQ/Language/Skill sawal, **Approvals** mein check karke live, Urdu translation. **Test settings** aur **Salary benchmarks** fill.
 
 **2. Company join karti hai (✅)**
-"ABC Traders" home page se **Company sign-up** karti hai → trial Basic plan mil jata hai → admin email confirm karta hai → **Recruiters** mein 2 recruiters add → woh login karke password badalte hain. Company admin **Subscription & billing** mein Advanced dekhta hai (Day 5 se pay karke upgrade).
+"ABC Traders" home page se **Company sign-up** karti hai → trial Basic plan mil jata hai → admin email confirm karta hai → **Recruiters** mein 2 recruiters add → woh login karke password badalte hain. Company admin **Subscription & billing** mein Advanced dekhta hai aur pay karke upgrade karta hai.
 
 **3. Candidate signup (✅)**
 Sara (Accountant, Lahore, 3 saal, min salary 80,000) **Candidate sign-up** karti hai — city list wohi jo admin ne banayi, consent us policy version ke saath jo admin ne publish ki. Email confirm karti hai. Profile mein kabhi bhi salary ya city badal sakti hai.
 
-**4. Baqi Days ka khulasa (sab ban chuke ✅)**
-- **Day 3 (✅):** Sara **My tests** mein 4 tests deti hai — sawal admin ke approved bank se, Punjab region ki wajah se Language test Urdu/English map ke hisaab se, Skill test Accountant ke sawal. Test adaptive hai aur admin ki Test settings par rukta hai. Score → percentile → quartile (admin ki Quartiles setting). Demo ke 64 candidates ke bhi scores seed honge.
-- **Day 4 (✅):** Sara **My results** mein quartiles aur AI feedback dekhti hai, **Salary guide** admin ke benchmarks se range dikhata hai, kamzor test ke liye **Training** course karke retake. Chaaron mein Q1 → **Top Performer badge** + email (admin ka template).
-- **Day 5 (✅):** ABC Traders ka recruiter **Candidate search** mein "Accountant, Lahore, Q1" filter karta hai (Q1-exclusive sirf Advanced plan par). Sara ko **Shortlist**, phir 90,000 ke offer ke saath **Contact request** — 80,000 minimum se zyada hai, is liye allowed (70,000 hota to block). Sara ko **Recruiter requests** + notification + email aati hai; woh **Accept** karti hai, recruiter ko pata chalta hai. Company admin **Subscription** mein demo payment se Advanced leta hai (**Payments** ledger mein entry), **Reports** mein charts.
-- **Day 6 (ban gaya ✅):** Recruiter Sara ko **ATS export** se mock ATS mein bhejta hai; company admin **ATS & webhooks** mein delivery log aur **API keys** dekhta hai. Admin **Item analysis / Recalibration** se sawalon ko behtar karta hai, **Fairness report** dekhta hai, **Scheduled jobs** (reminders, plan warnings) chalate hain, **Pilot mode** enforce hota hai, aur **Audit log** mein recruiter ka Sara ki profile dekhna record hota hai.
-- **Day 7 (ban gaya ✅):** Poora end-to-end test (98 browser tests), har role ke har screen ka design aur zabaan ek jaisi ("Candidate", "Top Performer", "Job skill"), privacy policy 1.2, demo data har page par, `DEMO_SCRIPT.md` aur `GO_LIVE_CHECKLIST.md`.
+**4. Test dena aur ranking (✅)**
+Sara **My tests** mein tests deti hai — sawal admin ke approved bank se, Punjab region ki wajah se Language test region→language map ke hisaab se, Skill test Accountant ke sawal. IQ, Language aur Skill adaptive hain aur admin ki Test settings par rukte hain. Score → percentile → quartile (admin ki Quartiles setting).
+
+**5. Natija, salary guide, training (✅)**
+Sara **My results** mein quartiles aur AI feedback dekhti hai (PDF report bhi), **Salary guide** admin ke benchmarks se range dikhata hai, kamzor test ke liye **Training** course karke retake. Chaaron tests mein Q1 aaye to **Top Performer badge** + email (admin ka template).
+
+**6. Recruiter dhoondta hai (✅)**
+ABC Traders ka recruiter **Candidate search** mein "Accountant, Lahore, Q1" filter karta hai (Q1-exclusive sirf Advanced plan par). Sara ko **Shortlist**, phir 90,000 ke offer ke saath **Contact request** — 80,000 minimum se zyada hai, is liye allowed (70,000 hota to block). Sara ko **Recruiter requests** + notification + email aati hai; woh **Accept** karti hai, recruiter ko pata chalta hai aur Sara ka phone/email nazar aata hai. Recruiter stage badal kar **Hired** karta hai; company admin ko notification aati hai.
+
+**7. Payment (✅)**
+Company admin **Subscription & billing** mein demo payment se Advanced leta hai (**Payments** ledger mein entry, platform admin ko nazar aati hai), **Reports** mein charts dekhta hai.
+
+**8. ATS, jobs aur nigrani (✅)**
+Recruiter Sara ko **ATS export** se mock ATS mein bhejta hai; company admin **ATS & webhooks** mein delivery log aur **API keys** dekhta hai. Platform admin **Item analysis / Recalibration** se sawalon ko behtar karta hai, **Fairness report** dekhta hai, **Scheduled jobs** (reminders, plan warnings) chalata hai, **Pilot mode** use kar sakta hai, aur **Audit log** mein recruiter ka Sara ki profile dekhna record hota hai.
+
+**9. Test aur demo ke liye (✅)**
+`TESTING_CHECKLIST.md` (aap ke liye step-by-step test list), `DEMO_SCRIPT.md` (client ko 15 minute mein dikhana) aur `GO_LIVE_CHECKLIST.md` (demo se production tak).
 
 > Yaad rahe: AI kabhi hiring ka faisla nahi karta — sirf score, rank aur recommend karta hai. Faisla recruiter ka hota hai.
