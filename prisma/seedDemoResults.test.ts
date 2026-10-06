@@ -4,7 +4,7 @@ import { quartileFor } from "../src/lib/testEngine/scoring";
 import { readSetting } from "../src/lib/settings/store";
 import { meetsTopPerformerRule } from "../src/lib/results/topPerformer";
 import { seedDemoResults } from "./seedDemoResults";
-import { seedDemoCourses } from "./seedDemoCourses";
+import { COURSES, seedDemoCourses } from "./seedDemoCourses";
 
 describe("demo seeding guards", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -101,7 +101,8 @@ describe.skipIf(!dbUp || seededCount === 0)("the demo results in the database", 
   });
 
   it("the starter catalogue has free and paid courses for every test and role", async () => {
-    const courses = await prisma.course.findMany({ include: { _count: { select: { lessons: true } } } });
+    // Only the starter courses: other test files create and remove courses in the same database while this one runs.
+    const courses = await prisma.course.findMany({ where: { title: { in: COURSES.map((c) => c.title) } }, include: { _count: { select: { lessons: true } } } });
     expect(courses.length).toBeGreaterThanOrEqual(10);
     expect(courses.some((c) => c.isFree)).toBe(true);
     expect(courses.some((c) => !c.isFree && c.price > 0)).toBe(true);

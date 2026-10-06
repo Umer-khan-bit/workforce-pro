@@ -33,6 +33,7 @@ describe.skipIf(!dbUp)("question versioning (real database)", () => {
   afterAll(async () => {
     await kit.cleanup();
     await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
+    await prisma.notification.deleteMany({ where: { userId: adminId } });
     await prisma.user.delete({ where: { id: adminId } });
   }, 60_000);
 

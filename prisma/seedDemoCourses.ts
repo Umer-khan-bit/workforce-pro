@@ -6,9 +6,10 @@ import type { PrismaClient, TestType } from "@prisma/client";
  * content). Safe to re-run: if any course exists, nothing is added.
  */
 type Lesson = [title: string, minutes: number, text: string];
-type CourseSeed = { title: string; description: string; testType: TestType; role?: string; price: number; lessons: Lesson[] };
+export type CourseSeed = { title: string; description: string; testType: TestType; role?: string; price: number; lessons: Lesson[] };
 
-const COURSES: CourseSeed[] = [
+/** The starter catalogue (exported so its test looks only at these courses, not at courses other tests create at the same time). */
+export const COURSES: CourseSeed[] = [
   {
     title: "Numerical Reasoning Basics",
     description: "Warm up for the IQ test: percentages, ratios, number patterns and quick estimation.",
