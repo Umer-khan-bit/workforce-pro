@@ -250,6 +250,13 @@ email/notification templates, courses and lessons, homepage and privacy policy t
   prompt live in Settings (`aiGeneration`, `aiPrompts`). The API key stays in `.env`. Everything AI writes
   is saved PENDING_APPROVAL; only an admin approves. Every AI run is logged (AiRun + audit log).
 
+### Kept in code on purpose (not business values)
+These look like fixed lists but are part of how the system works, so they stay in code. Anything else business-related must be a Setting.
+- **Gender options (FEMALE / MALE / OTHER, plus "prefer not to say" meaning no value).** They are a database enum used by the
+  fairness maths (the DIF check and the fairness report compare female with male; the others are too small to compare on their
+  own). An admin editing this list would silently change what the fairness checks mean and could break comparisons between
+  months. The wording on screen is plain labels only.
+
 ## Security and privacy (bank-grade, non-negotiable)
 - Never log passwords, tokens, CNIC, salaries or test answers.
 - Hash passwords (bcrypt). Validate all input (zod). Role checks on every API route.
