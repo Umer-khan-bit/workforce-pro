@@ -5,6 +5,7 @@ import { createCompany, type World } from "@/lib/recruiter/testWorld";
 import { warnExpiringPlans } from "@/lib/subscriptions";
 import { recalibrate } from "@/lib/learning/recalibrate";
 import { buildFairnessReport, generateFairnessReport } from "@/lib/learning/fairness";
+import { readSetting } from "@/lib/settings/store";
 import { isDue, JOB_NAMES, runJob } from "./runner";
 import { sendTestReminders } from "./reminders";
 
@@ -195,6 +196,7 @@ describe.skipIf(!dbUp)("scheduled jobs, reminders, expiry warnings and self-lear
       const data = await buildFairnessReport(prisma, "2019-03");
       expect(data.tests.map((t) => t.test)).toEqual(["IQ", "EQ", "LANGUAGE", "SKILL"]);
       expect(data.tests.every((t) => t.total === 0)).toBe(true);
+      expect(data.impactThreshold).toBe((await readSetting(prisma, "selfLearning")).fairnessImpactThreshold); // the report records the limit it used
       const a = await generateFairnessReport(prisma, { month: "2019-03", notifyAdmins: false });
       const b = await generateFairnessReport(prisma, { month: "2019-03", notifyAdmins: false });
       expect(b.id).toBe(a.id);

@@ -6,8 +6,6 @@ import { TEST_TITLES } from "@/lib/testEngine/labels";
 type Db = PrismaClient;
 
 export const FAIRNESS_TESTS: TestType[] = ["IQ", "EQ", "LANGUAGE", "SKILL"];
-/** The four-fifths rule: a group whose rate of reaching the top half is below 80% of the best group's rate is flagged. */
-export const IMPACT_THRESHOLD = 0.8;
 
 export type GroupStats = { label: string; n: number; suppressed: boolean; meanPercentile: number | null; q1Share: number | null; topHalfShare: number | null; impactRatio: number | null; flagged: boolean };
 export type DimensionReport = { dimension: "gender" | "region" | "language"; title: string; groups: GroupStats[] };
@@ -16,6 +14,8 @@ export type FairnessData = {
   month: string;
   generatedAt: string;
   minGroup: number;
+  /** The impact ratio below which a group was flagged in this report (Settings > Advanced > Self-learning when it was made). */
+  impactThreshold: number;
   /** Number of results (not people) in the report. */
   candidates: number;
   tests: TestReport[];
@@ -39,9 +39,10 @@ const round = (n: number, p = 1) => Math.round(n * 10 ** p) / 10 ** p;
 /**
  * Group-by-group results for one test and one grouping (gender, region or language). A group with fewer than
  * `minGroup` people is reported only as "too few to report", with no numbers, so small groups cannot be identified.
- * Impact ratio = the group's share reaching the top half (Q1 or Q2) divided by the best group's share.
+ * Impact ratio = the group's share reaching the top half (Q1 or Q2) divided by the best group's share; a group is
+ * flagged when that ratio is below `impactThreshold` (a Setting; 0.8 is the four-fifths rule).
  */
-export function groupStats(observations: Obs[], minGroup: number): GroupStats[] {
+export function groupStats(observations: Obs[], minGroup: number, impactThreshold: number): GroupStats[] {
   const labels = [...new Set(observations.map((o) => o.group))].sort();
   const stats = labels.map((label) => {
     const rows = observations.filter((o) => o.group === label);
@@ -61,7 +62,7 @@ export function groupStats(observations: Obs[], minGroup: number): GroupStats[] 
   return stats.map((s) => {
     if (s.suppressed || best === 0) return s;
     const ratio = round((s.topHalfShare ?? 0) / best, 2);
-    return { ...s, impactRatio: ratio, flagged: ratio < IMPACT_THRESHOLD };
+    return { ...s, impactRatio: ratio, flagged: ratio < impactThreshold };
   });
 }
 
@@ -91,9 +92,9 @@ export async function buildFairnessReport(db: Db, month: string, now = new Date(
       title: TEST_TITLES[test],
       total: rows.length,
       dimensions: [
-        { dimension: "gender", title: "Gender", groups: groupStats(obs((s) => (s.candidateProfile.gender ? GENDER_LABEL[s.candidateProfile.gender] : null)), rules.minGroupResponses) },
-        { dimension: "region", title: "Region", groups: groupStats(obs((s) => (s.candidateProfile.regionId ? (regionName.get(s.candidateProfile.regionId) ?? null) : null)), rules.minGroupResponses) },
-        { dimension: "language", title: "Test language", groups: groupStats(obs((s) => (s.session.languageId ? (languageName.get(s.session.languageId) ?? null) : null)), rules.minGroupResponses) },
+        { dimension: "gender", title: "Gender", groups: groupStats(obs((s) => (s.candidateProfile.gender ? GENDER_LABEL[s.candidateProfile.gender] : null)), rules.minGroupResponses, rules.fairnessImpactThreshold) },
+        { dimension: "region", title: "Region", groups: groupStats(obs((s) => (s.candidateProfile.regionId ? (regionName.get(s.candidateProfile.regionId) ?? null) : null)), rules.minGroupResponses, rules.fairnessImpactThreshold) },
+        { dimension: "language", title: "Test language", groups: groupStats(obs((s) => (s.session.languageId ? (languageName.get(s.session.languageId) ?? null) : null)), rules.minGroupResponses, rules.fairnessImpactThreshold) },
       ],
     };
   });
@@ -106,12 +107,13 @@ export async function buildFairnessReport(db: Db, month: string, now = new Date(
     month,
     generatedAt: now.toISOString(),
     minGroup: rules.minGroupResponses,
+    impactThreshold: rules.fairnessImpactThreshold,
     candidates: scores.length,
     tests,
     items: { flaggedTotal, flaggedForBias: biased.map((b) => ({ id: b.question.id, text: b.question.content.slice(0, 140), testType: b.question.testType, reason: b.flagReason ?? "" })) },
     notes: [
       `Groups with fewer than ${rules.minGroupResponses} results are not shown, so small groups cannot be identified.`,
-      "Impact ratio is the share of a group reaching the top half (Q1 or Q2) divided by the share of the best group. Below 0.8 is flagged, following the common four-fifths rule.",
+      `Impact ratio is the share of a group reaching the top half (Q1 or Q2) divided by the share of the best group. Below ${rules.fairnessImpactThreshold} is flagged (the limit is in Settings > Advanced > Self-learning; 0.8 is the common four-fifths rule).`,
       "Gender is optional on the candidate profile, so it only covers candidates who chose to give it. Deleted accounts are not included.",
     ],
   };

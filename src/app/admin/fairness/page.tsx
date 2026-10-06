@@ -33,6 +33,7 @@ export default async function FairnessPage({ searchParams }: { searchParams: Pro
       ) : (
         <div className="mt-6" data-testid="fairness-report">
           <p className="text-sm text-zinc-600">Report for <strong>{data.month}</strong>, made {when(row.generatedAt)}. {data.candidates} test result{data.candidates === 1 ? "" : "s"} in the month.</p>
+          <p className="mt-1 text-sm text-zinc-600" data-testid="impact-threshold">{typeof data.impactThreshold === "number" ? <>Groups were flagged below an impact ratio of <strong>{data.impactThreshold}</strong>. </> : <>The flag limit used was not recorded for this older report. </>}You can change the limit in <Link href="/admin/settings?group=selfLearning" className="text-brand-700 underline">Settings &gt; Self-learning</Link>.</p>
 
           {data.tests.map((t) => (
             <section key={t.test} className="mt-6" aria-labelledby={`t-${t.test}`} data-testid={`fairness-${t.test}`}>

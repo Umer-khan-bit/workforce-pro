@@ -5,14 +5,14 @@ const obs = (group: string, n: number, quartile: number, percentile: number) => 
 
 describe("fairness report maths", () => {
   it("hides groups that are too small, with no numbers at all", () => {
-    const stats = groupStats([...obs("Female", 40, 1, 80), ...obs("Other", 4, 1, 90)], 30);
+    const stats = groupStats([...obs("Female", 40, 1, 80), ...obs("Other", 4, 1, 90)], 30, 0.8);
     const other = stats.find((s) => s.label === "Other")!;
     expect(other).toMatchObject({ suppressed: true, meanPercentile: null, q1Share: null, topHalfShare: null, impactRatio: null, flagged: false });
     expect(stats.find((s) => s.label === "Female")!.suppressed).toBe(false);
   });
 
   it("flags a group whose top-half share is under four fifths of the best group's", () => {
-    const stats = groupStats([...obs("Male", 30, 1, 80), ...obs("Male", 10, 4, 10), ...obs("Female", 20, 1, 80), ...obs("Female", 20, 4, 10)], 30);
+    const stats = groupStats([...obs("Male", 30, 1, 80), ...obs("Male", 10, 4, 10), ...obs("Female", 20, 1, 80), ...obs("Female", 20, 4, 10)], 30, 0.8);
     const male = stats.find((s) => s.label === "Male")!;
     const female = stats.find((s) => s.label === "Female")!;
     expect(male.topHalfShare).toBe(75);
@@ -24,8 +24,16 @@ describe("fairness report maths", () => {
   });
 
   it("does not flag groups that are close", () => {
-    const stats = groupStats([...obs("A", 30, 1, 70), ...obs("A", 10, 3, 40), ...obs("B", 28, 2, 60), ...obs("B", 12, 4, 20)], 30);
+    const stats = groupStats([...obs("A", 30, 1, 70), ...obs("A", 10, 3, 40), ...obs("B", 28, 2, 60), ...obs("B", 12, 4, 20)], 30, 0.8);
     expect(stats.every((s) => !s.flagged)).toBe(true);
+  });
+
+  it("uses the flag limit it is given, not a fixed 0.8", () => {
+    const data = [...obs("Male", 30, 1, 80), ...obs("Male", 10, 4, 10), ...obs("Female", 20, 1, 80), ...obs("Female", 20, 4, 10)];
+    const flaggedAt = (limit: number) => groupStats(data, 30, limit).filter((s) => s.flagged).map((s) => s.label);
+    expect(flaggedAt(0.8)).toEqual(["Female"]); // ratio 0.67
+    expect(flaggedAt(0.6)).toEqual([]);
+    expect(flaggedAt(0.7)).toEqual(["Female"]); // 0.67 is still below 0.7
   });
 
   it("handles months", () => {

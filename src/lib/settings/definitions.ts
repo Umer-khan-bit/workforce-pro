@@ -78,6 +78,8 @@ export const selfLearningSchema = z
     maxDifGap: z.coerce.number().min(0).max(1),
     /** A group needs at least this many answers to an item before its result is compared with other groups. */
     minGroupResponses: z.coerce.number().int().min(5).max(100000),
+    /** The fairness report flags a group whose impact ratio (its share reaching the top half, divided by the best group's share) is below this. */
+    fairnessImpactThreshold: z.coerce.number().min(0.1).max(1),
   })
   .refine((s) => s.tooHardCorrectRate < s.tooEasyCorrectRate, {
     message: "The 'too hard' rate must be lower than the 'too easy' rate",
@@ -374,6 +376,7 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
     minDiscrimination: 0.3,
     maxDifGap: 0.2,
     minGroupResponses: 30,
+    fairnessImpactThreshold: 0.8,
   },
   poolTargets: { PERSONALITY: 50, EQ: 30, IQ: 40, LANGUAGE: 30, SKILL: 40 },
   aiGeneration: {
@@ -696,6 +699,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { name: "minDiscrimination", label: "Low discrimination below", type: "number", step: 0.05, help: "Questions that do not separate strong from weak candidates at least this well are flagged." },
       { name: "maxDifGap", label: "Possible bias above this gap", type: "number", step: 0.01, help: "If two groups of candidates do differently on a question by more than this, it is flagged for bias." },
       { name: "minGroupResponses", label: "Answers a group needs before it is compared", type: "number", help: "Bias is only checked for groups with at least this many answers to the question; smaller groups are left out (and are never shown in the fairness report)." },
+      { name: "fairnessImpactThreshold", label: "Fairness flag below this impact ratio", type: "number", step: 0.01, help: "In the fairness report, a group is flagged when its share reaching the top half is below this fraction of the best group's share (0.8 is the usual four-fifths rule)." },
     ],
   },
   {
