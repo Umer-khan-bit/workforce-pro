@@ -1,6 +1,37 @@
-# Workforce Pro - status (Day 1 to Day 6, the fixes and the demo data)
+# Workforce Pro - status (Day 1 to Day 7, the fixes and the demo data)
 
 > Newest first: the sections directly below were added after Day 1. Everything further down is the Day 1 write-up, with the few statements the later work changed corrected in place.
+
+## Day 7: polish, privacy policy 1.2, demo data on every screen, demo script, go-live checklist (done)
+
+Run `npx prisma db seed` once after pulling (it publishes privacy policy 1.2 and fills the demo gaps below; already done on this laptop). There is no new migration. Dependencies changed: `npm install`.
+
+### What was done
+- **Privacy policy 1.2** is published: gender is optional and used only for fairness checks, never shown to recruiters, never used to score or rank. It is a new version (1.2 follows 1.1) added through the same seed mechanism, so a policy text an admin wrote is never replaced. A test checks the version chain and the wording.
+- **One vocabulary.** Checked every screen text for Job seeker / Applicant / Talent: none. Fixed the mixed spellings: "Top Performer" (badge, settings group, email and in-app template names), "Job skill" (was also "job-skill"), and "employers' offers" on the salary guide became "offers". The mock ATS inbox showed stages in capitals (INTERVIEWING); it now uses the same stage names as the shortlist.
+- **Every demo account has data on every screen.** A new end-to-end test (`e2e/demo-accounts.spec.ts`) logs in as the four demo roles, opens every menu screen and fails on an error page or an empty-state message. It found four gaps, all fixed in the seed:
+  1. The demo candidate could not take Language or Job skill ("Not available yet"): the AI-written questions were all waiting for approval. `prisma/approveDemoContent.ts` approves only the questions the AI reviewer marked OK (173), only for a test that has fewer than 20 approved, with an audit entry. Questions marked "Needs fixing" or "Reject" stay in Approvals.
+  2. The company admin had no webhook, API key or mock ATS entries: `prisma/seedDemoIntegrations.ts` sets them up for both Advanced companies using the same code the app uses (24 candidates pushed, 16 deliveries, one failed on purpose).
+  3. Item analysis was empty: `prisma/seedDemoItemStats.ts` adds summary statistics for 36 questions (3 flagged, 2 pretest-ready) and a recalibration run. Like the demo results these are summaries with no answer rows, so no question is locked and a real recalibration leaves them alone.
+  4. The demo candidate had nothing to accept: `prisma/seedDemoStory.ts` adds one waiting request (and a second open Accountant opening at Islamabad Business Services to send it from).
+- **Every flow as a real user.** The existing 92 end-to-end tests plus the new ones pass (98). `e2e/demo-story.spec.ts` runs the live part of the demo script with the demo accounts: Sana finds Faisal Chaudhry (a Top Performer), sends a request, Faisal accepts under Recruiter requests, Sana then sees his contact details. `npm run demo:reset` puts that part back (the test uses it before and after).
+- **Test data was leaking into the demo database** (about 35 `@example.test` accounts, "Test role", "Other role", "Test region" and "Test language" rows from earlier interrupted test runs); the recruiter search even listed them as Top Performers. They were removed. A full run of all tests now leaves nothing behind, except when a test times out in its own clean-up (see below).
+- **nodemailer advisory.** The installed 8.0.11 had eight high-severity advisories that apply up to 10.0.5, and 10.0.15 exists. Upgraded to `^10.0.15` (one `overrides` entry in `package.json`, because `@auth/core` lists nodemailer as an optional peer for its own email sign-in, which we do not use). `src/lib/mail.ts` imports `createTransport` by name (v10 has no default-export types). `source-map-js` was fixed with `npm audit fix`. What remains in `npm audit --omit=dev`: the Prisma command-line tool (`deepmerge-ts`), a development tool; do not run `npm audit fix --force` (it would downgrade Prisma).
+- **New files:** `DEMO_SCRIPT.md` (15-minute demo story, simple English, account and words for every step), `GO_LIVE_CHECKLIST.md` (demo to production), `USER_GUIDE.md` brought up to date (My tests, demo data, privacy 1.2, 21 templates, reset command).
+
+### Tests
+- **Vitest: 733 passing** (was 731). **Playwright: 98 passing** (was 92). `tsc` clean, `eslint` 0 errors (3 old warnings), `next build` succeeds.
+- Known flake, not new: when all vitest files run together, one database test file (`versioning.db.test.ts`, once `seedDemoResults.test.ts`) can time out in its own clean-up and fail the run. Run alone, or run again, it passes; if it leaves `@example.test` accounts behind, delete them in Platform admin > Users or with the clean-up used on 6 Oct.
+
+### Decisions I made (change any of them)
+1. **Demo questions:** I approved the 173 AI-written questions that the AI reviewer marked OK so the demo candidate can take Language and Job skill live. That is an approval you normally make by hand; it is done only by the demo seed, is audit-logged, and flagged questions stay in the queue.
+2. **No new homepage content.** The homepage stays the headline, one line and three buttons; more copy would need new admin-editable fields. I looked at every screen at 1280 px and 390 px and found no layout problems, so the polish was wording and consistency.
+3. **Item analysis demo numbers are summaries** (no answer rows), matching how the demo results were done.
+4. **Upgraded nodemailer to 10** rather than only documenting the advisory, with the `overrides` entry described above.
+5. **Demo story:** Faisal Chaudhry (Top Performer, minimum 45,000) is the candidate who accepts live; `npm run demo:reset` repeats it. Ayesha's waiting request comes from a second company so it never clashes with the one she already accepted.
+6. **Gender line wording** as above; it is a new published version, 1.2, not an edit of 1.1.
+7. **Production database:** `GO_LIVE_CHECKLIST.md` recommends a fresh, empty database plus the seed without `DEMO_MODE`, rather than cleaning demo data out of the demo database.
+8. **Language of the guides:** `USER_GUIDE.md` stays in Roman Urdu like before; `DEMO_SCRIPT.md` and `GO_LIVE_CHECKLIST.md` are in simple English as asked.
 
 ## Day 6: ATS and API, pilot mode, self-learning, scheduled jobs, security pass, mobile (done)
 
