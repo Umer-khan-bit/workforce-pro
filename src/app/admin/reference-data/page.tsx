@@ -37,7 +37,7 @@ export default async function ReferenceDataPage() {
         ))}
       </nav>
 
-      <Section id="job-roles" title="Job roles" note="Candidates pick one at signup, and job-skill questions are written for it.">
+      <Section id="job-roles" title="Job roles" note="Candidates pick one at signup, and job skill questions are written for it.">
         <CrudTable
           entity="job-roles"
           addLabel="Add role"

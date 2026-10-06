@@ -109,7 +109,7 @@ export default function CoverageTables({
         <div className="card overflow-x-auto p-0 xl:col-span-2">
           <table className="w-full min-w-[20rem] text-left text-sm">
             <caption className="px-4 pt-4 text-left text-sm font-medium text-zinc-700">
-              Approved job-skill questions by job role (target {targets.SKILL} each)
+              Approved job skill questions by job role (target {targets.SKILL} each)
             </caption>
             <thead>
               <tr className="border-b border-zinc-200 text-zinc-500">

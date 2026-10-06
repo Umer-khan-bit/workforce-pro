@@ -1,8 +1,8 @@
 # Workforce Pro — User Guide (Guided Tour, Roman Urdu)
 
-> Yeh guide 3 Oct 2026 tak ke code ko dekh kar likhi gayi hai (Day 1 se Day 5 tak + account fixes mukammal).
-> **✅ Working** = abhi chalta hai. **⏳ Coming soon** = abhi sirf placeholder page hai (heading ke saath "Placeholder" badge aur "Coming in a later build" list), jis Day mein banega woh likha hai.
-> Jahan build plan mein Day saaf nahi likha, wahan "andaza" likha hai.
+> Yeh guide 6 Oct 2026 ko Day 7 par mukammal ki gayi hai: **Day 1 se Day 7 tak sab kuch bana hua aur chalta hai.** Koi placeholder page baqi nahi.
+> **✅ Working** = chalta hai. Jahan "Day N" likha hai woh sirf batata hai ke woh hissa kab bana.
+> Saath mein do aur files hain: **`DEMO_SCRIPT.md`** (client ko 15 minute mein demo kaise dikhana hai, simple English mein) aur **`GO_LIVE_CHECKLIST.md`** (demo se production tak kya karna hai).
 
 ---
 
@@ -22,7 +22,17 @@ npm run dev                 # App → http://localhost:7310
 | Company admin (Basic) | `admin.lahore@demo.test` | Lahore Retail Group (Basic plan) |
 | Recruiter | `recruiter@demo.test` | Karachi Tech Solutions (Advanced) |
 | Recruiter (Basic) | `recruiter.usman@demo.test` | Lahore Retail Group (Basic) |
-| Candidate | `candidate@demo.test` | Ayesha Khan, Accountant, Lahore, 4 saal |
+| Candidate | `candidate@demo.test` | Ayesha Khan, Accountant, Lahore, 4 saal (Personality, IQ, EQ ho chuke; **Language aur Job skill abhi live dene ke liye khule hain**; ek recruiter request jawab ka intezar kar rahi hai) |
+| Candidate (Top Performer) | `faisal.chaudhry@demo.test` | Faisal Chaudhry, Sales, Mardan; chaaron tests mein Q1; demo mein recruiter ki request yahi accept karta hai |
+| Recruiter (Advanced, doosri company) | `recruiter.zainab@demo.test` | Islamabad Business Services |
+| Company admin (Advanced, doosri company) | `admin.islamabad@demo.test` | Islamabad Business Services |
+
+**Demo data (har account ka har page bhara hua hai)**
+- 64 demo candidates ke saath poore test results (Q1 se Q4 tak), 3 companies, 10 job openings, 70 se zyada shortlisted candidates jo pipeline mein mukhtalif stages par hain, contact requests aur unke jawab, har company ki payment history, 14 courses.
+- Day 7 mein jo cheezein bhari gayin: platform admin ke liye **Item analysis** (36 sawal, 3 flagged, 2 pretest ready) aur ek recalibration run; company admin ke liye **API key**, **webhook**, **delivery log** (ek failed delivery jaan boojh kar) aur **mock ATS** mein pushed candidates (Advanced wali dono companies ke liye); candidate ke liye ek **request jo jawab ka intezar kar rahi hai**.
+- Jo sawal AI reviewer ne OK kiye (173) woh demo ke liye approve kar diye gaye hain, taake demo candidate Language aur Job skill test live de sake. Jo "Needs fixing" ya "Reject" the woh **Approvals** mein pade hain.
+- **Demo dobara chalana:** `npm run demo:reset` — Sana ki Faisal ke liye shortlist/request hata deta hai aur Ayesha ki request dobara bhej deta hai. Baqi kuch nahi chhoota.
+- **Poora demo data dobara banana:** `npx prisma db seed` (jo pehle se hai usay dobara nahi banata). Database delete na karein: us mein approved sawal hain jin ko banane mein paisa lagta hai.
 
 **Aam baatein jo har jagah lagti hain**
 - Login ke baad system aap ka role dekh kar aap ko apne area mein bhejta hai. Kisi aur role ka URL kholen to **"Access denied"** page aata hai.
@@ -47,7 +57,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Kis liye:** Platform ki sehat ek nazar mein.
 - **Kya hai:** 4 numbers — **Candidates**, **Companies**, **Recruiters**, **Active subscriptions**. Neeche har module ka card.
 - **Data kahan se:** seedha database se ginti. Koi candidate signup kare to Candidates barhta hai; company signup kare to Companies aur Active subscriptions (trial) barhte hain.
-- **Quick test:** Numbers note karein → naye tab mein ek candidate signup karein → Dashboard refresh → **Candidates +1** hona chahiye (demo mein 64 → 65).
+- **Quick test:** Numbers note karein → naye tab mein ek candidate signup karein → Dashboard refresh → **Candidates +1** hona chahiye (demo mein 65 → 66).
 
 ---
 
@@ -73,7 +83,7 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - Har test ke liye Approved / Pending / Retired / Flagged / Total. Doosri table test × job role × language.
 - **Laal** = ek bhi approved nahi, **Amber** = target se kam. Target **Settings → Question pool targets** se aata hai.
 
-- **Data kahan jata hai:** Sirf **Approved** sawal hi aage candidate ke test mein aayenge (Day 3 test engine). Retired kabhi nahi aate.
+- **Data kahan jata hai:** Sirf **Approved** sawal hi candidate ke test mein aate hain (Day 3 test engine). Retired kabhi nahi aate.
 - **Quick test:** Import IPIP dabayen → Status filter "Approved", Test "Personality" → 50 sawal dikhne chahiye; Coverage mein Personality ka Approved = 50 (target 50, to amber nahi).
 
 #### 1.2a Add question / Edit question ✅
@@ -114,7 +124,8 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Table:** sawal, jawabon ki tadaad, **Correct** (kitne % ne sahi kiya), **Discrimination** (mazboot aur kamzor candidates ko alag karta hai ya nahi; limit se neeche laal), **Difficulty (b)**, **Bias gap** (gender / region / language), **Why** (flag ki wajah saaf lafzon mein).
 - **Buttons:** **Keep it** (flag hat jata hai; 200 naye jawabon tak dobara flag nahi hota) · **Retire** (pehle "Yes, retire it" confirm; sawal delete nahi hota) · **Make operational** (calibrated pretest sawal ab score mein ginta hai).
 - **Limits kahan se:** Settings → Advanced → **Self-learning**.
-- **Quick test:** Page kholen; demo data mein kisi sawal ke 200 jawab nahi, is liye "Nothing needs your review" aata hai. Settings mein "Answers needed before recalibrating" kam karke Recalibration chalayen to list bharti hai.
+- **Demo mein:** **Needs review** mein 3 flagged sawal hain (ek bohat aasan, ek jo mazboot aur kamzor candidates mein farq nahi karta, ek jis par gender bias ka shak hai) aur **Pretest ready** mein 2 sawal. Yeh demo ke khulasa numbers hain (jawab ki rows nahi), is liye asli Recalibration unhein nahi chheDti.
+- **Quick test:** Needs review → ek sawal par **Keep it** → list se hat jata hai. Pretest ready → **Make operational**.
 
 ### 1.5 Recalibration ✅ (Day 6)
 - **Kis liye:** Candidates ke jawabon se har sawal ki difficulty dobara calculate karna (kam az kam 200 jawab, Setting) aur flag lagana.
@@ -258,13 +269,14 @@ Dashboard → *Assessment content:* Question bank, Approvals, Item analysis, Rec
 - **Fields:** **Title** · **New version number** · **Policy text** (paragraph ke beech khali line) → **Publish**. Message: "Published. It is now the version candidates accept at signup."
 - **Neeche:** "Published versions" table — Version, Title, Published, Status (Current / Older).
 - **Asar:** `/privacy` page par naya text; candidate signup par consent is version ke saath record hota hai.
-- **Quick test:** Version 1.1 publish → `/privacy` kholen → "Version 1.1" aur naya text.
+- **Abhi ka version 1.2:** v1.1 mein likha hai ke likhe huay jawab ka text AI grade karta hai; v1.2 (Day 7) mein ek line aur: **gender optional hai, sirf fairness checks mein use hota hai, recruiter ko kabhi nahi dikhta aur score ya rank mein kabhi use nahi hota.**
+- **Quick test:** Naya version 1.3 publish → `/privacy` kholen → "Version 1.3" aur naya text.
 
 ### 1.19 Message templates ✅
 - **Kis liye:** Emails aur in-app alerts ki wording.
-- **9 templates:** Password reset (email), Email confirmation (email), Top performer (email + in-app), Recruiter request received (email + in-app), Request accepted (in-app), Request declined (in-app), Test reminder (in-app).
+- **21 templates:** Password reset, Email confirmation, Top Performer (email + in-app), Recruiter request received (email + in-app), Request accepted / declined, Test reminder (in-app + email), Plan expiry, Fairness report ready, Webhook failing, aur company admins ke liye hire / plan change / failed payment waghera.
 - **Har card:** **Subject** · **Message** · allowed placeholders (e.g. `{{brandName}}`, `{{candidateName}}`) · **enabled** checkbox → **Save**. Ghalat placeholder par error.
-- **Note:** Password reset aur email confirmation **hamesha** jati hain chahe off hon (taake koi lock na ho). Baqi templates Day 4–5 mein use honge.
+- **Note:** Password reset aur email confirmation **hamesha** jati hain chahe off hon (taake koi lock na ho). Baqi templates off karne par woh paigham nahi jata.
 - **Quick test:** Password reset ka Subject badlen → Save → logout → Forgot password → terminal mein email ka naya subject dikhe.
 
 ### 🧭 Platform admin — flow story
@@ -384,15 +396,20 @@ Company admin recruiter banata hai → recruiter login karke password badalta ha
 
 **Login:** `candidate@demo.test` / `Demo@12345` → `/candidate`. Naya candidate signup ke baad khud login ho kar yahin aata hai.
 
-Menu: Dashboard → Assessments → My results → Badges → Salary guide → Training → Recruiter requests → Notifications → Profile & privacy.
+Menu: Dashboard → My tests → My results → Badges → Salary guide → Training → Recruiter requests → Notifications → Profile & privacy.
 
 ### 4.1 Dashboard ✅
 - **"Welcome, Naam"** + stats: **Job role**, **Location** (city, region), **Experience**, **Minimum salary**. Neeche module cards.
 - Email confirm na ho to banner + **Send the link again** (15 min mein 3 dafa). Unconfirmed candidate test nahi de sakega (Day 3 se guard).
 - **Quick test:** Profile mein salary badlen → Dashboard par naya number.
 
-### 4.2 Assessments ⏳ (Day 3)
-Personality (Big Five, 50 sawal), EQ, adaptive IQ, Language (region ke hisaab se, ek writing task CEFR A1–C2), Skill (apne job role ke sawal). 10–15 min, progress save, resume. Sawal sirf admin ke **Approved** bank se; rules admin ke **Test settings** se.
+### 4.2 My tests ✅ (Day 3)
+- **Menu mein naam "My tests".** Paanch card: **Personality** (Big Five, 50 sawal, Emotional Stability = high matlab calm; koi ranking nahi), **IQ** (adaptive), **EQ**, **Language** (apni region ki zubaan; multiple choice + ek chhota **writing task** jis ko AI A1–C2 par grade karta hai; lafz ginne wala counter), **Job skill** (sirf aap ke job role ke sawal; adaptive).
+- **Har card:** Not started / In progress / Completed, kab hua, aur **Start**, **Take again** (retake ka intezar Test settings se; training course ke baad foran), **View summary**. Sawal kam hon to "Not available yet: there are not enough … questions."
+- **Test ke dauran:** timer server ki ghari par chalta hai (browser band karen to bhi chalta rehta hai), jawab save hote rehte hain, wapas aa kar jaari rakh sakte hain. Waqt khatam ho aur kafi jawab hon to test score ho jata hai, warna "expired" aur foran dobara de sakte hain. Aakhri minute par warning.
+- **Email confirm hona zaroori** hai test shuru karne ke liye.
+- **Demo mein:** `candidate@demo.test` ka Language aur Job skill test live diya ja sakta hai (sawal approve kiye ja chuke hain). Writing task ke liye Claude ki key chahiye; key na ho to score "provisional" rehta hai aur agli dafa result kholne par mukammal hota hai.
+- **Quick test:** My tests → Language → **Start** → 10 se zyada sawal → writing task → **Submit** → result.
 ### 4.3 My results ✅
 - **Har test ka card:** quartile (**Q1** = top 25%), "Better than 63% of 64 candidates (top 37%)" — hamesha likha hota hai kitne candidates par based hai (kam hon to warning), Language par **CEFR level**, Personality par 5 traits ki bars (Emotional Stability: high = calm; Personality ki ranking nahi hoti).
 - **Feedback and how to improve:** AI likhta hai (pehli dafa kholne par "Writing your feedback…"), phir save ho jata hai — dobara paise nahi lagte. AI ko sirf test, result, job role, experience aur topic-wise accuracy bheji jati hai — **naam, email, phone, city, salary kabhi nahi**. AI available na ho to "Feedback is not available right now" + **Try again**.
@@ -416,6 +433,7 @@ Personality (Big Five, 50 sawal), EQ, adaptive IQ, Language (region ke hisaab se
 - **Training ke baad retake:** jis test ke course ko aap ne **apne aakhri attempt ke baad** mukammal kiya, woh test intezar ke baghair dobara de sakte hain (admin Settings > Training se band bhi kar sakta hai).
 - **Quick test:** Training → koi free course Join → 2 lessons done → Notifications mein "You joined …" aur "You completed …"; phir paid course → Checkout → "Simulate a failed payment" (error) → **Pay** (lessons khul jayen).
 ### 4.7 Recruiter requests ✅ (recruiter ki taraf ka screen Day 5)
+- **Demo mein:** `candidate@demo.test` ke paas Islamabad Business Services ki ek request **Waiting for you** hai (Zainab Hussain, Accounts officer) aur Karachi Tech Solutions ki ek **Accepted**. Dobara jawab ke liye `npm run demo:reset`.
 - Recruiter ki request yahan aati hai: company, role/city, message, **Waiting for you**. **Accept** / **Decline** (ek hi dafa). Aap ka phone/email accept se pehle private rehta hai, aur aap ki minimum salary recruiter ko kabhi nahi dikhti.
 - **Salary rule server par:** recruiter ki opening ki top salary aap ki minimum se kam ho to request ban hi nahi sakti (wohi jawab jo "candidate nahi mila" ka hota hai, taake koi minimum andaza na laga sake).
 ### 4.8 Notifications ✅
@@ -438,7 +456,7 @@ Personality (Big Five, 50 sawal), EQ, adaptive IQ, Language (region ke hisaab se
 - **Quick test:** City Lahore → Karachi (region Sindh) → Save → "Saved (city, region updated)" → Dashboard par Location Karachi. Delete ka test **naye test account** par karein, demo account par nahi.
 
 ### 🧭 Candidate — flow story
-Candidate home page se **Sign up** karta hai (role, city, minimum salary, consent) → khud login ho kar dashboard par aata hai → email ka link click karke confirm karta hai. **Assessments** deta hai → **My results** mein quartile aur AI feedback (PDF report bhi), **Salary guide**, **Training** aur Top Performer **Badge** → Day 5 se recruiters use dhoondte hain aur **Recruiter requests** mein offers aate hain jinhein woh accept/decline karta hai. Kabhi bhi **Profile & privacy** se details badal ya account delete kar sakta hai.
+Candidate home page se **Sign up** karta hai (role, city, minimum salary, consent) → khud login ho kar dashboard par aata hai → email ka link click karke confirm karta hai. **My tests** mein tests deta hai → **My results** mein quartile aur AI feedback (PDF report bhi), **Salary guide**, **Training** aur Top Performer **Badge** → Day 5 se recruiters use dhoondte hain aur **Recruiter requests** mein offers aate hain jinhein woh accept/decline karta hai. Kabhi bhi **Profile & privacy** se details badal ya account delete kar sakta hai.
 
 ---
 
@@ -492,11 +510,11 @@ Platform admin login karta hai. **Roles, regions & languages** mein "Accountant"
 **3. Candidate signup (✅)**
 Sara (Accountant, Lahore, 3 saal, min salary 80,000) **Candidate sign-up** karti hai — city list wohi jo admin ne banayi, consent us policy version ke saath jo admin ne publish ki. Email confirm karti hai. Profile mein kabhi bhi salary ya city badal sakti hai.
 
-**4. Aage kya hoga (jab baqi Days ban jayenge ⏳)**
-- **Day 3:** Sara **Assessments** mein 4 tests deti hai — sawal admin ke approved bank se, Punjab region ki wajah se Language test Urdu/English map ke hisaab se, Skill test Accountant ke sawal. Test adaptive hai aur admin ki Test settings par rukta hai. Score → percentile → quartile (admin ki Quartiles setting). Demo ke 64 candidates ke bhi scores seed honge.
-- **Day 4:** Sara **My results** mein quartiles aur AI feedback dekhti hai, **Salary guide** admin ke benchmarks se range dikhata hai, kamzor test ke liye **Training** course karke retake. Chaaron mein Q1 → **Top Performer badge** + email (admin ka template).
-- **Day 5:** ABC Traders ka recruiter **Candidate search** mein "Accountant, Lahore, Q1" filter karta hai (Q1-exclusive sirf Advanced plan par). Sara ko **Shortlist**, phir 90,000 ke offer ke saath **Contact request** — 80,000 minimum se zyada hai, is liye allowed (70,000 hota to block). Sara ko **Recruiter requests** + notification + email aati hai; woh **Accept** karti hai, recruiter ko pata chalta hai. Company admin **Subscription** mein demo payment se Advanced leta hai (**Payments** ledger mein entry), **Reports** mein charts.
+**4. Baqi Days ka khulasa (sab ban chuke ✅)**
+- **Day 3 (✅):** Sara **My tests** mein 4 tests deti hai — sawal admin ke approved bank se, Punjab region ki wajah se Language test Urdu/English map ke hisaab se, Skill test Accountant ke sawal. Test adaptive hai aur admin ki Test settings par rukta hai. Score → percentile → quartile (admin ki Quartiles setting). Demo ke 64 candidates ke bhi scores seed honge.
+- **Day 4 (✅):** Sara **My results** mein quartiles aur AI feedback dekhti hai, **Salary guide** admin ke benchmarks se range dikhata hai, kamzor test ke liye **Training** course karke retake. Chaaron mein Q1 → **Top Performer badge** + email (admin ka template).
+- **Day 5 (✅):** ABC Traders ka recruiter **Candidate search** mein "Accountant, Lahore, Q1" filter karta hai (Q1-exclusive sirf Advanced plan par). Sara ko **Shortlist**, phir 90,000 ke offer ke saath **Contact request** — 80,000 minimum se zyada hai, is liye allowed (70,000 hota to block). Sara ko **Recruiter requests** + notification + email aati hai; woh **Accept** karti hai, recruiter ko pata chalta hai. Company admin **Subscription** mein demo payment se Advanced leta hai (**Payments** ledger mein entry), **Reports** mein charts.
 - **Day 6 (ban gaya ✅):** Recruiter Sara ko **ATS export** se mock ATS mein bhejta hai; company admin **ATS & webhooks** mein delivery log aur **API keys** dekhta hai. Admin **Item analysis / Recalibration** se sawalon ko behtar karta hai, **Fairness report** dekhta hai, **Scheduled jobs** (reminders, plan warnings) chalate hain, **Pilot mode** enforce hota hai, aur **Audit log** mein recruiter ka Sara ki profile dekhna record hota hai.
-- **Day 7:** Poora end-to-end test, design polish, demo rehearsal.
+- **Day 7 (ban gaya ✅):** Poora end-to-end test (98 browser tests), har role ke har screen ka design aur zabaan ek jaisi ("Candidate", "Top Performer", "Job skill"), privacy policy 1.2, demo data har page par, `DEMO_SCRIPT.md` aur `GO_LIVE_CHECKLIST.md`.
 
 > Yaad rahe: AI kabhi hiring ka faisla nahi karta — sirf score, rank aur recommend karta hai. Faisla recruiter ka hota hai.

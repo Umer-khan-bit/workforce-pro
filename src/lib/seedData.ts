@@ -96,6 +96,12 @@ export const PRIVACY_POLICY_UPDATES = [
     paragraph:
       "Some tests include a short written answer. The text of that answer (never your name or any other personal detail) is graded by an AI service, and the grade and feedback are stored with your results. AI only scores and recommends; it never decides who is hired.",
   },
+  {
+    version: "1.2",
+    previousVersion: "1.1",
+    paragraph:
+      "Gender is optional. If you choose to give it, it is used only for fairness checks (to see whether the tests treat groups of candidates equally). It is never shown to recruiters and never used to score or rank you.",
+  },
 ];
 
 /** Typical monthly salary for a fresher, and the rise per year of experience (sample benchmarks). */

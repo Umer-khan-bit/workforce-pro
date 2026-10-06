@@ -436,7 +436,7 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
     instructionLanguage:
       "Write {{count}} items that test the {{language}} language for job candidates at CEFR level {{cefr}} ({{difficulty}}): {{mcqCount}} multiple-choice items (grammar, vocabulary or reading comprehension; 4 options A to D, one correct answer, and an explanation) and {{writingCount}} short writing prompts (a workplace-relevant task answerable in 3 to 6 sentences; no options). Write all question text, options and prompts in {{language}}. {{focus}}\nDo not repeat or closely paraphrase these existing items:\n{{existing}}",
     instructionSkill:
-      "Write {{count}} multiple-choice job-skill questions in {{language}} for the role {{jobRole}}. Test practical knowledge that a competent {{jobRole}} is expected to have. Difficulty: {{difficulty}} - {{difficultyGuide}}. Each question has exactly 4 options (A to D), exactly one correct answer, and a short explanation. Avoid trick questions, company-specific or region-specific facts, and facts that change quickly. {{focus}}\nDo not repeat or closely paraphrase these existing questions:\n{{existing}}",
+      "Write {{count}} multiple-choice job skill questions in {{language}} for the role {{jobRole}}. Test practical knowledge that a competent {{jobRole}} is expected to have. Difficulty: {{difficulty}} - {{difficultyGuide}}. Each question has exactly 4 options (A to D), exactly one correct answer, and a short explanation. Avoid trick questions, company-specific or region-specific facts, and facts that change quickly. {{focus}}\nDo not repeat or closely paraphrase these existing questions:\n{{existing}}",
     reviewPrompt:
       "You are a strict test-item reviewer. Review each question below (test: {{testName}}, language: {{language}}, role: {{jobRole}}). Check: (1) factual or logical errors, including whether the marked answer is truly correct and the only correct one; (2) ambiguity or more than one defensible answer; (3) bias or offensive wording (gender, region, religion, culture, class); (4) quality of the wording in the target language; (5) for Likert statements, that the statement is clear and measures one thing. Give each question a verdict: OK, NEEDS_FIX (fixable - say exactly how) or REJECT (not salvageable). Keep notes to 1 to 3 sentences. Return one result per question, using the same index.",
     translationPrompt:
@@ -571,7 +571,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   },
   {
     key: "topPerformer",
-    title: "Top performer",
+    title: "Top Performer",
     description: "Who earns the Top Performer badge and recognition email.",
     fields: [
       { name: "requiredQuartile", label: "Quartile needed in each test", type: "number", help: "1 means the top quartile; a candidate must reach it in every test ticked below." },

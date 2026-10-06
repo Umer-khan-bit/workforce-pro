@@ -5,7 +5,7 @@ const session = vi.hoisted(() => ({ user: null as null | { id: string; role: str
 vi.mock("@/auth", () => ({ auth: async () => (session.user ? { user: session.user } : null) }));
 
 const sendMail = vi.hoisted(() => vi.fn());
-vi.mock("nodemailer", () => ({ default: { createTransport: () => ({ sendMail }) } }));
+vi.mock("nodemailer", () => ({ createTransport: () => ({ sendMail }), default: { createTransport: () => ({ sendMail }) } }));
 
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";

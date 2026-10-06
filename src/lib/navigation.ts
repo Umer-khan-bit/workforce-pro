@@ -55,7 +55,7 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
           {
             slug: "tests",
             label: "My tests",
-            description: "Take your Personality, IQ, EQ, Language and job-skill tests and see your result.",
+            description: "Take your Personality, IQ, EQ, Language and Job skill tests and see your result.",
             planned: [],
             live: true,
           },

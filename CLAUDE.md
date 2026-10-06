@@ -303,3 +303,9 @@ email/notification templates, courses and lessons, homepage and privacy policy t
   - Design polish of every screen.
   - One consistent vocabulary across the whole app (for example always "Candidate", never "Job seeker"
     or "Applicant"; the same word for the same thing on every screen, email and template).
+
+## Demo, polish and go-live (decided on Day 7)
+- Demo data lives only in the seed (`prisma/seed.ts`, DEMO_MODE only): results, courses, hiring, ATS activity (`seedDemoIntegrations`), item statistics (`seedDemoItemStats`), one waiting request (`seedDemoStory`), and the approval of AI-reviewed-OK demo questions (`approveDemoContent`). `npm run demo:reset` repeats the live demo step. `e2e/demo-accounts.spec.ts` fails if a demo account meets an empty or broken screen.
+- Privacy policy versions are added in `PRIVACY_POLICY_UPDATES` (`src/lib/seedData.ts`); the current one is 1.2 (gender is optional, fairness checks only).
+- Wording: "Candidate", "Top Performer", "Job skill", "Recruiter requests" (candidate side) / "Contact requests" (recruiter side).
+- `DEMO_SCRIPT.md` is the client demo; `GO_LIVE_CHECKLIST.md` is demo to production. Both must be updated when a screen they mention changes.

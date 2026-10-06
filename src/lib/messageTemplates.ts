@@ -39,7 +39,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     key: "TOP_PERFORMER_EMAIL",
-    name: "Top performer - email",
+    name: "Top Performer - email",
     description: "Sent to a candidate who reaches the top-performer rule.",
     channel: "EMAIL",
     variables: ["candidateName", "brandName"],
@@ -50,7 +50,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     key: "TOP_PERFORMER_IN_APP",
-    name: "Top performer - in-app",
+    name: "Top Performer - in-app",
     description: "In-app alert for the same achievement.",
     channel: "IN_APP",
     variables: ["candidateName"],

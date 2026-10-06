@@ -78,9 +78,9 @@ export default async function SalaryGuidePage() {
               <h2 id="min-h" className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Your minimum salary</h2>
               <p className="mt-2 text-sm text-zinc-800">
                 You have set a minimum of <strong>{money(guide.minimumSalary)}</strong>.{" "}
-                {guide.minimumVsRange === "BELOW" && "That is below the suggested range, so more employers' offers will fit it."}
+                {guide.minimumVsRange === "BELOW" && "That is below the suggested range, so more offers will fit it."}
                 {guide.minimumVsRange === "WITHIN" && "That is inside the suggested range."}
-                {guide.minimumVsRange === "ABOVE" && "That is above the suggested range, so fewer employers' offers will fit it."}
+                {guide.minimumVsRange === "ABOVE" && "That is above the suggested range, so fewer offers will fit it."}
               </p>
               <p className="mt-2 text-sm text-zinc-600">Recruiters only see and contact you when their offer meets your minimum. You can change it in <Link href="/candidate/profile" className="text-brand-700 underline">Profile &amp; privacy</Link>.</p>
             </section>

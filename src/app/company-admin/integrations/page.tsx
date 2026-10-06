@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/accountEmails";
 import { WEBHOOK_EVENTS } from "@/lib/ats/webhooks";
+import { STATUS_LABELS } from "@/lib/recruiter/shortlist";
 import { getEntitlements, planBlockMessage } from "@/lib/recruiter/entitlements";
 import WebhooksManager, { type DeliveryRow, type EndpointRow } from "./WebhooksManager";
 
@@ -49,7 +50,7 @@ export default async function IntegrationsPage() {
                       <td className="px-3 py-3 font-mono text-xs">{c.externalId}</td>
                       <td className="px-3 py-3">{p.candidate?.name ?? "-"}</td>
                       <td className="px-3 py-3">{p.jobOpening?.title ?? p.jobOpening?.jobRole ?? "-"}</td>
-                      <td className="px-3 py-3">{p.status ?? "-"}</td>
+                      <td className="px-3 py-3">{p.status ? (STATUS_LABELS as Record<string, string>)[p.status] ?? p.status : "-"}</td>
                       <td className="px-3 py-3">{when(c.receivedAt)}</td>
                     </tr>
                   );

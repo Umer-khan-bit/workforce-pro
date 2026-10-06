@@ -4,6 +4,10 @@ import { seedDemoData } from "./seedDemo";
 import { seedDemoResults } from "./seedDemoResults";
 import { seedDemoCourses } from "./seedDemoCourses";
 import { seedDemoHiring } from "./seedDemoHiring";
+import { seedDemoIntegrations } from "./seedDemoIntegrations";
+import { seedDemoItemStats } from "./seedDemoItemStats";
+import { seedDemoStory } from "./seedDemoStory";
+import { approveDemoContent } from "./approveDemoContent";
 import { generateFairnessReport, monthOf, previousMonth } from "../src/lib/learning/fairness";
 import { importIpipItems } from "../src/lib/questionBank/ipipImport";
 import { seedConfig } from "./seedConfig";
@@ -137,6 +141,12 @@ async function main() {
   console.log(`Demo training: ${courses.courses} courses added`);
   const hiring = await seedDemoHiring(prisma);
   console.log(`Demo hiring: ${hiring.openings} job openings, ${hiring.shortlists} shortlisted candidates, ${hiring.requests} contact requests, ${hiring.payments} payments`);
+  const integrations = await seedDemoIntegrations(prisma);
+  console.log(`Demo ATS: ${integrations.companies} companies set up, ${integrations.pushed} candidates pushed, ${integrations.deliveries} webhook deliveries`);
+  const approved = await approveDemoContent(prisma);
+  console.log(`Demo questions approved: ${approved}`);
+  console.log(`Demo request waiting for the demo candidate: ${(await seedDemoStory(prisma)) ? "added" : "none added"}`);
+  console.log(`Demo item analysis: ${await seedDemoItemStats(prisma)} questions`);
   // Fairness reports for last month and this month, so the screen has something to show.
   const now = new Date();
   for (const month of [previousMonth(now), monthOf(now)]) await generateFairnessReport(prisma, { month, notifyAdmins: false });

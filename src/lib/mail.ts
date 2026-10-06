@@ -1,10 +1,10 @@
-import nodemailer from "nodemailer";
+import { createTransport, type Transporter } from "nodemailer";
 
 export type Mail = { to: string; subject: string; text: string };
 
-let cached: { key: string; transport: nodemailer.Transporter } | null = null;
+let cached: { key: string; transport: Transporter } | null = null;
 
-function transportFromEnv(): nodemailer.Transporter | null {
+function transportFromEnv(): Transporter | null {
   const host = process.env.SMTP_HOST?.trim();
   if (!host) return null;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -14,7 +14,7 @@ function transportFromEnv(): nodemailer.Transporter | null {
   if (cached?.key !== key) {
     cached = {
       key,
-      transport: nodemailer.createTransport({
+      transport: createTransport({
         host,
         port,
         // Port 465 is implicit TLS; 587 (Brevo's default) upgrades with STARTTLS.
