@@ -4,7 +4,8 @@ import { createKit, type Kit } from "@/lib/testEngine/testkit";
 import { createCompany, type World } from "@/lib/recruiter/testWorld";
 import { resolveOffer } from "@/lib/recruiter/offer";
 import { createApiKey, authenticateApiKey, revokeApiKey, hashApiKey, AtsError } from "./apiKeys";
-import { createEndpoint, deliver, emitWebhook, resendDelivery, retryDueDeliveries, signPayload, validateWebhookUrl, updateEndpoint } from "./webhooks";
+import { readSetting } from "@/lib/settings/store";
+import { createEndpoint, deliver, sendTestEvent, emitWebhook, resendDelivery, retryDueDeliveries, signPayload, validateWebhookUrl, updateEndpoint } from "./webhooks";
 import { MockAtsConnector } from "./connector";
 
 const dbUp = await prisma.$queryRaw`SELECT 1`.then(() => true, () => false);
@@ -127,6 +128,15 @@ describe.skipIf(!dbUp)("API keys, webhooks, mock ATS and default offer (real dat
       expect(headers["X-Workforce-Signature"]).toBe(signPayload(ep.secret, headers["X-Workforce-Timestamp"], call[1].body as string));
       const row = await prisma.webhookDelivery.findFirstOrThrow({ where: { endpointId: ep.id } });
       expect(row).toMatchObject({ status: "SUCCESS", responseStatus: 200, error: null });
+    });
+
+    it("the test event names the platform with the name from Settings > Branding", async () => {
+      const ep = await createEndpoint(prisma, { userId: world.admin.id, url: "https://hooks.example.com/test-event", events: ["shortlist.created"] });
+      const fetchImpl = okFetch();
+      await sendTestEvent(prisma, { userId: world.admin.id, endpointId: ep.id, fetchImpl });
+      const brand = await readSetting(prisma, "branding");
+      const call = fetchImpl.mock.calls.find((c) => (c as unknown as [string])[0] === "https://hooks.example.com/test-event") as unknown as [string, RequestInit];
+      expect(JSON.parse(call[1].body as string).data.message).toBe(`This is a test event from ${brand.name}.`);
     });
 
     it("records a failure with a plain reason, schedules a retry, and the retry job delivers it", async () => {

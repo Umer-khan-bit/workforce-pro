@@ -210,6 +210,7 @@ export async function sendTestEvent(db: Db, args: { userId: string; endpointId: 
   const admin = await adminFor(db, args.userId);
   const endpoint = await db.webhookEndpoint.findFirst({ where: { id: args.endpointId, companyId: admin.companyId } });
   if (!endpoint) throw new AtsError(404, "NOT_FOUND", "Webhook not found.");
-  const row = await db.webhookDelivery.create({ data: { endpointId: endpoint.id, event: "webhook.test", payload: { message: "This is a test event from Workforce Pro." } } });
+  const brand = await readSetting(db, "branding");
+  const row = await db.webhookDelivery.create({ data: { endpointId: endpoint.id, event: "webhook.test", payload: { message: `This is a test event from ${brand.name}.` } } });
   return deliver(db, row.id, args.fetchImpl);
 }
