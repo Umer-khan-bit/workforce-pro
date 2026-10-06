@@ -115,6 +115,12 @@ demo/test mode (see "Demo mode"). Everything else is real, working code.
   - Tests that use the adaptive engine, or the Language writing task, must never send the correct answer,
     item parameters or pretest flags to the browser.
 
+- Decided on Day 7 (a question retired while a candidate is answering it): the candidate may finish the question on screen, but
+  the answer is not scored and does not count in the item statistics (the answer row is kept, marked as not scored). Adaptive tests
+  pick another item because they run until enough scored answers are in; fixed tests (Personality, EQ) add one more approved
+  question on the same topic (for Personality, the same trait) if there is one. A question retired before it is shown is never shown.
+  A Language writing task retired while the candidate writes is finished but neither stored nor graded.
+
 ## Self-learning rules
 - Recalibration job (scheduled + manual button) re-estimates item parameters from responses
   once an item has at least 200 responses.

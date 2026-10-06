@@ -239,6 +239,17 @@ async function loadAnswered(db: Db, sessionId: string) {
 }
 
 /**
+ * A question that is no longer approved (an admin retired it, or it went back for review) while a candidate is in the middle
+ * of a test. The candidate may still finish the question on screen, but it is not scored. Fixed tests then add one more
+ * approved question on the same topic (for Personality, the same trait) so the test keeps its length; adaptive tests simply
+ * pick another item, because they run until enough scored answers are in.
+ */
+async function addReplacement(tx: Db, testType: TestType, languageId: string, jobRoleId: string | null, topic: string | null, order: string[], random: () => number) {
+  const pool = (await loadPool(tx, testType, languageId, jobRoleId)).filter((p) => !order.includes(p.id) && (topic === null || p.topic === topic));
+  if (pool.length > 0) order.push(pool[Math.floor(random() * pool.length)].id);
+}
+
+/**
  * Works out what comes next and stores it in `state` (current question, or the writing phase, or done).
  * Fixed tests follow their stored order; adaptive tests apply the stopping rule, then place a pretest
  * item if this position holds one, otherwise pick the most informative unseen item.
@@ -257,7 +268,16 @@ async function advance(
   state.current = null;
 
   if (!isAdaptive(testType)) {
-    const next = state.fixedOrder?.[position];
+    const order = state.fixedOrder ?? [];
+    // Questions that were retired after the form was built are never shown: they are dropped and replaced.
+    while (order[position]) {
+      const upcoming = await tx.question.findUnique({ where: { id: order[position] }, select: { status: true, topic: true } });
+      if (upcoming?.status === "APPROVED") break;
+      order.splice(position, 1);
+      await addReplacement(tx, testType, languageId, candidate.jobRoleId, upcoming?.topic ?? null, order, seededRandom(state.seed + order.length * 104729));
+    }
+    state.fixedOrder = order;
+    const next = order[position];
     if (next) state.current = { questionId: next, pretest: false, servedAt: new Date().toISOString() };
     else state.phase = "DONE";
     return;
@@ -440,41 +460,49 @@ export async function submitAnswer(deps: Deps, userId: string, sessionId: string
     const read = readAnswer(question.type, question.options, input.answer);
     const isCorrect = question.type === "LIKERT" ? null : read.key === question.correctAnswer;
     const pretest = state.current.pretest;
+    // Retired (or sent back for review) while the candidate was answering it: they may finish it, but it does not count.
+    const withdrawn = question.status !== "APPROVED";
+    const counts = !pretest && !withdrawn;
 
     const before = await loadAnswered(tx, sessionId);
     const scoredBefore: ScoredAnswer[] = before.filter((r) => r.isScored && r.isCorrect !== null).map((r) => ({ a: r.question.aParam, b: r.question.bParam, correct: Boolean(r.isCorrect) }));
     const thetaBefore = estimateAbility(scoredBefore);
-    const thetaAfter = !pretest && isCorrect !== null ? estimateAbility([...scoredBefore, { a: question.aParam, b: question.bParam, correct: isCorrect }]) : thetaBefore;
+    const thetaAfter = counts && isCorrect !== null ? estimateAbility([...scoredBefore, { a: question.aParam, b: question.bParam, correct: isCorrect }]) : thetaBefore;
 
     await tx.response.create({
       data: {
         sessionId,
         questionId: question.id,
-        answerGiven: read.given,
+        answerGiven: withdrawn ? ({ ...(read.given as object), withdrawn: true } as Prisma.InputJsonValue) : read.given,
         isCorrect,
-        isScored: !pretest,
+        isScored: counts,
         responseTimeMs: Math.max(0, now.getTime() - new Date(state.current.servedAt).getTime()),
         thetaBefore: thetaBefore.theta,
         thetaAfter: thetaAfter.theta,
         answeredAt: now,
       },
     });
-    // Running statistics for calibration (pretest answers count too).
-    await tx.itemStatistic.upsert({
-      where: { questionId: question.id },
-      create: { questionId: question.id, responseCount: 1, correctCount: isCorrect ? 1 : 0 },
-      update: { responseCount: { increment: 1 }, correctCount: { increment: isCorrect ? 1 : 0 } },
-    });
+    // Running statistics for calibration (pretest answers count too, answers to a withdrawn question do not).
+    if (!withdrawn) {
+      await tx.itemStatistic.upsert({
+        where: { questionId: question.id },
+        create: { questionId: question.id, responseCount: 1, correctCount: isCorrect ? 1 : 0 },
+        update: { responseCount: { increment: 1 }, correctCount: { increment: isCorrect ? 1 : 0 } },
+      });
+    }
 
     const config = await loadConfig(tx, session.testType);
     const candidate = { jobRoleId: session.candidateProfile.jobRoleId };
+    if (withdrawn && !isAdaptive(session.testType) && state.fixedOrder) {
+      await addReplacement(tx, session.testType, session.languageId ?? "", candidate.jobRoleId, question.topic, state.fixedOrder, seededRandom(state.seed + state.fixedOrder.length * 104729));
+    }
     await advance(tx, sessionId, session.testType, candidate, session.languageId ?? "", config, state);
     await tx.testSession.update({
       where: { id: sessionId },
       data: {
         theta: thetaAfter.theta,
         standardError: thetaAfter.se,
-        itemsAdministered: scoredBefore.length + (!pretest && isCorrect !== null ? 1 : 0),
+        itemsAdministered: scoredBefore.length + (counts && isCorrect !== null ? 1 : 0),
         resumeState: toJson(state),
       },
     });
@@ -509,7 +537,10 @@ export async function submitWriting(deps: Deps, userId: string, sessionId: strin
     if (!timedOut && words < testing.writingMinWords) {
       throw new TestError(400, "TOO_SHORT", `Please write at least ${testing.writingMinWords} words (you have ${words}).`);
     }
-    if (words > 0) {
+    // A writing task that was retired while the candidate wrote: they finish it, but it is neither stored nor graded.
+    const prompt = await tx.question.findUnique({ where: { id: state.writingQuestionId }, select: { status: true } });
+    const withdrawn = prompt?.status !== "APPROVED";
+    if (words > 0 && !withdrawn) {
       await tx.writingAssessment.upsert({
         where: { sessionId },
         create: { sessionId, essayText: essay },
@@ -519,7 +550,7 @@ export async function submitWriting(deps: Deps, userId: string, sessionId: strin
     state.phase = "DONE";
     state.current = null;
     await tx.testSession.update({ where: { id: sessionId }, data: { resumeState: toJson(state) } });
-    return { late: false as const, hasEssay: words > 0, questionId: state.writingQuestionId, languageId: session.languageId, jobRoleId: session.candidateProfile.jobRoleId };
+    return { late: false as const, hasEssay: words > 0 && !withdrawn, questionId: state.writingQuestionId, languageId: session.languageId, jobRoleId: session.candidateProfile.jobRoleId };
   });
 
   if (saved && !saved.late && saved.hasEssay) {
