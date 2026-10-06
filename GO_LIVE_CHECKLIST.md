@@ -56,7 +56,7 @@ Copy `.env.example`, then fill in real values. **Never commit the real `.env`.**
 
 | Variable | What to set |
 |---|---|
-| `DATABASE_URL` | The production database (strong password, not `workforce:workforce`). |
+| `DATABASE_URL` | The production database (strong password, not `workforce:workforce`). Add `?connection_limit=20` (or a number that suits your server): each app process then uses at most that many database connections, and the sum over all processes must stay below the database's `max_connections` (100 by default). |
 | `AUTH_SECRET` | A new random secret (`npx auth secret`). Never reuse the demo one. |
 | `APP_BASE_URL` | The public address with `https://`, for example `https://app.yourcompany.com`. All emailed links use this, never the request's host. |
 | `ANTHROPIC_API_KEY` | The production Claude key. `ANTHROPIC_MODEL` as chosen. |

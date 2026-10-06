@@ -482,14 +482,6 @@ export async function submitAnswer(deps: Deps, userId: string, sessionId: string
         answeredAt: now,
       },
     });
-    // Running statistics for calibration (pretest answers count too, answers to a withdrawn question do not).
-    if (!withdrawn) {
-      await tx.itemStatistic.upsert({
-        where: { questionId: question.id },
-        create: { questionId: question.id, responseCount: 1, correctCount: isCorrect ? 1 : 0 },
-        update: { responseCount: { increment: 1 }, correctCount: { increment: isCorrect ? 1 : 0 } },
-      });
-    }
 
     const config = await loadConfig(tx, session.testType);
     const candidate = { jobRoleId: session.candidateProfile.jobRoleId };
@@ -506,6 +498,16 @@ export async function submitAnswer(deps: Deps, userId: string, sessionId: string
         resumeState: toJson(state),
       },
     });
+    // Running statistics for calibration (pretest answers count too, answers to a withdrawn question do not). This is the LAST
+    // statement of the transaction on purpose: many candidates are served the same popular questions at the same time, and this row
+    // is locked until the transaction ends, so anything done after it would make every other candidate wait.
+    if (!withdrawn) {
+      await tx.itemStatistic.upsert({
+        where: { questionId: question.id },
+        create: { questionId: question.id, responseCount: 1, correctCount: isCorrect ? 1 : 0 },
+        update: { responseCount: { increment: 1 }, correctCount: { increment: isCorrect ? 1 : 0 } },
+      });
+    }
     return { timedOut: false, finished: (state.phase as Phase) === "DONE" };
   });
 
