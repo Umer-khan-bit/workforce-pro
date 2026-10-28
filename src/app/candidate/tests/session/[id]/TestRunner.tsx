@@ -28,6 +28,10 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timedOut = useRef(false);
+  const [leftNotice, setLeftNotice] = useState(false);
+  const [pasteNotice, setPasteNotice] = useState(false);
+  const running = view?.status === "IN_PROGRESS";
+  const awayRef = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const textRef = useRef(text);
   // Kept in a ref so the automatic submit at zero sends whatever has been typed, not a stale copy.
@@ -75,6 +79,36 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Integrity: note when the candidate leaves the window and tell them on return. The test keeps running.
+  useEffect(() => {
+    if (!running) return;
+    const left = (source: "hidden" | "blur") => {
+      if (awayRef.current) return;
+      awayRef.current = true;
+      fetch(`/api/tests/sessions/${sessionId}/focus`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    const back = () => {
+      if (!awayRef.current || document.visibilityState === "hidden") return;
+      awayRef.current = false;
+      setLeftNotice(true);
+    };
+    const onVisibility = () => (document.visibilityState === "hidden" ? left("hidden") : back());
+    const onBlur = () => left("blur");
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", back);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", back);
+    };
+  }, [running, sessionId]);
 
   // Move focus to the new question so screen readers announce it.
   useEffect(() => {
@@ -146,7 +180,13 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
   const progress = view && view.total > 0 ? Math.min(100, Math.round((view.answered / view.total) * 100)) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background" data-testid="test-runner">
+    <div
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background"
+      data-testid="test-runner"
+      onContextMenu={(e) => e.preventDefault()}
+      onCopy={(e) => (e.target as HTMLElement).tagName !== "TEXTAREA" && e.preventDefault()}
+      onCut={(e) => (e.target as HTMLElement).tagName !== "TEXTAREA" && e.preventDefault()}
+    >
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
@@ -177,11 +217,17 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
         {!view && !error && <p className="text-zinc-600" role="status">Loading your test...</p>}
+        {leftNotice && (
+          <div role="alert" data-testid="left-notice" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-red-300 bg-red-600 px-4 py-3 text-sm font-semibold text-white">
+            <span>You left the test window. This has been recorded.</span>
+            <button type="button" onClick={() => setLeftNotice(false)} className="shrink-0 underline">Dismiss</button>
+          </div>
+        )}
         {error && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
         <p className="sr-only" role="status" aria-live="polite">{remaining !== null && remaining > 0 && remaining <= 60_000 ? "One minute left." : ""}</p>
 
         {view?.question && (
-          <section aria-labelledby="question-h" dir={view.rtl ? "rtl" : "ltr"}>
+          <section aria-labelledby="question-h" dir={view.rtl ? "rtl" : "ltr"} className="select-none">
             <h1 id="question-h" ref={headingRef} tabIndex={-1} className="text-xl font-semibold leading-snug text-zinc-900 outline-none" data-testid="question">
               {view.question.content}
             </h1>
@@ -239,7 +285,7 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
 
         {view?.writing && (
           <section aria-labelledby="writing-h" dir={view.rtl ? "rtl" : "ltr"}>
-            <h1 id="writing-h" ref={headingRef} tabIndex={-1} className="text-xl font-semibold leading-snug text-zinc-900 outline-none" data-testid="writing-prompt">
+            <h1 id="writing-h" ref={headingRef} tabIndex={-1} className="select-none text-xl font-semibold leading-snug text-zinc-900 outline-none" data-testid="writing-prompt">
               {view.writing.prompt}
             </h1>
             <p className="mt-2 text-sm text-zinc-600" dir="ltr">{view.writing.notice}</p>
@@ -249,9 +295,15 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
               className="input mt-4 min-h-56 text-base"
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                setPasteNotice(true);
+              }}
+              onDrop={(e) => e.preventDefault()}
               disabled={busy}
               data-testid="essay"
             />
+            {pasteNotice && <p role="alert" data-testid="paste-notice" className="mt-1 text-sm font-semibold text-red-700">Pasting is not allowed in this test</p>}
             <p className={`mt-1 text-sm ${writingOk ? "text-zinc-600" : "text-amber-800"}`} dir="ltr" data-testid="word-count">
               {words} words (write {view.writing.minWords} to {view.writing.maxWords})
             </p>

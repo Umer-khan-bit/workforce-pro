@@ -54,7 +54,7 @@ export default async function TestIntroPage({ params }: { params: Promise<{ test
       </section>
 
       <div className="mt-6">
-        {startable && overview.verified && <StartButton testType={testType} label={card.status === "COMPLETED" ? "Start the test again" : "Start the test"} />}
+        {startable && overview.verified && <StartButton testType={testType} pledge={testing.integrityPledge} label={card.status === "COMPLETED" ? "Start the test again" : "Start the test"} />}
         {!overview.verified && <p className="text-sm text-amber-800">Confirm your email address to start tests.</p>}
         {card.status === "UNAVAILABLE" && <p role="status" className="text-sm text-zinc-700">{card.reason}</p>}
         {card.status === "COMPLETED" && !card.canRetake && (

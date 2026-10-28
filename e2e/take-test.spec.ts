@@ -74,6 +74,7 @@ test("a candidate takes a full IQ test on a phone: instructions, timer, progress
   await expect(page.getByRole("heading", { name: "IQ test" })).toBeVisible();
   await expect(page.getByText("You will see one question at a time")).toBeVisible();
   await expect(page.getByText("15 minutes", { exact: true })).toBeVisible();
+  await page.getByTestId("pledge").check();
   await page.getByRole("button", { name: "Start the test" }).click();
   await expect(page).toHaveURL(/\/candidate\/tests\/session\//);
 
@@ -153,6 +154,7 @@ test("a candidate takes the Personality test and sees trait scores, with no rank
   await signIn(page, c.email);
   await page.goto("/candidate/tests/personality");
   await expect(page.getByText("50", { exact: true }).first()).toBeVisible();
+  await page.getByTestId("pledge").check();
   await page.getByRole("button", { name: "Start the test" }).click();
   await expect(page).toHaveURL(/\/session\//);
   await expect(page.getByTestId("position")).toContainText("Question 1 of 50");
@@ -179,6 +181,7 @@ test("when time runs out the page submits automatically and the test is scored",
   const c = await kit.addCandidate("timeouttaker");
   await signIn(page, c.email);
   await page.goto("/candidate/tests/iq");
+  await page.getByTestId("pledge").check();
   await page.getByRole("button", { name: "Start the test" }).click();
   await expect(page).toHaveURL(/\/session\//);
   const sessionId = page.url().split("/").pop()!;
@@ -209,6 +212,7 @@ test("running out of time too early gives no score and allows a retake straight 
   const c = await kit.addCandidate("tooslow");
   await signIn(page, c.email);
   await page.goto("/candidate/tests/iq");
+  await page.getByTestId("pledge").check();
   await page.getByRole("button", { name: "Start the test" }).click();
   await expect(page).toHaveURL(/\/session\//);
   const sessionId = page.url().split("/").pop()!;
@@ -233,6 +237,7 @@ test("the Language test continues to a writing task with a word counter, and war
   await signIn(page, c.email);
   await page.goto("/candidate/tests/language");
   await expect(page.getByText("graded by AI")).toBeVisible();
+  await page.getByTestId("pledge").check();
   await page.getByRole("button", { name: "Start the test" }).click();
   await expect(page).toHaveURL(/\/session\//);
 
@@ -244,11 +249,61 @@ test("the Language test continues to a writing task with a word counter, and war
   await page.getByTestId("essay").fill("Too short.");
   await expect(page.getByTestId("word-count")).toContainText("2 words");
   await expect(submit).toBeDisabled();
+  // Pasting is blocked and the candidate is told why; the text box stays as it was.
+  await page.getByTestId("essay").evaluate((el) => {
+    const data = new DataTransfer();
+    data.setData("text/plain", "pasted from somewhere else");
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  await expect(page.getByTestId("paste-notice")).toHaveText("Pasting is not allowed in this test");
+  await expect(page.getByTestId("essay")).toHaveValue("Too short.");
   await page.getByTestId("essay").fill(Array.from({ length: 30 }, (_, i) => `word${i}`).join(" "));
   await expect(page.getByTestId("word-count")).toContainText("30 words");
   await expect(submit).toBeEnabled();
   await noSideways(page);
   // Not submitted: the real grader would spend real money. The grading itself is covered by the unit tests.
+});
+
+test("the honesty pledge must be ticked to start, and leaving the test window is noticed but does not stop the test", async ({ page }) => {
+  test.setTimeout(120_000);
+  const c = await kit.addCandidate("pledgetaker");
+  await signIn(page, c.email);
+  await page.goto("/candidate/tests/iq");
+  const start = page.getByRole("button", { name: "Start the test" });
+  await expect(page.getByText("I will take this test myself, without help from other people, websites or AI tools.")).toBeVisible();
+  await expect(start).toBeDisabled();
+  await page.getByTestId("pledge").check();
+  await expect(start).toBeEnabled();
+  await page.getByTestId("pledge").uncheck();
+  await expect(start).toBeDisabled();
+  await page.getByTestId("pledge").check();
+  await start.click();
+  await expect(page).toHaveURL(/\/session\//);
+  const sessionId = page.url().split("/").pop()!;
+  await expect(page.getByTestId("question")).toBeVisible();
+  await expect(page.getByTestId("left-notice")).toHaveCount(0);
+
+  // Leave the window and come back: a red notice, one audit entry, and the test carries on.
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+  });
+  await expect(page.getByTestId("left-notice")).toContainText("You left the test window. This has been recorded.");
+  await expect.poll(() => prisma.auditLog.count({ where: { action: "TEST_FOCUS_LOST", targetId: sessionId } })).toBe(1);
+  await page.getByTestId("option-B").click();
+  await page.getByTestId("next").click();
+  await expect(page.getByTestId("position")).toContainText("Question 2");
+  expect((await prisma.testSession.findUniqueOrThrow({ where: { id: sessionId } })).status).toBe("IN_PROGRESS");
+
+  // Copying and right-click on the question are blocked.
+  const blocked = await page.getByTestId("question").evaluate((el) => {
+    const copy = new ClipboardEvent("copy", { bubbles: true, cancelable: true });
+    const menu = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    el.dispatchEvent(copy);
+    el.dispatchEvent(menu);
+    return [copy.defaultPrevented, menu.defaultPrevented, getComputedStyle(el).userSelect];
+  });
+  expect(blocked).toEqual([true, true, "none"]);
 });
 
 test("an unconfirmed email cannot start a test, on the page or through the API", async ({ page }) => {
