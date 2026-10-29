@@ -34,10 +34,12 @@ export async function recalibrate(db: Db, args: { triggeredBy: string; now?: Dat
     let newlyFlagged = 0;
 
     for (const stat of stats) {
-      const responses = await db.response.findMany({
+      const answeredRows = await db.response.findMany({
         where: { questionId: stat.questionId, isCorrect: { not: null }, session: { status: "COMPLETED" } },
-        select: { isCorrect: true, session: { select: { theta: true, languageId: true, candidateProfile: { select: { gender: true, regionId: true } } } } },
+        select: { isCorrect: true, answerGiven: true, session: { select: { theta: true, languageId: true, candidateProfile: { select: { gender: true, regionId: true } } } } },
       });
+      // A question that ran out of time counts against the candidate but says nothing about how hard the question is.
+      const responses = answeredRows.filter((r) => !(r.answerGiven as { unanswered?: boolean } | null)?.unanswered);
       const points = responses.map((r) => ({ theta: r.session.theta, correct: Boolean(r.isCorrect) }));
       if (points.length < rules.minResponsesForRecalibration) continue;
 

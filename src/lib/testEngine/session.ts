@@ -22,6 +22,7 @@ import { rankAgainstCohort } from "./ranking";
 import { evaluateTopPerformer } from "@/lib/results/topPerformer";
 import { trainingUnlocksRetake } from "@/lib/training/retake";
 import { newSeed, seededRandom, shuffle } from "./rng";
+import { questionSecondsFor } from "./questionLimit";
 import {
   CEFR_LEVELS,
   languageComposite,
@@ -60,7 +61,15 @@ type ResumeState = {
   fixedOrder?: string[];
   /** Adaptive tests: positions (0-based) that hold unscored pretest items. */
   pretestSlots?: number[];
-  current: { questionId: string; pretest: boolean; servedAt: string } | null;
+  current: {
+    questionId: string;
+    pretest: boolean;
+    servedAt: string;
+    /** When the per-question time limit (if any) runs out. Stored when the question is served, so a resume keeps it. */
+    dueAt?: string | null;
+    /** Multiple-choice and situational items: the order the option keys are shown in for this candidate. */
+    optionOrder?: string[];
+  } | null;
   phase: Phase;
   writingQuestionId?: string;
 };
@@ -217,7 +226,7 @@ export async function startOrResume(deps: Deps, userId: string, testType: TestTy
         resumeState: toJson(state),
       },
     });
-    await advance(tx, session.id, testType, candidate, language.id, config, state);
+    await advanceAndStamp(tx, session, candidate, language.id, config, state, now);
     await tx.testSession.update({ where: { id: session.id }, data: { resumeState: toJson(state) } });
     await tx.auditLog.create({
       data: { actorId: userId, action: "TEST_STARTED", targetType: "TestSession", targetId: session.id, metadata: { testType } },
@@ -248,6 +257,37 @@ async function loadAnswered(db: Db, sessionId: string) {
 async function addReplacement(tx: Db, testType: TestType, languageId: string, jobRoleId: string | null, topic: string | null, order: string[], random: () => number) {
   const pool = (await loadPool(tx, testType, languageId, jobRoleId)).filter((p) => !order.includes(p.id) && (topic === null || p.topic === topic));
   if (pool.length > 0) order.push(pool[Math.floor(random() * pool.length)].id);
+}
+
+/** A small number from text, so each question gets its own shuffle from the session seed. */
+const hashText = (t: string) => [...t].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) | 0, 7);
+
+/**
+ * Once a question has been chosen: store when its per-question time limit ends (never later than the whole test)
+ * and, for multiple-choice and situational items, the shuffled order of the options. Both are saved with the
+ * session, so closing the browser and coming back shows the same order and keeps the same deadline.
+ */
+async function stampServed(tx: Db, testType: TestType, expiresAt: Date | null, state: ResumeState): Promise<void> {
+  const cur = state.current;
+  if (!cur) return;
+  const testing = await readSetting(tx, "testing");
+  const seconds = questionSecondsFor(testing, testType);
+  if (seconds > 0) {
+    const due = new Date(cur.servedAt).getTime() + seconds * 1000;
+    cur.dueAt = new Date(expiresAt ? Math.min(due, expiresAt.getTime()) : due).toISOString();
+  }
+  if (testing.integrityShuffleOptions === "yes") {
+    const q = await tx.question.findUnique({ where: { id: cur.questionId }, select: { type: true, options: true } });
+    const keys = Array.isArray(q?.options) ? (q.options as { key: string }[]).map((o) => o.key) : [];
+    if ((q?.type === "MCQ" || q?.type === "SITUATIONAL_JUDGEMENT") && keys.length > 1) cur.optionOrder = shuffle(keys, seededRandom(state.seed + hashText(cur.questionId)));
+  }
+}
+
+/** `advance`, then stamp the deadline and option order on the question that was chosen. */
+async function advanceAndStamp(tx: Db, session: { id: string; testType: TestType; expiresAt: Date | null }, candidate: Pick<Candidate, "jobRoleId">, languageId: string, config: TestConfigRow, state: ResumeState, now: Date): Promise<void> {
+  await advance(tx, session.id, session.testType, candidate, languageId, config, state);
+  if (state.current) state.current.servedAt = now.toISOString();
+  await stampServed(tx, session.testType, session.expiresAt, state);
 }
 
 /**
@@ -358,8 +398,11 @@ export type SessionView = {
     id: string;
     type: "MCQ" | "LIKERT" | "SITUATIONAL_JUDGEMENT";
     content: string;
+    /** In the order this candidate sees them (shuffled for multiple-choice and situational items when the setting is on). */
     options: { key: string; text: string }[];
   };
+  /** When the time for the current question ends (per-question limit), or null when there is no limit. */
+  questionDueAt: string | null;
   writing: null | { prompt: string; minWords: number; maxWords: number; notice: string };
 };
 
@@ -390,6 +433,7 @@ async function buildView(db: Db, session: Awaited<ReturnType<typeof ownedSession
     languageName: language?.name ?? null,
     rtl: language?.isRtl ?? false,
     question: null,
+    questionDueAt: null,
     writing: null,
   };
   if (session.status !== "IN_PROGRESS") return view;
@@ -398,7 +442,11 @@ async function buildView(db: Db, session: Awaited<ReturnType<typeof ownedSession
     const q = await db.question.findUnique({ where: { id: state.current.questionId }, select: { id: true, type: true, content: true, options: true } });
     if (q && (q.type === "MCQ" || q.type === "LIKERT" || q.type === "SITUATIONAL_JUDGEMENT")) {
       // The correct answer and the item's statistics are never sent to the browser.
-      view.question = { id: q.id, type: q.type, content: q.content, options: Array.isArray(q.options) ? (q.options as { key: string; text: string }[]) : [] };
+      const natural = Array.isArray(q.options) ? (q.options as { key: string; text: string }[]) : [];
+      const order = state.current.optionOrder;
+      const shown = order && order.length === natural.length ? order.flatMap((k) => natural.filter((o) => o.key === k)) : natural;
+      view.question = { id: q.id, type: q.type, content: q.content, options: shown.length === natural.length ? shown : natural };
+      view.questionDueAt = state.current.dueAt ?? null;
     }
   }
   if (state.phase === "WRITING" && state.writingQuestionId) {
@@ -413,6 +461,10 @@ export async function getSessionView(deps: Deps, userId: string, sessionId: stri
   const { prisma } = deps;
   let session = await ownedSession(prisma, userId, sessionId);
   const now = clock(deps);
+  if (session.status === "IN_PROGRESS" && session.expiresAt && session.expiresAt.getTime() > now.getTime()) {
+    await expireQuestionIfDue(deps, userId, sessionId);
+    session = await ownedSession(prisma, userId, sessionId);
+  }
   if (session.status === "IN_PROGRESS" && session.expiresAt && session.expiresAt.getTime() <= now.getTime()) {
     // Language: an essay that is being written when time ends is submitted by the page (see submitWriting).
     const state = asState(session.resumeState);
@@ -440,6 +492,84 @@ function readAnswer(type: "MCQ" | "LIKERT" | "SITUATIONAL_JUDGEMENT" | "WRITING"
   return { given: { key: answer.key } as Prisma.InputJsonValue, correct: null as boolean | null, key: answer.key, value: null as number | null };
 }
 
+type SessionRow = Awaited<ReturnType<typeof ownedSession>>;
+
+/**
+ * Records the response to the current question and moves on. `answer` null means the question ran out of time
+ * (per-question limit): it is saved as unanswered. A multiple-choice or situational question then counts as wrong
+ * for the candidate (so skipping hard questions cannot help) but is left out of the question statistics; a rating
+ * (Likert) question has no value to score, so it is not scored and a fixed test adds a replacement. Returns true
+ * when that was the last question.
+ */
+async function recordResponse(tx: Db, session: SessionRow, state: ResumeState, answer: AnswerInput["answer"] | null, now: Date): Promise<boolean> {
+  const sessionId = session.id;
+  const current = state.current!;
+  const question = await tx.question.findUnique({ where: { id: current.questionId } });
+  if (!question || question.type === "WRITING") throw new TestError(404, "NOT_FOUND", "Question not found.");
+
+  const unanswered = answer === null;
+  const read = unanswered ? null : readAnswer(question.type, question.options, answer);
+  const isCorrect = question.type === "LIKERT" ? null : unanswered ? false : read!.key === question.correctAnswer;
+  const pretest = current.pretest;
+  // Retired (or sent back for review) while the candidate was answering it: they may finish it, but it does not count.
+  const withdrawn = question.status !== "APPROVED";
+  const skippedRating = unanswered && question.type === "LIKERT";
+  const counts = !pretest && !withdrawn && !skippedRating;
+
+  const before = await loadAnswered(tx, sessionId);
+  const scoredBefore: ScoredAnswer[] = before.filter((r) => r.isScored && r.isCorrect !== null).map((r) => ({ a: r.question.aParam, b: r.question.bParam, correct: Boolean(r.isCorrect) }));
+  const thetaBefore = estimateAbility(scoredBefore);
+  const thetaAfter = counts && isCorrect !== null ? estimateAbility([...scoredBefore, { a: question.aParam, b: question.bParam, correct: isCorrect }]) : thetaBefore;
+
+  // What is stored with the answer: the real key, the order the options were shown in, and whether it ran out of time.
+  const given = {
+    ...(read ? (read.given as object) : { unanswered: true }),
+    ...(current.optionOrder ? { shownOrder: current.optionOrder } : {}),
+    ...(withdrawn ? { withdrawn: true } : {}),
+  } as Prisma.InputJsonValue;
+
+  await tx.response.create({
+    data: {
+      sessionId,
+      questionId: question.id,
+      answerGiven: given,
+      isCorrect,
+      isScored: counts,
+      responseTimeMs: Math.max(0, now.getTime() - new Date(current.servedAt).getTime()),
+      thetaBefore: thetaBefore.theta,
+      thetaAfter: thetaAfter.theta,
+      answeredAt: now,
+    },
+  });
+
+  const config = await loadConfig(tx, session.testType);
+  const candidate = { jobRoleId: session.candidateProfile.jobRoleId };
+  if ((withdrawn || skippedRating) && !isAdaptive(session.testType) && state.fixedOrder) {
+    await addReplacement(tx, session.testType, session.languageId ?? "", candidate.jobRoleId, question.topic, state.fixedOrder, seededRandom(state.seed + state.fixedOrder.length * 104729));
+  }
+  await advanceAndStamp(tx, session, candidate, session.languageId ?? "", config, state, now);
+  await tx.testSession.update({
+    where: { id: sessionId },
+    data: {
+      theta: thetaAfter.theta,
+      standardError: thetaAfter.se,
+      itemsAdministered: scoredBefore.length + (counts && isCorrect !== null ? 1 : 0),
+      resumeState: toJson(state),
+    },
+  });
+  // Running statistics for calibration (pretest answers count too; answers to a withdrawn question and unanswered questions do not). This is
+  // the LAST statement of the transaction on purpose: many candidates are served the same popular questions at the same time, and this row
+  // is locked until the transaction ends, so anything done after it would make every other candidate wait.
+  if (!withdrawn && !unanswered) {
+    await tx.itemStatistic.upsert({
+      where: { questionId: question.id },
+      create: { questionId: question.id, responseCount: 1, correctCount: isCorrect ? 1 : 0 },
+      update: { responseCount: { increment: 1 }, correctCount: { increment: isCorrect ? 1 : 0 } },
+    });
+  }
+  return (state.phase as Phase) === "DONE";
+}
+
 /** Records an answer and moves on to the next question (or to writing, or to the end). */
 export async function submitAnswer(deps: Deps, userId: string, sessionId: string, input: AnswerInput): Promise<SessionView> {
   const { prisma } = deps;
@@ -455,65 +585,39 @@ export async function submitAnswer(deps: Deps, userId: string, sessionId: string
     if (state.phase !== "QUESTIONS" || !state.current || state.current.questionId !== input.questionId) {
       throw new TestError(409, "WRONG_QUESTION", "That question is no longer current. Reload the page.");
     }
-    const question = await tx.question.findUnique({ where: { id: input.questionId } });
-    if (!question || question.type === "WRITING") throw new TestError(404, "NOT_FOUND", "Question not found.");
-
-    const read = readAnswer(question.type, question.options, input.answer);
-    const isCorrect = question.type === "LIKERT" ? null : read.key === question.correctAnswer;
-    const pretest = state.current.pretest;
-    // Retired (or sent back for review) while the candidate was answering it: they may finish it, but it does not count.
-    const withdrawn = question.status !== "APPROVED";
-    const counts = !pretest && !withdrawn;
-
-    const before = await loadAnswered(tx, sessionId);
-    const scoredBefore: ScoredAnswer[] = before.filter((r) => r.isScored && r.isCorrect !== null).map((r) => ({ a: r.question.aParam, b: r.question.bParam, correct: Boolean(r.isCorrect) }));
-    const thetaBefore = estimateAbility(scoredBefore);
-    const thetaAfter = counts && isCorrect !== null ? estimateAbility([...scoredBefore, { a: question.aParam, b: question.bParam, correct: isCorrect }]) : thetaBefore;
-
-    await tx.response.create({
-      data: {
-        sessionId,
-        questionId: question.id,
-        answerGiven: withdrawn ? ({ ...(read.given as object), withdrawn: true } as Prisma.InputJsonValue) : read.given,
-        isCorrect,
-        isScored: counts,
-        responseTimeMs: Math.max(0, now.getTime() - new Date(state.current.servedAt).getTime()),
-        thetaBefore: thetaBefore.theta,
-        thetaAfter: thetaAfter.theta,
-        answeredAt: now,
-      },
-    });
-
-    const config = await loadConfig(tx, session.testType);
-    const candidate = { jobRoleId: session.candidateProfile.jobRoleId };
-    if (withdrawn && !isAdaptive(session.testType) && state.fixedOrder) {
-      await addReplacement(tx, session.testType, session.languageId ?? "", candidate.jobRoleId, question.topic, state.fixedOrder, seededRandom(state.seed + state.fixedOrder.length * 104729));
-    }
-    await advance(tx, sessionId, session.testType, candidate, session.languageId ?? "", config, state);
-    await tx.testSession.update({
-      where: { id: sessionId },
-      data: {
-        theta: thetaAfter.theta,
-        standardError: thetaAfter.se,
-        itemsAdministered: scoredBefore.length + (counts && isCorrect !== null ? 1 : 0),
-        resumeState: toJson(state),
-      },
-    });
-    // Running statistics for calibration (pretest answers count too, answers to a withdrawn question do not). This is the LAST
-    // statement of the transaction on purpose: many candidates are served the same popular questions at the same time, and this row
-    // is locked until the transaction ends, so anything done after it would make every other candidate wait.
-    if (!withdrawn) {
-      await tx.itemStatistic.upsert({
-        where: { questionId: question.id },
-        create: { questionId: question.id, responseCount: 1, correctCount: isCorrect ? 1 : 0 },
-        update: { responseCount: { increment: 1 }, correctCount: { increment: isCorrect ? 1 : 0 } },
-      });
-    }
-    return { timedOut: false, finished: (state.phase as Phase) === "DONE" };
+    // The time for this question ran out before the answer arrived: it counts as unanswered and the answer is ignored.
+    const due = state.current.dueAt ? Date.parse(state.current.dueAt) : null;
+    const late = due !== null && now.getTime() > due + ANSWER_GRACE_MS;
+    const finished = await recordResponse(tx, session, state, late ? null : input.answer, now);
+    return { timedOut: false, finished };
   });
 
   if (outcome.timedOut || outcome.finished) await finalizeSession(deps, sessionId, outcome.timedOut ? "TIMEOUT" : "COMPLETE");
   return getSessionView(deps, userId, sessionId);
+}
+
+/**
+ * If the time for the current question has run out (per-question limit), records it as unanswered and serves the next
+ * question. The server decides, so a candidate cannot keep a question open by blocking the page's countdown. Called
+ * whenever the session is read (the page asks again when its countdown reaches zero, and again after a resume).
+ */
+async function expireQuestionIfDue(deps: Deps, userId: string, sessionId: string): Promise<void> {
+  const { prisma } = deps;
+  const now = clock(deps);
+  const peek = await ownedSession(prisma, userId, sessionId);
+  const seen = asState(peek.resumeState);
+  if (peek.status !== "IN_PROGRESS" || seen.phase !== "QUESTIONS" || !seen.current?.dueAt || Date.parse(seen.current.dueAt) > now.getTime()) return;
+
+  const finished = await prisma.$transaction(async (tx) => {
+    await lockKey(tx, `session:${sessionId}`);
+    const session = await ownedSession(tx, userId, sessionId);
+    const state = asState(session.resumeState);
+    // Look again under the lock: an answer may have just arrived.
+    if (session.status !== "IN_PROGRESS" || state.phase !== "QUESTIONS" || !state.current?.dueAt || state.current.questionId !== seen.current?.questionId) return false;
+    if (Date.parse(state.current.dueAt) > now.getTime()) return false;
+    return recordResponse(tx, session, state, null, now);
+  });
+  if (finished) await finalizeSession(deps, sessionId, "COMPLETE");
 }
 
 // ---------------------------------------------------------------- the Language writing task

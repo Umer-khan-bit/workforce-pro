@@ -12,10 +12,12 @@ export default function SettingsForm({
   group,
   initial,
   planOptions = [],
+  hints = {},
 }: {
   group: SettingGroup;
   initial: Values;
   planOptions?: { value: string; label: string }[];
+  hints?: Record<string, string>;
 }) {
   const router = useRouter();
   const [values, setValues] = useState<Values>(initial);
@@ -185,6 +187,7 @@ export default function SettingsForm({
               </fieldset>
             )}
 
+            {hints[f.name] && <p className="mt-1 text-xs font-medium text-brand-800" data-testid={`hint-${f.name}`}>{hints[f.name]}</p>}
             <p className="mt-1 text-xs text-zinc-500">{f.help}</p>
             {f.placeholders && (
               <p className="mt-1 text-xs text-zinc-500">

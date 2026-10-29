@@ -348,6 +348,14 @@ region, or a job role, language or plan name written as a text value appears in 
   A badge that depended on the voided result is withdrawn (`BADGE_REMOVED`); Undo re-checks it. A voided last result lets the candidate retake at once.
   The wording the candidate sees is Settings > Tests ("Integrity: message for a cancelled result"). Paste attempts are not recorded.
 
+- Per-question time limit (Settings > Tests > Integrity, one number of seconds per test, 0 = off, all start off; the settings screen shows each test's
+  overall time and question count and the server refuses a limit longer than the test, and a test time shorter than its limit). The deadline is
+  stored on the session when the question is served (`current.dueAt`, never later than the whole test), so a resume keeps it, and the SERVER
+  enforces it (`expireQuestionIfDue`, and a late answer is ignored). Unanswered multiple-choice / situational = wrong for the score, `answerGiven.unanswered`,
+  left out of item statistics and recalibration; an unanswered Likert item is not scored and a fixed test adds a replacement.
+- Option shuffle (Settings > Tests > Integrity, starts on): multiple-choice and situational items only, order derived from the session seed, saved on the
+  session (`current.optionOrder`) and on the answer (`answerGiven.shownOrder`). Answers are still sent and marked by the real key; the screen shows A, B, C, D by position.
+
 ## Demo, polish and go-live (decided on Day 7)
 - Demo data lives only in the seed (`prisma/seed.ts`, DEMO_MODE only): results, courses, hiring, ATS activity (`seedDemoIntegrations`), item statistics (`seedDemoItemStats`), one waiting request (`seedDemoStory`), and the approval of AI-reviewed-OK demo questions (`approveDemoContent`). `npm run demo:reset` repeats the live demo step. `e2e/demo-accounts.spec.ts` fails if a demo account meets an empty or broken screen.
 - Privacy policy versions are added in `PRIVACY_POLICY_UPDATES` (`src/lib/seedData.ts`); the current one is 1.2 (gender is optional, fairness checks only).

@@ -207,6 +207,8 @@ export const accountsSchema = z.object({
 });
 
 const cefrScore = z.coerce.number().min(-4).max(4);
+/** Seconds a candidate gets for one question; 0 means no limit for that test. */
+const questionSeconds = z.coerce.number().int().min(0).max(3600);
 
 export const testingSchema = z
   .object({
@@ -222,6 +224,12 @@ export const testingSchema = z
     instructionsGeneral: z.string().trim().min(5).max(2000),
     writingNotice: z.string().trim().min(5).max(1000),
     integrityPledge: z.string().trim().min(5).max(500),
+    integrityShuffleOptions: z.enum(["yes", "no"]),
+    questionSecondsPersonality: questionSeconds,
+    questionSecondsIq: questionSeconds,
+    questionSecondsEq: questionSeconds,
+    questionSecondsLanguage: questionSeconds,
+    questionSecondsSkill: questionSeconds,
     integrityFlagThreshold: z.coerce.number().int().min(1).max(100),
     integrityVoidedNotice: z.string().trim().min(5).max(500),
   })
@@ -417,6 +425,12 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
       "Your written answer is graded by AI. Only the text of your answer is sent for grading, never your name or any other personal details.",
     integrityPledge: "I will take this test myself, without help from other people, websites or AI tools.",
     integrityFlagThreshold: 3,
+    integrityShuffleOptions: "yes",
+    questionSecondsPersonality: 0,
+    questionSecondsIq: 0,
+    questionSecondsEq: 0,
+    questionSecondsLanguage: 0,
+    questionSecondsSkill: 0,
     integrityVoidedNotice: "This result was cancelled after a review. You can take the test again.",
   },
   testEngine: { topK: 5, maxExposureRate: 0.4, exposureWarmupSessions: 30, topicBalancePenalty: 0.5 },
@@ -487,6 +501,8 @@ export type FieldSpec = {
   options?: { value: string; label: string }[];
   /** The page fills the options from the database (for example the list of plans). */
   optionsFrom?: "plans";
+  /** For a per-question time limit: the test it belongs to (the page shows that test's overall time and question count). */
+  testType?: "PERSONALITY" | "IQ" | "EQ" | "LANGUAGE" | "SKILL";
   /** Placeholders the system fills in; shown on a separate small line. */
   placeholders?: string[];
 };
@@ -551,6 +567,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { name: "instructionsGeneral", label: "Instructions shown before every test", type: "textarea", rows: 4, help: "Plain rules shown on the start screen of every test, such as no going back and the running timer." },
       { name: "integrityPledge", label: "Honesty pledge", type: "textarea", rows: 2, help: "The sentence a candidate must tick before the Start button works on every test." },
       { name: "integrityFlagThreshold", label: "Integrity: window exits that flag a test", type: "number", help: "When a candidate leaves the test window this many times or more in one test, the test appears under Integrity review for an admin to look at. Recruiters only see the number of exits." },
+      { name: "integrityShuffleOptions", label: "Integrity: shuffle the answer options", type: "select", options: [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }], help: "Options appear in a different order for each candidate; marking still uses the real answer. Turn off if options say 'all of the above'." },
+      { name: "questionSecondsPersonality", label: "Integrity: seconds per question, Personality", type: "number", testType: "PERSONALITY", help: "0 means no limit. When time runs out the question counts as unanswered and the next one appears. Must be shorter than the whole test." },
+      { name: "questionSecondsIq", label: "Integrity: seconds per question, IQ", type: "number", testType: "IQ", help: "0 means no limit. An unanswered question counts as wrong for the score but is left out of the question statistics." },
+      { name: "questionSecondsEq", label: "Integrity: seconds per question, EQ", type: "number", testType: "EQ", help: "0 means no limit. An unanswered situational question counts as wrong; an unanswered rating question is skipped and replaced." },
+      { name: "questionSecondsLanguage", label: "Integrity: seconds per question, Language", type: "number", testType: "LANGUAGE", help: "0 means no limit. Applies to the multiple-choice questions only; the writing task uses the overall timer." },
+      { name: "questionSecondsSkill", label: "Integrity: seconds per question, Job skill", type: "number", testType: "SKILL", help: "0 means no limit. An unanswered question counts as wrong for the score but is left out of the question statistics." },
       { name: "integrityVoidedNotice", label: "Integrity: message for a cancelled result", type: "textarea", rows: 2, help: "Shown to the candidate on My results when an admin cancels a result after a review." },
       { name: "writingNotice", label: "Writing task notice", type: "textarea", rows: 3, help: "Shown before the Language writing task to explain that an AI grades the text." },
       { name: "writingWeightPercent", label: "Language: how much the writing counts (%)", type: "number", help: "Share of the Language score that comes from the writing grade; the rest comes from the multiple-choice questions." },
@@ -778,3 +800,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
 ];
+
+/** The setting that holds the per-question time limit of each test (seconds, 0 = off). */
+export const QUESTION_SECONDS_FIELD = {
+  PERSONALITY: "questionSecondsPersonality",
+  IQ: "questionSecondsIq",
+  EQ: "questionSecondsEq",
+  LANGUAGE: "questionSecondsLanguage",
+  SKILL: "questionSecondsSkill",
+} as const;

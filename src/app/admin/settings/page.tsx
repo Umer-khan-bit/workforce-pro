@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { SETTING_GROUPS, isSettingKey } from "@/lib/settings/definitions";
+import { isAdaptive } from "@/lib/testEngine/context";
+import { timingHint } from "@/lib/testEngine/questionLimit";
 import SettingsForm from "./SettingsForm";
 
 export default async function SettingsPage({
@@ -22,6 +24,16 @@ export default async function SettingsPage({
       ? prisma.plan.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] })
       : Promise.resolve([]),
   ]);
+
+  // Under each per-question limit: that test's overall time and question count, so the admin can pick a sensible number.
+  const hints: Record<string, string> = {};
+  if (group.fields.some((f) => f.testType)) {
+    const configs = await prisma.testConfig.findMany();
+    for (const f of group.fields) {
+      const c = f.testType ? configs.find((x) => x.testType === f.testType) : undefined;
+      if (f.testType && c) hints[f.name] = timingHint(f.testType, { ...c, isAdaptive: isAdaptive(f.testType) });
+    }
+  }
 
   const pill = (active: boolean) =>
     `rounded-full border px-4 py-2 text-sm font-medium ${
@@ -63,6 +75,7 @@ export default async function SettingsPage({
         key={group.key}
         group={group}
         initial={value as Record<string, unknown>}
+        hints={hints}
         planOptions={plans.map((p) => ({ value: p.code, label: p.name }))}
       />
     </div>

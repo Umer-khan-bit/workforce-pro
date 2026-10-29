@@ -116,6 +116,15 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
   }, [view?.question?.id, view?.phase]);
 
   const remaining = view ? Date.parse(view.expiresAt) - (now + offset) : null;
+  // The time for this one question (only when Settings give the test a per-question limit). The server decides; at zero we just ask it.
+  const questionRemaining = view?.questionDueAt && view.question ? Date.parse(view.questionDueAt) - (now + offset) : null;
+  const askedAt = useRef(0);
+  useEffect(() => {
+    if (questionRemaining === null || questionRemaining > 0 || !running || busy) return;
+    if (Date.now() - askedAt.current < 1500) return;
+    askedAt.current = Date.now();
+    load();
+  }, [questionRemaining, running, busy, load]);
 
   // Time is up: submit what is written, or let the server close the test.
   useEffect(() => {
@@ -196,6 +205,15 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
                 Question {position} {view.testType === "PERSONALITY" || view.testType === "EQ" ? `of ${view.total}` : `of up to ${view.total}`}
               </p>
             )}
+            {questionRemaining !== null && (
+              <p
+                data-testid="question-timer"
+                aria-label="Time left for this question"
+                className={`text-xs font-medium tabular-nums ${questionRemaining <= 10_000 ? "text-red-700" : "text-zinc-600"}`}
+              >
+                Time for this question: {formatClock(questionRemaining)}
+              </p>
+            )}
             {view && view.phase === "WRITING" && <p className="text-xs text-zinc-500">Writing task</p>}
           </div>
           <div className="flex items-center gap-3">
@@ -257,7 +275,7 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
               </div>
             ) : (
               <div role="radiogroup" aria-labelledby="question-h" className="mt-6 flex flex-col gap-3">
-                {view.question.options.map((o) => {
+                {view.question.options.map((o, position) => {
                   const selected = choice?.key === o.key;
                   return (
                     <button
@@ -272,7 +290,7 @@ export default function TestRunner({ sessionId }: { sessionId: string }) {
                       }`}
                     >
                       <span className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${selected ? "bg-brand-700 text-white" : "bg-zinc-100 text-zinc-700"}`} dir="ltr">
-                        {o.key}
+                        {String.fromCharCode(65 + position)}
                       </span>
                       <span>{o.text}</span>
                     </button>
