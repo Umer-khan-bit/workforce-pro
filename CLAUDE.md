@@ -355,6 +355,8 @@ region, or a job role, language or plan name written as a text value appears in 
   left out of item statistics and recalibration; an unanswered Likert item is not scored and a fixed test adds a replacement.
 - Option shuffle (Settings > Tests > Integrity, starts on): multiple-choice and situational items only, order derived from the session seed, saved on the
   session (`current.optionOrder`) and on the answer (`answerGiven.shownOrder`). Answers are still sent and marked by the real key; the screen shows A, B, C, D by position.
+  A question is NOT shuffled when any option refers to the others ("all of the above", "both A and B", "neither"...): the phrases are Settings > Tests >
+  Integrity (`integrityNoShufflePhrases`, one per line, `{key}` = any option letter), checked by `src/lib/testEngine/optionShuffle.ts`. `npm run shuffle:scan` lists the affected approved questions.
 
 ## Demo, polish and go-live (decided on Day 7)
 - Demo data lives only in the seed (`prisma/seed.ts`, DEMO_MODE only): results, courses, hiring, ATS activity (`seedDemoIntegrations`), item statistics (`seedDemoItemStats`), one waiting request (`seedDemoStory`), and the approval of AI-reviewed-OK demo questions (`approveDemoContent`). `npm run demo:reset` repeats the live demo step. `e2e/demo-accounts.spec.ts` fails if a demo account meets an empty or broken screen.

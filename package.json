@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio --port 7320",
     "prisma:seed": "tsx prisma/seed.ts",
+    "shuffle:scan": "tsx --env-file=.env scripts/scanShuffleQuestions.ts",
     "load:check": "tsx --env-file=.env scripts/loadCheck.ts",
     "demo:reset": "tsx --env-file=.env prisma/resetDemoStory.ts",
     "content:approve": "tsx --env-file=.env prisma/approveDemoContent.ts",

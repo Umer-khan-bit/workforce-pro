@@ -257,3 +257,44 @@ describe.skipIf(!dbUp)("per-question limit and option shuffle (real database)", 
     auth.user = null;
   });
 });
+
+describe.skipIf(!dbUp)("questions whose options refer to each other are never shuffled (real database)", () => {
+  let kit: Kit;
+  let original: SettingValue<"testing">;
+
+  beforeAll(async () => {
+    kit = await createKit(prisma, "intnoshuf");
+    const bank = await kit.addCatBank("IQ", 40, 0);
+    // Every question in this world has "All of the above" as its last option; the second half also has "Both A and B".
+    for (const [i, id] of bank.ids.entries()) {
+      const options = [
+        { key: "A", text: "Paris" },
+        { key: "B", text: "London" },
+        { key: "C", text: i % 2 ? "Both A and B" : "Berlin" },
+        { key: "D", text: "All of the above" },
+      ];
+      await prisma.question.update({ where: { id }, data: { options } });
+    }
+    original = await readSetting(prisma, "testing");
+    await prisma.siteSetting.upsert({ where: { key: "testing" }, create: { key: "testing", value: { ...original, integrityShuffleOptions: "yes" } }, update: { value: { ...original, integrityShuffleOptions: "yes" } } });
+  }, 60_000);
+  afterAll(async () => {
+    await prisma.siteSetting.update({ where: { key: "testing" }, data: { value: original } });
+    await kit.cleanup();
+  }, 60_000);
+
+  it("keeps the original order for every candidate and every question, and stores no shuffled order", async () => {
+    for (let n = 0; n < 8; n++) {
+      const c = await kit.addCandidate(`keep${n}`);
+      const { sessionId } = await startOrResume({ prisma }, c.userId, "IQ");
+      let view = await getSessionView({ prisma }, c.userId, sessionId);
+      for (let step = 0; step < 4 && view.status === "IN_PROGRESS" && view.question; step++) {
+        expect(view.question.options.map((o) => o.key).join("")).toBe("ABCD");
+        view = await submitAnswer({ prisma }, c.userId, sessionId, { questionId: view.question.id, answer: { key: "B" } });
+      }
+      const answers = await prisma.response.findMany({ where: { sessionId } });
+      expect(answers.length).toBeGreaterThan(0);
+      for (const r of answers) expect(r.answerGiven).not.toHaveProperty("shownOrder");
+    }
+  });
+});

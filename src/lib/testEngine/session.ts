@@ -23,6 +23,7 @@ import { evaluateTopPerformer } from "@/lib/results/topPerformer";
 import { trainingUnlocksRetake } from "@/lib/training/retake";
 import { newSeed, seededRandom, shuffle } from "./rng";
 import { questionSecondsFor } from "./questionLimit";
+import { mayShuffle, parsePhrases } from "./optionShuffle";
 import {
   CEFR_LEVELS,
   languageComposite,
@@ -278,8 +279,10 @@ async function stampServed(tx: Db, testType: TestType, expiresAt: Date | null, s
   }
   if (testing.integrityShuffleOptions === "yes") {
     const q = await tx.question.findUnique({ where: { id: cur.questionId }, select: { type: true, options: true } });
-    const keys = Array.isArray(q?.options) ? (q.options as { key: string }[]).map((o) => o.key) : [];
-    if ((q?.type === "MCQ" || q?.type === "SITUATIONAL_JUDGEMENT") && keys.length > 1) cur.optionOrder = shuffle(keys, seededRandom(state.seed + hashText(cur.questionId)));
+    const options = Array.isArray(q?.options) ? (q.options as { key: string; text: string }[]) : [];
+    const keys = options.map((o) => o.key);
+    // A question whose options refer to each other ("all of the above", "both A and B") keeps its original order.
+    if ((q?.type === "MCQ" || q?.type === "SITUATIONAL_JUDGEMENT") && mayShuffle(options, parsePhrases(testing.integrityNoShufflePhrases))) cur.optionOrder = shuffle(keys, seededRandom(state.seed + hashText(cur.questionId)));
   }
 }
 

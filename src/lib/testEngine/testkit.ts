@@ -23,10 +23,10 @@ export async function createKit(prisma: PrismaClient, tag = "kit") {
   const userIds: string[] = [];
 
   const options = [
-    { key: "A", text: "Option A" },
-    { key: "B", text: "Option B" },
-    { key: "C", text: "Option C" },
-    { key: "D", text: "Option D" },
+    { key: "A", text: "Red" },
+    { key: "B", text: "Green" },
+    { key: "C", text: "Blue" },
+    { key: "D", text: "Gold" },
   ];
 
   async function addMcq(testType: "IQ" | "SKILL" | "LANGUAGE", specs: McqSpec[], roleId: string | null = testType === "SKILL" ? role.id : null) {
