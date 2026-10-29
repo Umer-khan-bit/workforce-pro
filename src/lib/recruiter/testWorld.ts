@@ -51,6 +51,7 @@ export async function createCompany(
   const recruiter = await addUser("recruiter", "RECRUITER");
 
   async function cleanup() {
+    await prisma.concernReport.deleteMany({ where: { companyId: company.id } });
     const shortlists = await prisma.shortlist.findMany({ where: { recruiter: { companyId: company.id } }, select: { id: true } });
     await prisma.shortlistStatusHistory.deleteMany({ where: { shortlistId: { in: shortlists.map((s) => s.id) } } });
     await prisma.shortlist.deleteMany({ where: { id: { in: shortlists.map((s) => s.id) } } });
@@ -61,7 +62,7 @@ export async function createCompany(
     await prisma.subscription.deleteMany({ where: { companyId: company.id } });
     await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.auditLog.deleteMany({ where: { actorId: { in: userIds } } });
-    await prisma.rateLimitHit.deleteMany({ where: { OR: userIds.flatMap((id) => ["contact", "shortlist", "checkout", "ai-search", "candidate-report"].map((p) => ({ key: `${p}:${id}` }))) } });
+    await prisma.rateLimitHit.deleteMany({ where: { OR: userIds.flatMap((id) => ["contact", "shortlist", "checkout", "ai-search", "candidate-report", "concern"].map((p) => ({ key: `${p}:${id}` }))) } });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await prisma.company.delete({ where: { id: company.id } });
     await prisma.plan.deleteMany({ where: { id: { in: planIds } } });

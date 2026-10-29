@@ -22,6 +22,7 @@ test.afterAll(async () => {
   await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
   await prisma.integrityReview.deleteMany({ where: { reviewedById: adminId } });
   await kit.cleanup();
+  await prisma.notification.deleteMany({ where: { userId: adminId } }); // other tests may have notified every admin
   await prisma.user.delete({ where: { id: adminId } });
 });
 

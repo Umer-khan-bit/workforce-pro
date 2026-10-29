@@ -214,6 +214,15 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     subject: "Your plan is expiring",
     body: "{{companyName}}'s {{planName}} plan ends on {{endDate}}. Renew to keep your access.",
   },
+  {
+    key: "INTEGRITY_CONCERN_REPORTED_IN_APP",
+    name: "Integrity concern reported - in-app",
+    description: "Tells the platform admins that a company reported a concern about a candidate's test result.",
+    channel: "IN_APP",
+    variables: ["companyName", "testName"],
+    subject: "A company reported an integrity concern",
+    body: "{{companyName}} reported a concern about a {{testName}} result. Open Integrity review to look at it.",
+  },
 ];
 
 const PLACEHOLDER = /\{\{\s*([A-Za-z][A-Za-z0-9]*)\s*\}\}/g;

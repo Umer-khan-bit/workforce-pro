@@ -1,4 +1,5 @@
 import type { CefrLevel, Prisma, PrismaClient, TestType } from "@prisma/client";
+import { candidateIntegrity, type CandidateIntegrity } from "@/lib/integrity/summary";
 import { meetsTopPerformerRule, type TopPerformerRule } from "@/lib/results/topPerformer";
 import { RECRUITER_CANDIDATE_SELECT, recruiterVisibleWhere } from "./candidateAccess";
 import { RANKED_TESTS, SORTS, type RankedTest, type SearchFilters, type SearchSort } from "./searchTypes";
@@ -20,6 +21,8 @@ export type CandidateRow = {
   /** Mean percentile over the tests the top-performer rule counts, 0 to 100; null when none of them are taken. */
   overall: number | null;
   topPerformer: boolean;
+  /** Window exits (counts only), filled in by the search; see `candidateIntegrity`. */
+  integrity?: CandidateIntegrity;
 };
 
 type ProfileLite = { id: string; city: string | null; experienceYears: number | null; jobRole: { name: string } | null; user: { name: string | null } };
@@ -61,6 +64,7 @@ export function filterRows(rows: CandidateRow[], filters: SearchFilters): Candid
       const q = r.quartiles[test];
       if (typeof q !== "number" || q > max) return false;
     }
+    if (filters.noIntegrityConcerns && r.integrity?.level === "concern") return false;
     return !filters.topPerformersOnly || r.topPerformer;
   });
 }
@@ -107,7 +111,7 @@ export type SearchResult = {
   poolTruncated: boolean;
 };
 
-type Db = Pick<PrismaClient, "candidateProfile" | "score">;
+type Db = Pick<PrismaClient, "candidateProfile" | "score" | "auditLog" | "siteSetting" | "integrityReview">;
 
 /** The profile-level part of a search, always starting from the minimum-salary rule. */
 export function profileWhere(offerMax: number, filters: SearchFilters): Prisma.CandidateProfileWhereInput {
@@ -154,7 +158,9 @@ export async function searchCandidates(db: Db, args: SearchArgs): Promise<Search
   const pool = poolTruncated ? profiles.slice(0, args.poolLimit) : profiles;
 
   const results = await loadLatestResults(db, pool.map((p) => p.id));
-  const matching = filterRows(buildRows(pool, results, args.rule), args.filters);
+  const integrity = await candidateIntegrity(db, pool.map((p) => p.id));
+  const rows = buildRows(pool, results, args.rule).map((r) => ({ ...r, integrity: integrity.get(r.id) ?? { exits: 0, level: "none" as const, perTest: [] } }));
+  const matching = filterRows(rows, args.filters);
 
   // The plan decides whether Top Performers can be seen at all.
   const hiddenTopPerformers = args.canSeeTopPerformers ? 0 : matching.filter((r) => r.topPerformer).length;

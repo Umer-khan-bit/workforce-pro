@@ -41,6 +41,7 @@ export function parseSearchQuery(raw: Raw): SearchQuery {
     if (q !== undefined) filters.quartiles = { ...filters.quartiles, [test]: q };
   }
   if (first(raw, "top") === "1") filters.topPerformersOnly = true;
+  if (first(raw, "clean") === "1") filters.noIntegrityConcerns = true;
 
   const sortRaw = first(raw, "sort");
   const sort = (SORTS as readonly string[]).includes(sortRaw ?? "") ? (sortRaw as SearchSort) : "overall";
@@ -61,6 +62,7 @@ export function buildSearchQuery(q: Partial<SearchQuery>): string {
     if (v !== undefined) p.set(`q_${TEST_PARAM[test]}`, String(v));
   }
   if (f.topPerformersOnly) p.set("top", "1");
+  if (f.noIntegrityConcerns) p.set("clean", "1");
   if (q.sort && q.sort !== "overall") p.set("sort", q.sort);
   if (q.offer) p.set("offer", String(q.offer));
   if (q.opening) p.set("opening", q.opening);

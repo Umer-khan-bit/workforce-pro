@@ -8,6 +8,7 @@ import { getCandidateDetail } from "@/lib/recruiter/candidateDetail";
 import { resultLines } from "@/lib/results/describe";
 import { TEST_TITLES } from "@/lib/testEngine/labels";
 import { buildReportPdf } from "@/lib/results/pdf";
+import { integrityLine } from "@/lib/integrity/summary";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const detail = await getCandidateDetail(prisma, { recruiterUserId: staff.userId, companyId: staff.companyId, candidateProfileId: id, offerMax, entitlements });
   if (!detail) return NextResponse.json({ error: "This candidate is not available.", code: "CANDIDATE_NOT_AVAILABLE" }, { status: 404 });
 
-  const [brand, quartiles] = await Promise.all([getSetting("branding"), getSetting("quartiles")]);
+  const [brand, quartiles, testing] = await Promise.all([getSetting("branding"), getSetting("quartiles"), getSetting("testing")]);
+  const mostExits = Math.max(0, ...Object.values(detail.integrity).map((i) => i.exits));
   const pdf = await buildReportPdf({
     brandName: brand.name,
     candidateName: detail.name ?? "Candidate",
@@ -40,7 +42,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     experienceYears: detail.experienceYears,
     generatedOn: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     topPerformer: detail.topPerformer,
-    results: detail.results.map((r) => ({ title: `${TEST_TITLES[r.testType]} test`, lines: [...resultLines(r, quartiles.minCohortSize), detail.integrity[r.testType]], traits: r.traits, feedback: null, tips: [] })),
+    integritySummary: Object.keys(detail.integrity).length ? integrityLine(mostExits, testing.integrityFlagThreshold).replace("Integrity:", "Integrity (most window exits in one test):") : undefined,
+    results: detail.results.map((r) => ({ title: `${TEST_TITLES[r.testType]} test`, lines: [...resultLines(r, quartiles.minCohortSize), detail.integrity[r.testType].line], traits: r.traits, feedback: null, tips: [] })),
     salary: null,
     disclaimer: "Assessment results are a screening aid. AI scores, ranks and recommends; it never makes a hiring decision.",
   });

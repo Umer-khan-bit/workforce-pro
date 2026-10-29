@@ -35,5 +35,6 @@ test("platform admin can log in and only access /admin", async ({ page }) => {
   await page.goto("/recruiter");
   await expect(page).toHaveURL(/\/unauthorized/);
 
+  await prisma.notification.deleteMany({ where: { user: { email } } });
   await prisma.user.delete({ where: { email } }).catch(() => {});
 });

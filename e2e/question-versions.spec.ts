@@ -21,6 +21,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   await kit.cleanup();
   await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
+  await prisma.notification.deleteMany({ where: { userId: adminId } });
   await prisma.user.delete({ where: { id: adminId } });
 });
 

@@ -26,6 +26,7 @@ test.afterAll(async () => {
   else await prisma.siteSetting.update({ where: { key: "testing" }, data: { value: original as object } });
   await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
   await kit.cleanup();
+  await prisma.notification.deleteMany({ where: { userId: adminId } }); // other tests may have notified every admin
   await prisma.user.delete({ where: { id: adminId } });
 });
 

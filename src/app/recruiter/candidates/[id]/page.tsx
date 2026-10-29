@@ -11,8 +11,11 @@ import { STATUS_LABELS } from "@/lib/recruiter/shortlist";
 import { buildSearchQuery, parseSearchQuery } from "@/lib/recruiter/searchParams";
 import { resultLines } from "@/lib/results/describe";
 import { TEST_TITLES } from "@/lib/testEngine/labels";
+import { IntegrityNote } from "@/components/IntegrityBadge";
 import ShortlistControl from "../ShortlistControl";
 import ContactControl from "../ContactControl";
+import ReportConcern from "./ReportConcern";
+import { ownReports } from "@/lib/integrity/concerns";
 
 const QUARTILE_STYLE: Record<number, string> = { 1: "bg-green-100 text-green-900", 2: "bg-teal-50 text-teal-900", 3: "bg-amber-50 text-amber-900", 4: "bg-red-50 text-red-800" };
 const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -37,10 +40,11 @@ export default async function CandidateDetailPage({ params, searchParams }: { pa
   const detail = offerMax === null ? null : await getCandidateDetail(prisma, { recruiterUserId: session!.user.id, companyId, candidateProfileId: id, offerMax, entitlements: ent });
   if (offerMax === null || !detail) notFound();
 
-  const [currency, quartiles, openings] = await Promise.all([
+  const [currency, quartiles, openings, reported] = await Promise.all([
     getCurrency(),
     getSetting("quartiles"),
     prisma.jobOpening.findMany({ where: { companyId, status: "OPEN" }, include: { jobRole: { select: { name: true } } }, orderBy: { createdAt: "desc" } }),
+    ownReports(prisma, companyId, detail.id),
   ]);
   const openingOptions = openings.map((o) => ({ id: o.id, label: `${o.title ?? o.jobRole.name}${o.city ? `, ${o.city}` : ""}` }));
   const nameOf = new Map(openingOptions.map((o) => [o.id, o.label]));
@@ -75,7 +79,8 @@ export default async function CandidateDetailPage({ params, searchParams }: { pa
                 {r.quartile !== null && !r.provisional && <span className={`rounded-lg px-3 py-1 text-xl font-semibold ${QUARTILE_STYLE[r.quartile]}`}>Q{r.quartile}</span>}
               </div>
             </div>
-            <div className="mt-1 space-y-1 text-sm text-zinc-700">{resultLines(r, quartiles.minCohortSize).map((line, i) => <p key={i}>{line}</p>)}<p data-testid={`integrity-${r.testType}`}>{detail.integrity[r.testType]}</p></div>
+            <div className="mt-1 space-y-1 text-sm text-zinc-700">{resultLines(r, quartiles.minCohortSize).map((line, i) => <p key={i}>{line}</p>)}<IntegrityNote info={detail.integrity[r.testType]} testType={r.testType} />
+            <ReportConcern candidateId={detail.id} testType={r.testType} offer={query.offer ?? offerMax} opening={openingId} reportedOn={reported.has(r.sessionId) ? fmt(reported.get(r.sessionId)!) : null} /></div>
             {r.traits && (
               <ul className="mt-3 flex flex-col gap-2">
                 {r.traits.map((t) => (

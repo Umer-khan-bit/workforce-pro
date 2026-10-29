@@ -11,6 +11,7 @@ import { TEST_TITLES } from "@/lib/testEngine/labels";
 import AiSearchBox from "./AiSearchBox";
 import { aiSearchExample } from "@/lib/recruiter/aiSearchExample";
 import ShortlistControl from "./ShortlistControl";
+import { IntegrityBadge } from "@/components/IntegrityBadge";
 
 const SORT_LABELS: Record<SearchSort, string> = { overall: "Best overall", experience: "Most experience", iq: "IQ", eq: "EQ", language: "Language", skill: "Job skill" };
 const QUARTILE_STYLE: Record<number, string> = { 1: "bg-green-100 text-green-900", 2: "bg-teal-50 text-teal-900", 3: "bg-amber-50 text-amber-900", 4: "bg-red-50 text-red-800" };
@@ -118,6 +119,12 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
                 Q1 in all tests (Top Performers)
               </label>
             </div>
+            <div className="flex items-end">
+              <label className="flex min-h-11 items-center gap-2 text-sm text-zinc-800">
+                <input type="checkbox" name="clean" value="1" defaultChecked={f.noIntegrityConcerns} className="size-4" data-testid="filter-clean" />
+                Only candidates with no integrity concerns
+              </label>
+            </div>
             <div className="flex items-end gap-3 sm:col-span-2">
               <button type="submit" className="btn-primary">Search</button>
               <Link href="/recruiter/candidates" className="btn-secondary">Clear</Link>
@@ -162,6 +169,7 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
                         <th className="px-3 py-3">Experience</th>
                         {RANKED_TESTS.map((t) => <th key={t} className="px-3 py-3">{TEST_TITLES[t]}</th>)}
                         <th className="px-3 py-3">Overall</th>
+                        <th className="px-3 py-3">Integrity</th>
                         <th className="px-3 py-3">Actions</th>
                       </tr>
                     </thead>
@@ -184,6 +192,7 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
                             );
                           })}
                           <td className="px-3 py-3 tabular-nums">{r.overall !== null ? r.overall.toFixed(0) : "-"}</td>
+                          <td className="px-3 py-3">{r.integrity && <IntegrityBadge exits={r.integrity.exits} level={r.integrity.level} perTest={r.integrity.perTest} />}</td>
                           <td className="px-3 py-3">
                             <ShortlistControl candidateId={r.id} openings={openingOptions} shortlistedIn={shortlisted.filter((s) => s.candidateProfileId === r.id).map((s) => s.jobOpeningId)} />
                           </td>
@@ -200,7 +209,7 @@ export default async function CandidateSearchPage({ searchParams }: { searchPara
                   {result.page < result.pages ? <Link href={href(result.page + 1)} className="btn-secondary">Next</Link> : <span />}
                 </nav>
               )}
-              <p className="mt-3 text-xs text-zinc-500">Quartile Q1 is the highest group and Q4 the lowest. Overall is the average percentile across the tests that count for Top Performers. Names are shown; phone, email and salary expectations stay private until a candidate accepts your request.</p>
+              <p className="mt-3 text-xs text-zinc-500">Quartile Q1 is the highest group and Q4 the lowest. Overall is the average percentile across the tests that count for Top Performers. Integrity counts how often a candidate left the test window: a red warning means the number set by the platform was reached. Names are shown; phone, email and salary expectations stay private until a candidate accepts your request.</p>
             </section>
           )}
         </div>

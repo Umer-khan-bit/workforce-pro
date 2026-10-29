@@ -9,6 +9,8 @@ export type ReportData = {
   experienceYears: number | null;
   generatedOn: string;
   topPerformer: boolean;
+  /** A recruiter report: one line with the overall integrity result (counts only). */
+  integritySummary?: string;
   results: ReportResult[];
   salary: { currency: string; marketLine: string; suggestedLine: string; basis: string } | null;
   disclaimer: string | null;
@@ -102,6 +104,7 @@ export async function buildReportPdf(data: ReportData): Promise<Uint8Array> {
   if (about) text(about, { color: MUTED });
   text(`Report date: ${data.generatedOn}`, { color: MUTED, gap: 6 });
   if (data.topPerformer) text("Top Performer badge earned", { bold: true, color: BRAND, gap: 4 });
+  if (data.integritySummary) text(data.integritySummary, { bold: true, gap: 4 });
 
   if (data.results.length === 0) text("No assessment has been completed yet.", { gap: 8 });
 

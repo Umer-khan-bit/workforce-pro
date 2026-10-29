@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, TestType } from "@prisma/client";
 import { readSetting } from "@/lib/settings/store";
 
 type Db = Pick<PrismaClient, "auditLog" | "siteSetting" | "integrityReview">;
@@ -22,9 +22,21 @@ export async function windowExits(db: Pick<PrismaClient, "auditLog">, sessionIds
 /** A test is flagged when the exits reach the threshold in Settings > Tests. */
 export const isFlagged = (exits: number, threshold: number) => exits >= threshold;
 
-/** The wording a recruiter sees: counts only. */
-export const integrityLine = (exits: number) =>
-  exits === 0 ? "Integrity: no concerns" : `Integrity: ${exits} window exit${exits === 1 ? "" : "s"}`;
+/**
+ * What a company sees for a number of window exits (counts only):
+ *  none    - no exits
+ *  info    - some exits, below the threshold: information only
+ *  concern - at or above the threshold in Settings > Tests
+ */
+export type IntegrityLevel = "none" | "info" | "concern";
+export const integrityLevel = (exits: number, threshold: number): IntegrityLevel => (exits <= 0 ? "none" : isFlagged(exits, threshold) ? "concern" : "info");
+
+/** The wording of the report and the PDF. */
+export function integrityLine(exits: number, threshold: number): string {
+  const n = `${exits} window exit${exits === 1 ? "" : "s"}`;
+  const level = integrityLevel(exits, threshold);
+  return level === "none" ? "Integrity: no concerns" : level === "concern" ? `Integrity: concern, ${n}` : `Integrity: ${n}`;
+}
 
 export type IntegritySummary = { sessionId: string; exits: number; flagged: boolean; cleared: boolean };
 
@@ -44,4 +56,42 @@ export async function integritySummaries(db: Db, sessionIds: string[]): Promise<
       return [id, { sessionId: id, exits: n, flagged: !clearedIds.has(id) && isFlagged(n, testing.integrityFlagThreshold), cleared: clearedIds.has(id) }];
     })
   );
+}
+
+/** What a company sees: a cleared flag reads as no exits at all. */
+export const shownExits = (s: IntegritySummary | undefined) => (s && !s.cleared ? s.exits : 0);
+
+export type CandidateIntegrity = {
+  /** The most exits in any one test (cleared flags and voided results count as none). */
+  exits: number;
+  level: IntegrityLevel;
+  perTest: { testType: TestType; exits: number }[];
+};
+
+/**
+ * Integrity for each candidate, from their latest result in every test (voided results are skipped, a cleared flag reads as no exits).
+ * The level uses the threshold in Settings > Tests, per test: a candidate is at "concern" when any one test reaches it.
+ */
+export async function candidateIntegrity(db: Db & Pick<PrismaClient, "score">, profileIds: string[]): Promise<Map<string, CandidateIntegrity>> {
+  const out = new Map<string, CandidateIntegrity>();
+  if (profileIds.length === 0) return out;
+  const [latest, testing] = await Promise.all([
+    db.score.findMany({
+      where: { candidateProfileId: { in: profileIds }, voidedAt: null },
+      orderBy: { computedAt: "desc" },
+      distinct: ["candidateProfileId", "testType"],
+      select: { candidateProfileId: true, testType: true, sessionId: true },
+    }),
+    readSetting(db, "testing"),
+  ]);
+  const summaries = await integritySummaries(db, latest.map((s) => s.sessionId));
+  for (const s of latest) {
+    const entry = out.get(s.candidateProfileId) ?? { exits: 0, level: "none" as IntegrityLevel, perTest: [] };
+    const n = shownExits(summaries.get(s.sessionId));
+    entry.perTest.push({ testType: s.testType, exits: n });
+    entry.exits = Math.max(entry.exits, n);
+    entry.level = integrityLevel(entry.exits, testing.integrityFlagThreshold);
+    out.set(s.candidateProfileId, entry);
+  }
+  return out;
 }

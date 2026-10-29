@@ -39,6 +39,7 @@ describe.skipIf(!dbUp)("translations of a question that gets a new version (real
     await kit.cleanup();
     await prisma.question.deleteMany({ where: { languageId: kit.language.id } });
     await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
+    await prisma.notification.deleteMany({ where: { userId: adminId } });
     await prisma.user.delete({ where: { id: adminId } });
     await prisma.language.delete({ where: { id: urdu.id } });
   }, 60_000);

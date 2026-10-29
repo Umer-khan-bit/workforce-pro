@@ -29,9 +29,11 @@ describe("integrity wording and threshold (pure)", () => {
     expect(isFlagged(3, 3)).toBe(true);
   });
   it("shows counts only", () => {
-    expect(integrityLine(0)).toBe("Integrity: no concerns");
-    expect(integrityLine(1)).toBe("Integrity: 1 window exit");
-    expect(integrityLine(4)).toBe("Integrity: 4 window exits");
+    expect(integrityLine(0, 3)).toBe("Integrity: no concerns");
+    expect(integrityLine(1, 3)).toBe("Integrity: 1 window exit");
+    expect(integrityLine(2, 3)).toBe("Integrity: 2 window exits");
+    expect(integrityLine(3, 3)).toBe("Integrity: concern, 3 window exits");
+    expect(integrityLine(4, 3)).toBe("Integrity: concern, 4 window exits");
   });
 });
 
@@ -50,6 +52,7 @@ describe.skipIf(!dbUp)("integrity review (real database)", () => {
     await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
     await prisma.integrityReview.deleteMany({ where: { reviewedById: adminId } });
     await kit.cleanup();
+    await prisma.notification.deleteMany({ where: { userId: adminId } }); // other tests may have notified every admin
     await prisma.user.delete({ where: { id: adminId } });
   }, 60_000);
 
@@ -164,11 +167,11 @@ describe.skipIf(!dbUp)("integrity review (real database)", () => {
     try {
       const args = { recruiterUserId: rec.id, companyId: company.id, candidateProfileId: c.profileId, offerMax: 100_000, entitlements: { canSearch: true, canSeeTopPerformers: true } as never };
       let d = await getCandidateDetail(prisma, args);
-      expect(d?.integrity).toEqual({ IQ: "Integrity: 4 window exits", EQ: "Integrity: no concerns" });
+      expect(d?.integrity).toEqual({ IQ: { line: "Integrity: concern, 4 window exits", level: "concern", exits: 4 }, EQ: { line: "Integrity: no concerns", level: "none", exits: 0 } });
       expect(JSON.stringify(d?.integrity)).not.toContain(a);
       await clearFlag(prisma, adminId, a);
       d = await getCandidateDetail(prisma, args);
-      expect(d?.integrity.IQ).toBe("Integrity: no concerns");
+      expect(d?.integrity.IQ).toMatchObject({ line: "Integrity: no concerns", level: "none" });
     } finally {
       await prisma.auditLog.deleteMany({ where: { actorId: rec.id } });
       await prisma.user.delete({ where: { id: rec.id } });

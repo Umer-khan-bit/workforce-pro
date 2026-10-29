@@ -16,4 +16,6 @@ export type SearchFilters = {
   quartiles?: Partial<Record<RankedTest, number>>;
   /** Only Top Performers: the quartile in every test the top-performer rule counts. */
   topPerformersOnly?: boolean;
+  /** Leave out candidates whose integrity is at or above the threshold in Settings > Tests (cleared flags and voided results count as no concern). */
+  noIntegrityConcerns?: boolean;
 };

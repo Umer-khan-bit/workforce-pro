@@ -358,6 +358,15 @@ region, or a job role, language or plan name written as a text value appears in 
   A question is NOT shuffled when any option refers to the others ("all of the above", "both A and B", "neither"...): the phrases are Settings > Tests >
   Integrity (`integrityNoShufflePhrases`, one per line, `{key}` = any option letter), checked by `src/lib/testEngine/optionShuffle.ts`. `npm run shuffle:scan` lists the affected approved questions.
 
+- Integrity for companies: search has an Integrity column and the filter "Only candidates with no integrity concerns" (`clean=1`, in the address). Three states from
+  the highest window-exit count in any one test (`candidateIntegrity`, `src/lib/integrity/summary.ts`): 0 = "No concerns", below `integrityFlagThreshold` = grey
+  "N exits" (information only), at or above it = red "N exits". The filter removes only the red ones. Cleared flags and voided results count as zero. The report page
+  and PDF use the same rule (`integrityLine`). Counts only, never session ids or dates.
+- "Report a concern" (candidate report, `POST /api/recruiter/candidates/[id]/concern`): a required reason (max 500) on a test result, same access rules as the report;
+  a company can report a given result once (`ConcernReport`, unique company + session); platform admins get an in-app notification and see it under Integrity review >
+  "Reported by companies" with "Mark reviewed". Both are audit-logged. Reporting never changes a result: only the platform admin clears or voids. Other companies' reports are never shown.
+  Tests that create a PLATFORM_ADMIN must delete that user's notifications before deleting the user.
+
 ## Demo, polish and go-live (decided on Day 7)
 - Demo data lives only in the seed (`prisma/seed.ts`, DEMO_MODE only): results, courses, hiring, ATS activity (`seedDemoIntegrations`), item statistics (`seedDemoItemStats`), one waiting request (`seedDemoStory`), and the approval of AI-reviewed-OK demo questions (`approveDemoContent`). `npm run demo:reset` repeats the live demo step. `e2e/demo-accounts.spec.ts` fails if a demo account meets an empty or broken screen.
 - Privacy policy versions are added in `PRIVACY_POLICY_UPDATES` (`src/lib/seedData.ts`); the current one is 1.2 (gender is optional, fairness checks only).

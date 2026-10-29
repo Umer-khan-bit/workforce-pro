@@ -47,6 +47,7 @@ describe.skipIf(!dbUp)("per-question limit and option shuffle (real database)", 
     await setTesting(original);
     await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
     await kit.cleanup();
+    await prisma.notification.deleteMany({ where: { userId: adminId } }); // other tests may have notified every admin
     await prisma.user.delete({ where: { id: adminId } });
   }, 60_000);
 
