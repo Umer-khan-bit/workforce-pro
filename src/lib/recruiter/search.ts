@@ -124,7 +124,7 @@ export async function loadLatestResults(db: Pick<PrismaClient, "score">, profile
   const out = new Map<string, ResultRow[]>();
   if (profileIds.length === 0) return out;
   const scores = await db.score.findMany({
-    where: { candidateProfileId: { in: profileIds }, provisional: false, quartile: { not: null } },
+    where: { candidateProfileId: { in: profileIds }, provisional: false, voidedAt: null, quartile: { not: null } },
     orderBy: { computedAt: "desc" },
     distinct: ["candidateProfileId", "testType"],
     select: { candidateProfileId: true, testType: true, quartile: true, percentile: true, cefrLevel: true },

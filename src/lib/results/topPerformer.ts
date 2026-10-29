@@ -28,7 +28,7 @@ export function topPerformerProgress(quartileByTest: Partial<Record<TestType, nu
 /** The candidate's current quartile in each test: latest finished (not provisional) result. */
 export async function currentQuartiles(db: Pick<PrismaClient, "score">, candidateProfileId: string) {
   const scores = await db.score.findMany({
-    where: { candidateProfileId, provisional: false, quartile: { not: null } },
+    where: { candidateProfileId, provisional: false, voidedAt: null, quartile: { not: null } },
     orderBy: { computedAt: "desc" },
     distinct: ["testType"],
     select: { testType: true, quartile: true },
@@ -78,4 +78,19 @@ export async function evaluateTopPerformer(db: Db, candidateProfileId: string): 
 export async function isTopPerformer(db: Pick<PrismaClient, "score" | "siteSetting">, candidateProfileId: string): Promise<boolean> {
   const [rule, quartiles] = await Promise.all([readSetting(db, "topPerformer"), currentQuartiles(db, candidateProfileId)]);
   return meetsTopPerformerRule(quartiles, rule);
+}
+
+/**
+ * After an admin voids a result: if the candidate met the top-performer rule only thanks to that result
+ * (`metBefore`) and no longer does, the badge is taken back and the removal is audit-logged.
+ * Otherwise the badge stays (it is kept for life when earned on earlier results).
+ */
+export async function removeBadgeIfNoLongerEarned(db: Db, candidateProfileId: string, actorId: string, metBefore: boolean): Promise<boolean> {
+  if (!metBefore || (await isTopPerformer(db, candidateProfileId))) return false;
+  const removed = await db.badge.deleteMany({ where: { candidateProfileId, type: "TOP_PERFORMER_ALL_TESTS" } });
+  if (removed.count === 0) return false;
+  await db.auditLog.create({
+    data: { actorId, action: "BADGE_REMOVED", targetType: "CandidateProfile", targetId: candidateProfileId, metadata: { badge: "TOP_PERFORMER_ALL_TESTS", reason: "result voided after integrity review" } },
+  });
+  return true;
 }

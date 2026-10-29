@@ -4,7 +4,13 @@ import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 50;
 const when = (d: Date) => d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
-const READABLE: Record<string, string> = { TEST_FOCUS_LOST: "Candidate left the test window" };
+const READABLE: Record<string, string> = {
+  TEST_FOCUS_LOST: "Candidate left the test window",
+  INTEGRITY_FLAG_CLEARED: "Integrity flag cleared",
+  INTEGRITY_RESULT_VOIDED: "Result voided after integrity review",
+  INTEGRITY_VOID_UNDONE: "Void undone",
+  BADGE_REMOVED: "Badge removed",
+};
 const label = (action: string) => READABLE[action] ?? action.toLowerCase().replace(/_/g, " ");
 
 /** The audit log: who did what and when. It records kinds of actions and ids, never passwords, salaries or answers. */

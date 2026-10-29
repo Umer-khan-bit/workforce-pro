@@ -138,6 +138,7 @@ export async function createKit(prisma: PrismaClient, tag = "kit") {
     await prisma.score.create({
       data: { candidateProfileId: profileId, sessionId: session.id, testType, rawScore: value, theta: value, rankValue: value, provisional: opts.provisional ?? false },
     });
+    return session.id;
   }
 
   async function cleanup() {
@@ -158,6 +159,8 @@ export async function createKit(prisma: PrismaClient, tag = "kit") {
     await prisma.shortlistStatusHistory.deleteMany({ where: { shortlistId: { in: listed.map((x) => x.id) } } });
     await prisma.shortlist.deleteMany({ where: { id: { in: listed.map((x) => x.id) } } });
     await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.integrityReview.deleteMany({ where: { sessionId: { in: sessionIds } } });
+    await prisma.auditLog.deleteMany({ where: { targetType: "TestSession", targetId: { in: sessionIds } } });
     await prisma.writingAssessment.deleteMany({ where: { sessionId: { in: sessionIds } } });
     await prisma.response.deleteMany({ where: { sessionId: { in: sessionIds } } });
     await prisma.score.deleteMany({ where: { sessionId: { in: sessionIds } } });

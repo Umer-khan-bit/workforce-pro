@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { latestResults, type LatestResult } from "@/lib/results/latest";
+import { integrityLine, integritySummaries } from "@/lib/integrity/summary";
 import { isTopPerformer } from "@/lib/results/topPerformer";
 import { viewCandidateAsRecruiter } from "./candidateAccess";
 import type { Entitlements } from "./entitlements";
@@ -14,6 +15,8 @@ export type CandidateDetail = {
   topPerformer: boolean;
   hasBadge: boolean;
   results: LatestResult[];
+  /** Per test: "Integrity: no concerns" or "Integrity: N window exits". Counts only; a cleared flag reads as no concerns. */
+  integrity: Record<string, string>;
   /** The recruiter's own shortlist entries and contact requests for this candidate. */
   shortlists: { id: string; status: string; jobOpeningId: string }[];
   requests: { id: string; status: string; jobOpeningId: string; sentAt: Date; respondedAt: Date | null; email: string | null; phone: string | null }[];
@@ -50,6 +53,12 @@ export async function getCandidateDetail(
     }),
   ]);
 
+  const summaries = await integritySummaries(db, results.map((r) => r.sessionId));
+  const integrity = Object.fromEntries(results.map((r) => {
+    const s = summaries.get(r.sessionId);
+    return [r.testType, integrityLine(s && !s.cleared ? s.exits : 0)];
+  }));
+
   return {
     id: base.id,
     name: base.user.name,
@@ -60,6 +69,7 @@ export async function getCandidateDetail(
     topPerformer,
     hasBadge: base.badges.length > 0,
     results,
+    integrity,
     shortlists,
     requests: requests.map((r) => ({
       id: r.id,

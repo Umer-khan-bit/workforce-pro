@@ -22,6 +22,7 @@ export async function rankAgainstCohort(
         testType: args.testType,
         rankValue: { not: null },
         provisional: false,
+        voidedAt: null,
         candidateProfileId: { not: args.candidateProfileId },
         candidateProfile: { anonymisedAt: null },
       },

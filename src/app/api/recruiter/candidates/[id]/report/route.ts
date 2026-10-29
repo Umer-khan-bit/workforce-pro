@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     experienceYears: detail.experienceYears,
     generatedOn: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     topPerformer: detail.topPerformer,
-    results: detail.results.map((r) => ({ title: `${TEST_TITLES[r.testType]} test`, lines: resultLines(r, quartiles.minCohortSize), traits: r.traits, feedback: null, tips: [] })),
+    results: detail.results.map((r) => ({ title: `${TEST_TITLES[r.testType]} test`, lines: [...resultLines(r, quartiles.minCohortSize), detail.integrity[r.testType]], traits: r.traits, feedback: null, tips: [] })),
     salary: null,
     disclaimer: "Assessment results are a screening aid. AI scores, ranks and recommends; it never makes a hiring decision.",
   });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 import { getResult, TestError } from "@/lib/testEngine/session";
 import { TEST_SLUGS, TEST_TITLES } from "@/lib/testEngine/labels";
 
@@ -28,6 +29,8 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
     throw err;
   }
 
+  const voided = await prisma.score.findFirst({ where: { sessionId: id, voidedAt: { not: null } }, select: { id: true } });
+  const testing = voided ? await getSetting("testing") : null;
   const title = TEST_TITLES[result.testType];
   const isPersonality = result.testType === "PERSONALITY";
 
@@ -36,7 +39,14 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
       <Link href="/candidate/tests" className="text-sm text-brand-700 underline">&larr; My tests</Link>
       <h1 className="mt-2 text-2xl font-semibold text-zinc-900">{title} test: your summary</h1>
 
-      {!result.scored && (
+      {voided && testing && (
+        <section className="card mt-6" role="status" data-testid="result-cancelled">
+          <p className="font-medium text-zinc-900">{testing.integrityVoidedNotice}</p>
+          <p className="mt-4"><Link href={`/candidate/tests/${TEST_SLUGS[result.testType]}`} className="btn-primary">Take the test again</Link></p>
+        </section>
+      )}
+
+      {!voided && !result.scored && (
         <section className="card mt-6" role="status">
           <p className="font-medium text-zinc-900">This test was not scored.</p>
           <p className="mt-1 text-sm text-zinc-700">
@@ -46,7 +56,7 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
         </section>
       )}
 
-      {result.scored && (
+      {!voided && result.scored && (
         <>
           <section className="card mt-6" aria-labelledby="summary-h" data-testid="summary">
             <h2 id="summary-h" className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Result</h2>

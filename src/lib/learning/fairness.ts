@@ -76,7 +76,7 @@ export async function buildFairnessReport(db: Db, month: string, now = new Date(
   const languageName = new Map(languages.map((l) => [l.id, l.name]));
 
   const scores = await db.score.findMany({
-    where: { testType: { in: FAIRNESS_TESTS }, provisional: false, quartile: { not: null }, percentile: { not: null }, computedAt: { gte: from, lt: to }, candidateProfile: { anonymisedAt: null } },
+    where: { testType: { in: FAIRNESS_TESTS }, provisional: false, voidedAt: null, quartile: { not: null }, percentile: { not: null }, computedAt: { gte: from, lt: to }, candidateProfile: { anonymisedAt: null } },
     select: { testType: true, quartile: true, percentile: true, candidateProfile: { select: { gender: true, regionId: true } }, session: { select: { languageId: true } } },
   });
 

@@ -124,7 +124,7 @@ export async function getOverview(deps: Deps, userId: string): Promise<{ verifie
       orderBy: { completedAt: "desc" },
       include: { score: true },
     });
-    if (last?.completedAt) {
+    if (last?.completedAt && !last.score?.voidedAt) {
       const retakeAt = new Date(last.completedAt.getTime() + config.retakeWaitingDays * DAY_MS);
       const canRetake = retakeAt.getTime() <= now.getTime() || (await trainingUnlocksRetake(prisma, candidate.profileId, testType, last.completedAt));
       const unavailable = canRetake ? await checkPool(prisma, testType, language, candidate.jobRoleId, config.minItems) : null;
@@ -175,7 +175,8 @@ export async function startOrResume(deps: Deps, userId: string, testType: TestTy
     where: { candidateProfileId: candidate.profileId, testType, status: "COMPLETED", score: { isNot: null } },
     orderBy: { completedAt: "desc" },
   });
-  if (last?.completedAt) {
+  // A result an admin cancelled after an integrity review does not make the candidate wait.
+  if (last?.completedAt && !(await prisma.score.findFirst({ where: { sessionId: last.id, voidedAt: { not: null } }, select: { id: true } }))) {
     const retakeAt = new Date(last.completedAt.getTime() + config.retakeWaitingDays * DAY_MS);
     if (retakeAt.getTime() > now.getTime() && !(await trainingUnlocksRetake(prisma, candidate.profileId, testType, last.completedAt))) {
       throw new TestError(409, "RETAKE_LATER", `You can take this test again on ${retakeAt.toISOString().slice(0, 10)}.`, { retakeAt: retakeAt.toISOString() });

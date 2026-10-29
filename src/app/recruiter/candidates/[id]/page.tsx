@@ -75,7 +75,7 @@ export default async function CandidateDetailPage({ params, searchParams }: { pa
                 {r.quartile !== null && !r.provisional && <span className={`rounded-lg px-3 py-1 text-xl font-semibold ${QUARTILE_STYLE[r.quartile]}`}>Q{r.quartile}</span>}
               </div>
             </div>
-            <div className="mt-1 space-y-1 text-sm text-zinc-700">{resultLines(r, quartiles.minCohortSize).map((line, i) => <p key={i}>{line}</p>)}</div>
+            <div className="mt-1 space-y-1 text-sm text-zinc-700">{resultLines(r, quartiles.minCohortSize).map((line, i) => <p key={i}>{line}</p>)}<p data-testid={`integrity-${r.testType}`}>{detail.integrity[r.testType]}</p></div>
             {r.traits && (
               <ul className="mt-3 flex flex-col gap-2">
                 {r.traits.map((t) => (

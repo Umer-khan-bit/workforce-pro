@@ -222,6 +222,8 @@ export const testingSchema = z
     instructionsGeneral: z.string().trim().min(5).max(2000),
     writingNotice: z.string().trim().min(5).max(1000),
     integrityPledge: z.string().trim().min(5).max(500),
+    integrityFlagThreshold: z.coerce.number().int().min(1).max(100),
+    integrityVoidedNotice: z.string().trim().min(5).max(500),
   })
   .refine((t) => t.writingMinWords < t.writingMaxWords, {
     message: "The minimum number of words must be lower than the maximum",
@@ -414,6 +416,8 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
     writingNotice:
       "Your written answer is graded by AI. Only the text of your answer is sent for grading, never your name or any other personal details.",
     integrityPledge: "I will take this test myself, without help from other people, websites or AI tools.",
+    integrityFlagThreshold: 3,
+    integrityVoidedNotice: "This result was cancelled after a review. You can take the test again.",
   },
   testEngine: { topK: 5, maxExposureRate: 0.4, exposureWarmupSessions: 30, topicBalancePenalty: 0.5 },
   salaryGuide: {
@@ -546,6 +550,8 @@ export const SETTING_GROUPS: SettingGroup[] = [
     fields: [
       { name: "instructionsGeneral", label: "Instructions shown before every test", type: "textarea", rows: 4, help: "Plain rules shown on the start screen of every test, such as no going back and the running timer." },
       { name: "integrityPledge", label: "Honesty pledge", type: "textarea", rows: 2, help: "The sentence a candidate must tick before the Start button works on every test." },
+      { name: "integrityFlagThreshold", label: "Integrity: window exits that flag a test", type: "number", help: "When a candidate leaves the test window this many times or more in one test, the test appears under Integrity review for an admin to look at. Recruiters only see the number of exits." },
+      { name: "integrityVoidedNotice", label: "Integrity: message for a cancelled result", type: "textarea", rows: 2, help: "Shown to the candidate on My results when an admin cancels a result after a review." },
       { name: "writingNotice", label: "Writing task notice", type: "textarea", rows: 3, help: "Shown before the Language writing task to explain that an AI grades the text." },
       { name: "writingWeightPercent", label: "Language: how much the writing counts (%)", type: "number", help: "Share of the Language score that comes from the writing grade; the rest comes from the multiple-choice questions." },
       { name: "writingMinWords", label: "Writing: fewest words", type: "number", help: "Candidates cannot submit a written answer shorter than this." },

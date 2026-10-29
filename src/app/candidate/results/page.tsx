@@ -23,11 +23,15 @@ export default async function MyResultsPage() {
   const profile = await prisma.candidateProfile.findFirst({ where: { userId: session!.user.id, anonymisedAt: null }, select: { id: true } });
   if (!profile) redirect("/login");
 
-  const [results, quartiles, badge] = await Promise.all([
+  const [results, quartiles, badge, newest, testing] = await Promise.all([
     latestResults(prisma, profile.id),
     getSetting("quartiles"),
     prisma.badge.findFirst({ where: { candidateProfileId: profile.id, type: "TOP_PERFORMER_ALL_TESTS" } }),
+    prisma.score.findMany({ where: { candidateProfileId: profile.id }, orderBy: { computedAt: "desc" }, distinct: ["testType"], select: { testType: true, voidedAt: true } }),
+    getSetting("testing"),
   ]);
+  // A test whose newest result an admin cancelled after an integrity review.
+  const cancelled = newest.filter((s) => s.voidedAt);
   const feedback = await Promise.all(results.map((r) => (r.provisional ? null : findFeedback(prisma, r.scoreId))));
 
   return (
@@ -41,6 +45,12 @@ export default async function MyResultsPage() {
           <a href="/api/results/report" className="btn-primary" data-testid="download-report">Download PDF report</a>
         )}
       </div>
+
+      {cancelled.map((c) => (
+        <p key={c.testType} role="status" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid={`cancelled-${c.testType}`}>
+          <strong>{TEST_TITLES[c.testType]}.</strong> {testing.integrityVoidedNotice} <Link href={`/candidate/tests/${TEST_SLUGS[c.testType]}`} className="underline">Go to the test</Link>
+        </p>
+      ))}
 
       {badge && (
         <p className="mt-4 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900" data-testid="top-performer-note">

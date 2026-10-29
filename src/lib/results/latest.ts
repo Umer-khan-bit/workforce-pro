@@ -21,7 +21,7 @@ export type LatestResult = {
 /** The candidate's most recent result for each test, in the usual test order. */
 export async function latestResults(db: Db, candidateProfileId: string): Promise<LatestResult[]> {
   const rows = await db.score.findMany({
-    where: { candidateProfileId },
+    where: { candidateProfileId, voidedAt: null },
     orderBy: { computedAt: "desc" },
     distinct: ["testType"],
   });

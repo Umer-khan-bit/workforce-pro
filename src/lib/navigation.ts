@@ -342,6 +342,13 @@ export const ROLE_NAV: Record<Role, RoleNav> = {
             live: true,
           },
           {
+            slug: "integrity-review",
+            label: "Integrity review",
+            description: "Tests where the candidate left the window several times: clear the flag or void the result.",
+            planned: [],
+            live: true,
+          },
+          {
             slug: "audit-log",
             label: "Audit log",
             description: "Admin actions and recruiter profile views.",

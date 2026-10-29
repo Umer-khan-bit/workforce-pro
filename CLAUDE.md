@@ -337,6 +337,17 @@ region, or a job role, language or plan name written as a text value appears in 
   - One consistent vocabulary across the whole app (for example always "Candidate", never "Job seeker"
     or "Applicant"; the same word for the same thing on every screen, email and template).
 
+## Integrity (decided)
+- Test screen: copy, cut, paste, right-click and text selection are blocked on questions; pasting into the Language writing box is refused. Every
+  time a candidate leaves the window, `POST /api/tests/sessions/[id]/focus` writes `TEST_FOCUS_LOST` to the audit log (count only, own running session,
+  rate limited). The honesty pledge wording is Settings > Tests.
+- A test is flagged when window exits reach `integrityFlagThreshold` (Settings > Tests, starting value 3). Recruiters see only "Integrity: no concerns" or
+  "Integrity: N window exits" (a cleared flag reads as no concerns). `src/lib/integrity/`.
+- Platform admin "Integrity review": Clear flag, Void result, Undo void (all audit-logged; `IntegrityReview` table). Voiding sets `Score.voidedAt`; EVERY
+  reader of results must filter `voidedAt: null` (ranking, search, filters, Top Performer, salary guide, training, reports, fairness, exports, AI feedback).
+  A badge that depended on the voided result is withdrawn (`BADGE_REMOVED`); Undo re-checks it. A voided last result lets the candidate retake at once.
+  The wording the candidate sees is Settings > Tests ("Integrity: message for a cancelled result"). Paste attempts are not recorded.
+
 ## Demo, polish and go-live (decided on Day 7)
 - Demo data lives only in the seed (`prisma/seed.ts`, DEMO_MODE only): results, courses, hiring, ATS activity (`seedDemoIntegrations`), item statistics (`seedDemoItemStats`), one waiting request (`seedDemoStory`), and the approval of AI-reviewed-OK demo questions (`approveDemoContent`). `npm run demo:reset` repeats the live demo step. `e2e/demo-accounts.spec.ts` fails if a demo account meets an empty or broken screen.
 - Privacy policy versions are added in `PRIVACY_POLICY_UPDATES` (`src/lib/seedData.ts`); the current one is 1.2 (gender is optional, fairness checks only).

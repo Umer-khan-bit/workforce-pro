@@ -29,7 +29,7 @@ export async function candidatesByRole(db: Db, where: Prisma.CandidateProfileWhe
 /** How many candidates are in each quartile for one test, using each candidate's latest finished result. */
 export async function quartileDistribution(db: Db, testType: TestType, where: Prisma.CandidateProfileWhereInput = REAL_CANDIDATES): Promise<Slice[]> {
   const scores = await db.score.findMany({
-    where: { testType, provisional: false, quartile: { not: null }, candidateProfile: where },
+    where: { testType, provisional: false, voidedAt: null, quartile: { not: null }, candidateProfile: where },
     orderBy: { computedAt: "desc" },
     distinct: ["candidateProfileId"],
     select: { quartile: true },

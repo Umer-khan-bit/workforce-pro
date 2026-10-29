@@ -57,6 +57,7 @@ describe("admin actions are audited", () => {
   const AUDITED_IN_LIBRARY = [
     "src/app/api/admin/ai/generate/route.ts",
     "src/app/api/admin/ai/translate-ipip/route.ts",
+    "src/app/api/admin/integrity/[sessionId]/route.ts",
     "src/app/api/admin/companies/[id]/subscription/route.ts",
     "src/app/api/admin/questions/import-ipip/route.ts",
   ];
@@ -69,6 +70,7 @@ describe("admin actions are audited", () => {
   it("the library functions named above really write audit entries", () => {
     expect(read("src/lib/ai/generate.ts")).toContain("auditLog.create");
     expect(read("src/lib/subscriptions.ts")).toContain("auditLog.create");
+    expect(read("src/lib/integrity/review.ts")).toContain("auditLog.create");
     expect(read("src/lib/questionBank/ipipImport.ts")).toContain("auditLog.create");
   });
 });

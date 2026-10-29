@@ -98,7 +98,7 @@ export async function findFeedback(db: Pick<PrismaClient, "aIFeedback">, scoreId
 export async function ensureFeedback(deps: { prisma: Db; client?: ClaudeClient }, userId: string, scoreId: string): Promise<Feedback> {
   const { prisma } = deps;
   const score = await prisma.score.findFirst({
-    where: { id: scoreId, candidateProfile: { userId, anonymisedAt: null } },
+    where: { id: scoreId, voidedAt: null, candidateProfile: { userId, anonymisedAt: null } },
     include: { candidateProfile: { select: { id: true, experienceYears: true, jobRole: { select: { name: true } } } } },
   });
   if (!score) throw new AiError("INVALID_INPUT", "Result not found.");
